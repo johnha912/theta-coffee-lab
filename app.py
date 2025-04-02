@@ -90,4 +90,4 @@ Use the sidebar to navigate to different sections of the application:
 
 # Footer
 st.markdown("---")
-st.caption("© 2023 Theta Coffee Lab Management System")
+st.caption("© 2025 Theta Coffee Lab Management System")
