@@ -90,23 +90,35 @@ try:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Material selection
-        existing_materials = inventory_df['Name'].unique().tolist() if not inventory_df.empty else []
-        default_materials = ["Coffee Beans", "Fresh Milk", "Sugar", "Plastic Cup", "Paper Cup", "Syrup", "Other"]
+        # Initialize session state for input options
+        if 'use_custom_material' not in st.session_state:
+            st.session_state.use_custom_material = False
+            
+        # Toggle for custom material input
+        st.session_state.use_custom_material = st.checkbox("Enter custom material name", value=st.session_state.use_custom_material)
         
-        material_selection = st.selectbox(
-            "Material Name", 
-            options=existing_materials + default_materials if existing_materials else default_materials,
-            index=0 if existing_materials else 0
-        )
-        
-        # Handle custom material name
-        if material_selection == "Other":
-            material_name = st.text_input("Specify Material Name", value="")
+        # Material selection based on toggle
+        if st.session_state.use_custom_material:
+            # Direct text input for material name
+            material_name = st.text_input("Custom Material Name", value="")
             if not material_name:
-                material_name = "Custom Material"  # Default value to prevent empty names
+                material_name = "Custom Material"  # Default to prevent empty names
         else:
-            material_name = material_selection
+            # Select from existing options
+            existing_materials = inventory_df['Name'].unique().tolist() if not inventory_df.empty else []
+            default_materials = ["Coffee Beans", "Fresh Milk", "Sugar", "Plastic Cup", "Paper Cup", "Syrup"]
+            
+            # Combine and remove duplicates while preserving order
+            all_materials = []
+            for item in existing_materials + default_materials:
+                if item not in all_materials:
+                    all_materials.append(item)
+            
+            material_name = st.selectbox(
+                "Material Name", 
+                options=all_materials,
+                index=0 if all_materials else 0
+            )
         
         # Unit selection
         unit_options = ["g", "ml", "pcs", "kg", "l"]
