@@ -5,6 +5,9 @@ import plotly.io as pio
 import datetime
 import utils
 
+# Khởi tạo session_state
+utils.initialize_session_state()
+
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
 

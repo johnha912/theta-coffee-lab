@@ -6,6 +6,9 @@ import plotly.io as pio
 import datetime
 import utils
 
+# Khởi tạo session_state
+utils.initialize_session_state()
+
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
 
@@ -27,9 +30,6 @@ custom_ggplot2_template.layout.update(
 )
 pio.templates['custom_ggplot2'] = custom_ggplot2_template
 pio.templates.default = 'custom_ggplot2'
-
-# Khởi tạo session_state
-utils.initialize_session_state()
 
 st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
 
