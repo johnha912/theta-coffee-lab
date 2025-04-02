@@ -12,6 +12,15 @@ st.subheader("Track and manage inventory items")
 def add_inventory():
     """Add new inventory items"""
     try:
+        # Validate input
+        if not material_name or material_name.isspace():
+            st.error("Please enter a valid material name")
+            return
+            
+        if add_quantity <= 0:
+            st.error("Quantity must be greater than zero")
+            return
+        
         # Load current inventory
         try:
             inventory_df = pd.read_csv("data/inventory.csv")
@@ -37,17 +46,22 @@ def add_inventory():
             
             message = f"Updated {material_name} inventory: added {add_quantity} {unit}"
         else:
-            # Add new material
+            # Add new material - using loc to avoid concat warnings
             new_id = len(inventory_df) + 1
-            new_row = {
-                'ID': new_id,
-                'Name': material_name,
-                'Quantity': add_quantity,
-                'Unit': unit,
-                'Avg_Cost': unit_cost,
-                'Date': inventory_date.strftime('%Y-%m-%d')
-            }
-            inventory_df = pd.concat([inventory_df, pd.DataFrame([new_row])], ignore_index=True)
+            
+            # Create a new row index
+            new_idx = len(inventory_df)
+            
+            # Use DataFrame.loc to add the new row
+            inventory_df.loc[new_idx] = [
+                new_id,
+                material_name,
+                add_quantity,
+                unit,
+                unit_cost,
+                inventory_date.strftime('%Y-%m-%d')
+            ]
+            
             message = f"Added new material: {material_name}"
         
         # Save updated inventory
@@ -60,18 +74,22 @@ def add_inventory():
         except FileNotFoundError:
             trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
         
-        new_trans = {
-            'Date': inventory_date.strftime('%Y-%m-%d'),
-            'Material': material_name,
-            'Quantity': add_quantity,
-            'Unit': unit,
-            'Unit_Cost': unit_cost,
-            'Total_Cost': add_quantity * unit_cost,
-            'Type': 'Addition'
-        }
+        # Add transaction - using loc instead of concat
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            inventory_date.strftime('%Y-%m-%d'),
+            material_name,
+            add_quantity,
+            unit,
+            unit_cost,
+            add_quantity * unit_cost,
+            'Addition'
+        ]
         
-        trans_df = pd.concat([trans_df, pd.DataFrame([new_trans])], ignore_index=True)
         trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        # After successful add, refresh the form/page
+        st.rerun()
         
     except Exception as e:
         st.error(f"Error adding inventory: {str(e)}")
