@@ -12,11 +12,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state for settings if not already present
-if 'currency' not in st.session_state:
-    st.session_state.currency = "VND"
-if 'alert_threshold' not in st.session_state:
-    st.session_state.alert_threshold = 10
+# Initialize session state variables
+utils.initialize_session_state()
+
+# Set additional application-specific session state variables
 if 'default_time_filter' not in st.session_state:
     st.session_state.default_time_filter = "Today"
 if 'username' not in st.session_state:

@@ -4,13 +4,21 @@ import streamlit as st
 from datetime import datetime, timedelta
 import os
 
+def initialize_session_state():
+    """Initialize session state variables"""
+    if 'currency' not in st.session_state:
+        st.session_state.currency = "VND"
+    
+    if 'alert_threshold' not in st.session_state:
+        st.session_state.alert_threshold = 10.0
+
 def format_currency(value):
     """Format a number as currency with comma separators"""
     if pd.isna(value):
         return "0 VND"
     
     # Format with commas
-    formatted = f"{value:,.0f} {st.session_state.currency}"
+    formatted = f"{value:,.0f} VND"
     return formatted
 
 def get_date_range(time_filter):

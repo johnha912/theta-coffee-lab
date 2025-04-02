@@ -219,9 +219,8 @@ try:
     # Ensure data directory exists
     utils.ensure_data_dir()
     
-    # Initialize session state variables if they don't exist
-    if 'alert_threshold' not in st.session_state:
-        st.session_state.alert_threshold = 10.0
+    # Initialize session state variables
+    utils.initialize_session_state()
         
     # Load inventory data
     try:
