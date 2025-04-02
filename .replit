@@ -17,10 +17,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Cafe Management System"
+args = "Theta Coffee Lab Management System"
 
 [[workflows.workflow]]
-name = "Cafe Management System"
+name = "Theta Coffee Lab Management System"
 author = "agent"
 
 [workflows.workflow.metadata]

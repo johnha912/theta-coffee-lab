@@ -6,7 +6,7 @@ from data_init import initialize_data_files
 
 # Set page configuration
 st.set_page_config(
-    page_title="Cafe Management System",
+    page_title="Theta Coffee Lab Management System",
     page_icon="☕",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -25,11 +25,11 @@ if 'username' not in st.session_state:
 initialize_data_files()
 
 # Main page - redirects to dashboard
-st.title("Cafe Management System")
+st.title("Theta Coffee Lab Management System")
 
 # Introduction message
 st.write("""
-Welcome to the Cafe Management System! This application helps you manage your cafe operations 
+Welcome to the Theta Coffee Lab Management System! This application helps you manage your cafe operations 
 including sales tracking, inventory management, product recipes, and financial reporting.
 """)
 
@@ -90,4 +90,4 @@ Use the sidebar to navigate to different sections of the application:
 
 # Footer
 st.markdown("---")
-st.caption("© 2023 Cafe Management System")
+st.caption("© 2023 Theta Coffee Lab Management System")
