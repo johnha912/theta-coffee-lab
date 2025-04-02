@@ -77,6 +77,13 @@ def add_inventory():
         st.error(f"Error adding inventory: {str(e)}")
 
 try:
+    # Ensure data directory exists
+    utils.ensure_data_dir()
+    
+    # Initialize session state variables if they don't exist
+    if 'alert_threshold' not in st.session_state:
+        st.session_state.alert_threshold = 10.0
+        
     # Load inventory data
     try:
         inventory_df = pd.read_csv("data/inventory.csv")
@@ -90,19 +97,19 @@ try:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Initialize session state for input options
-        if 'use_custom_material' not in st.session_state:
-            st.session_state.use_custom_material = False
-            
-        # Toggle for custom material input
-        st.session_state.use_custom_material = st.checkbox("Enter custom material name", value=st.session_state.use_custom_material)
+        # Option to switch between select and manual input
+        input_method = st.radio(
+            "Material Input Method",
+            ["Select from list", "Enter manually"],
+            horizontal=True
+        )
         
-        # Material selection based on toggle
-        if st.session_state.use_custom_material:
+        if input_method == "Enter manually":
             # Direct text input for material name
-            material_name = st.text_input("Custom Material Name", value="")
-            if not material_name:
-                material_name = "Custom Material"  # Default to prevent empty names
+            material_name = st.text_input("Material Name", value="")
+            if not material_name.strip():
+                st.warning("Please enter a material name")
+                material_name = ""  # Prevent empty names by using empty string which won't match any existing material
         else:
             # Select from existing options
             existing_materials = inventory_df['Name'].unique().tolist() if not inventory_df.empty else []
@@ -114,10 +121,13 @@ try:
                 if item not in all_materials:
                     all_materials.append(item)
             
+            if not all_materials:
+                all_materials = ["Coffee Beans"]  # Default if no materials exist
+                
             material_name = st.selectbox(
                 "Material Name", 
                 options=all_materials,
-                index=0 if all_materials else 0
+                index=0
             )
         
         # Unit selection
@@ -132,17 +142,20 @@ try:
     
     with col2:
         # Quantity input
-        add_quantity = st.number_input("Quantity", min_value=0.0, value=100.0, step=10.0)
+        add_quantity = st.number_input("Purchase Quantity", min_value=0.0, value=500.0, step=50.0)
         
-        # Cost input
-        unit_cost = st.number_input("Cost per Unit (VND)", min_value=0.0, value=1000.0, step=1000.0)
+        # Cost input - now for total purchase
+        total_purchase_cost = st.number_input("Purchase Cost (VND)", min_value=0.0, value=100000.0, step=10000.0)
+        
+        # Calculate unit cost from total purchase
+        unit_cost = total_purchase_cost / add_quantity if add_quantity > 0 else 0
         
         # Date selection
         inventory_date = st.date_input("Date", datetime.datetime.now())
     
-    # Calculate total cost
-    total_cost = add_quantity * unit_cost
-    st.info(f"Total Cost: {utils.format_currency(total_cost)}")
+    # Display calculated unit cost and total
+    st.info(f"Unit Cost: {utils.format_currency(unit_cost)} per {unit}")
+    st.info(f"Total Purchase Cost: {utils.format_currency(total_purchase_cost)}")
     
     # Add inventory button
     if st.button("Add to Inventory"):
