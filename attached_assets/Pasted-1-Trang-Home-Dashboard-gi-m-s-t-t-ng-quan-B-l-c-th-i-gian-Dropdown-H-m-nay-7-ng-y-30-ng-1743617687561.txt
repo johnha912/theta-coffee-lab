@@ -1,0 +1,77 @@
+1. Trang Home (Dashboard giám sát tổng quan)
+Bộ lọc thời gian: Dropdown ('Hôm nay', '7 ngày', '30 ngày', 'Tùy chọn' với Date Range Picker).
+KPI:
+Tổng doanh thu.
+Tổng số đơn hàng.
+Sản phẩm bán chạy nhất (dựa trên số lượng bán từ sales.csv).
+Tổng số ly cà phê bán ra (tổng số lượng từ sales.csv).
+Lượng nguyên vật liệu sử dụng (top 5, tính từ công thức trong product_recipe.csv và đơn hàng).
+Lợi nhuận gộp (Doanh thu - COGS).
+Biểu đồ:
+Line Chart: Doanh thu theo ngày.
+Bar Chart: Top 5 nguyên vật liệu sử dụng.
+2. Trang Order (Nhập đơn hàng)
+Form nhập liệu:
+Ngày bán (Date Picker).
+Mã đơn hàng (Text Input).
+Sản phẩm (Dropdown từ products.csv).
+Số lượng (Number Input).
+Đơn giá bán (Tự điền từ products.csv, có thể chỉnh).
+Thành tiền (Tự tính: Số lượng x Đơn giá).
+Tính năng: Nút 'Thêm đơn hàng' lưu vào sales.csv, tự động trừ tồn kho trong inventory.csv dựa trên công thức từ product_recipe.csv.
+3. Trang Inventory (Quản lý nguyên vật liệu)
+Form nhập kho:
+Tên nguyên vật liệu (Dropdown: Cà phê hạt, Sữa tươi, Đường, Ly nhựa).
+Đơn vị tính (Dropdown: g, ml, cái).
+Số lượng nhập (Number Input).
+Giá nhập đơn vị (Number Input).
+Ngày nhập (Date Picker).
+Hiển thị:
+Bảng tồn kho hiện tại (tính: Tổng nhập - Tổng sử dụng).
+Tổng giá trị kho (Số lượng x Giá nhập trung bình).
+Bar Chart: Số lượng tồn kho theo nguyên vật liệu.
+Tính năng:
+Cảnh báo khi nguyên vật liệu dưới ngưỡng (tùy chỉnh, mặc định 10 đơn vị).
+Liên kết: Tự trừ tồn kho khi thêm đơn hàng ở trang Order.
+4. Trang Product (Thiết kế công thức & menu)
+Form thêm/sửa món:
+Tên món (Text Input).
+Giá bán (Number Input).
+Công thức (Number Input cho từng nguyên liệu: ví dụ 18g cà phê, 150ml sữa, 10ml syrup, lấy danh sách từ inventory.csv).
+COGS (Tự tính: Tổng (Số lượng nguyên liệu x Giá nhập từ inventory.csv)).
+Lợi nhuận mỗi món (Giá bán - COGS).
+Hiển thị: Bảng danh sách món (Tên, Công thức, Giá bán, COGS, Lợi nhuận).
+Dữ liệu: Lưu công thức trong product_recipe.csv (cột: Tên món, Nguyên liệu, Số lượng, Đơn vị).
+Gợi ý: Cho phép chỉnh công thức trực tiếp trong app, dùng Dataframe để quản lý.
+5. Trang Financial Report (KPI tài chính)
+KPI tài chính:
+Tổng doanh thu (theo ngày/tháng).
+Tổng COGS (từ product_recipe.csv và sales.csv).
+Lợi nhuận gộp (Doanh thu - COGS).
+Tỷ suất lợi nhuận gộp ((Doanh thu - COGS) / Doanh thu x 100).
+Sản phẩm sinh lời cao nhất (dựa trên Lợi nhuận mỗi món x Số lượng bán).
+Chi phí nhập kho theo nguyên vật liệu (từ inventory.csv).
+Chi phí khác (thuê mặt bằng, nhân công, nhập thủ công hoặc từ operational_costs.csv).
+Tỷ lệ giá vốn/doanh thu (COGS / Doanh thu).
+Biểu đồ:
+Line Chart: Doanh thu theo thời gian.
+Line Chart: COGS theo thời gian.
+Bar Chart: Top sản phẩm bán chạy.
+Bar Chart: Lợi nhuận từng sản phẩm.
+Bộ lọc: Như trang Home.
+6. Trang Settings (Cài đặt)
+Tính năng:
+Cài đặt ngưỡng cảnh báo nguyên vật liệu (Number Input).
+Đơn vị tiền tệ (Dropdown: VND, USD).
+Cấu hình bộ lọc mặc định (Dropdown: Hôm nay, 7 ngày, 30 ngày).
+Quản lý người dùng (Text Input: Tên người dùng, chỉ hiển thị, không cần auth phức tạp).
+Cấu trúc dữ liệu
+sales.csv: Date, Order_ID, Product, Quantity, Unit_Price, Total.
+inventory.csv: ID, Name, Quantity, Unit, Avg_Cost, Date.
+products.csv: Name, Price, COGS, Profit.
+product_recipe.csv: Product, Ingredient, Quantity, Unit.
+operational_costs.csv: Date, Type (Rent, Salary, Utilities), Amount.
+Yêu cầu chung
+Tạo file requirements.txt với streamlit, pandas, plotly.
+Giao diện đơn giản, tự động lưu dữ liệu sau mỗi hành động.
+Replit tự viết toàn bộ code dựa trên mô tả này, đảm bảo liên kết giữa các trang (Order trừ Inventory, Product tính COGS từ Inventory, Financial dùng dữ liệu từ Sales và Product)."**
