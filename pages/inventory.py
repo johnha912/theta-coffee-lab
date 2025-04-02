@@ -311,14 +311,8 @@ try:
         display_df['Avg_Cost'] = display_df['Avg_Cost'].apply(utils.format_currency)
         display_df['Total Value'] = display_df['Total Value'].apply(utils.format_currency)
         
-        # Add alert indicator
-        display_df['Status'] = display_df.apply(
-            lambda row: "⚠️ Low" if row['Quantity'] <= st.session_state.alert_threshold else "✅ Good", 
-            axis=1
-        )
-        
         # Rearrange and display
-        columns_to_show = ['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Total Value', 'Status', 'Date']
+        columns_to_show = ['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Total Value', 'Date']
         st.dataframe(display_df[columns_to_show])
         
         # Add management options

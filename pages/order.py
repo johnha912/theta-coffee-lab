@@ -50,8 +50,14 @@ def save_order():
         # Prepare order data for sales.csv
         order_data = []
         for item in st.session_state.order_items:
+            # Create datetime with date and time components
+            order_datetime = datetime.datetime.combine(
+                order_date,
+                datetime.time(hour=hour, minute=minute)
+            )
+            
             order_data.append({
-                'Date': order_date.strftime('%Y-%m-%d'),
+                'Date': order_datetime.strftime('%Y-%m-%d %H:%M'),
                 'Order_ID': order_id,
                 'Product': item['Product'],
                 'Quantity': item['Quantity'],
@@ -132,6 +138,11 @@ try:
         # Order date selection
         order_date = st.date_input("Order Date", datetime.datetime.now())
         
+        # Order time selection
+        current_time = datetime.datetime.now().time()
+        hour = st.selectbox("Hour", options=list(range(0, 24)), index=current_time.hour)
+        minute = st.selectbox("Minute", options=list(range(0, 60)), index=current_time.minute)
+        
         # Product selection
         product_name = st.selectbox("Select Product", options=products_df['Name'].tolist())
         
@@ -192,7 +203,7 @@ try:
         recent_orders = recent_orders.sort_values('Date', ascending=False)
         
         # Format for display
-        recent_orders['Date'] = recent_orders['Date'].dt.strftime('%Y-%m-%d')
+        recent_orders['Date'] = recent_orders['Date'].dt.strftime('%d/%m/%y')
         recent_orders['Total'] = recent_orders['Total'].apply(utils.format_currency)
         
         st.dataframe(recent_orders.head(10))

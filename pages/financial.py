@@ -69,7 +69,10 @@ try:
     # Most profitable product
     product_profit = merged_sales.groupby('Product').apply(
         lambda x: (x['Price'] - x['COGS']) * x['Order_Quantity']
-    ).reset_index(name='Profit')
+    )
+    # Convert Series to DataFrame with proper column names
+    product_profit = pd.DataFrame({'Profit': product_profit.values}, index=product_profit.index)
+    product_profit = product_profit.reset_index()
     
     most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
     
@@ -124,25 +127,28 @@ try:
     # Calculate daily gross profit
     daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
     
+    # Format date to DD/MM/YY
+    daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+    
     # Line chart for revenue, COGS, gross profit
     fig1 = go.Figure()
     
     fig1.add_trace(go.Scatter(
-        x=daily_finance['Date'],
+        x=daily_finance['Date_Formatted'],
         y=daily_finance['Total'],
         mode='lines+markers',
         name='Revenue'
     ))
     
     fig1.add_trace(go.Scatter(
-        x=daily_finance['Date'],
+        x=daily_finance['Date_Formatted'],
         y=daily_finance['COGS'],
         mode='lines+markers',
         name='COGS'
     ))
     
     fig1.add_trace(go.Scatter(
-        x=daily_finance['Date'],
+        x=daily_finance['Date_Formatted'],
         y=daily_finance['Gross_Profit'],
         mode='lines+markers',
         name='Gross Profit',
@@ -239,7 +245,7 @@ try:
         if not filtered_costs.empty:
             # Format for display
             display_costs = filtered_costs.copy()
-            display_costs['Date'] = display_costs['Date'].dt.strftime('%Y-%m-%d')
+            display_costs['Date'] = display_costs['Date'].dt.strftime('%d/%m/%y')
             display_costs['Amount'] = display_costs['Amount'].apply(utils.format_currency)
             
             st.dataframe(display_costs)

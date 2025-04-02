@@ -92,12 +92,15 @@ try:
     # Daily revenue chart
     daily_revenue = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Total'].sum().reset_index()
     
+    # Format date to DD/MM/YY
+    daily_revenue['Date_Formatted'] = daily_revenue['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+    
     fig1 = px.line(
         daily_revenue, 
-        x='Date', 
+        x='Date_Formatted', 
         y='Total',
         title='Daily Revenue',
-        labels={'Date': 'Date', 'Total': 'Revenue (VND)'}
+        labels={'Date_Formatted': 'Date', 'Total': 'Revenue (VND)'}
     )
     fig1.update_layout(xaxis_title='Date', yaxis_title='Revenue (VND)')
     st.plotly_chart(fig1, use_container_width=True)
