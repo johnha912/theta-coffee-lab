@@ -93,6 +93,127 @@ def add_inventory():
         
     except Exception as e:
         st.error(f"Error adding inventory: {str(e)}")
+        
+def delete_inventory_item(item_id):
+    """Delete an inventory item"""
+    try:
+        # Load current inventory
+        try:
+            inventory_df = pd.read_csv("data/inventory.csv")
+        except FileNotFoundError:
+            st.error("No inventory data found")
+            return
+            
+        if inventory_df.empty:
+            st.error("Inventory is empty")
+            return
+            
+        # Find the item
+        if item_id not in inventory_df['ID'].values:
+            st.error(f"Item ID {item_id} not found in inventory")
+            return
+            
+        # Get item details for confirmation message
+        item_row = inventory_df[inventory_df['ID'] == item_id].iloc[0]
+        item_name = item_row['Name']
+        
+        # Delete the item
+        inventory_df = inventory_df[inventory_df['ID'] != item_id].reset_index(drop=True)
+        
+        # Reindex IDs to maintain sequence
+        inventory_df['ID'] = range(1, len(inventory_df) + 1)
+        
+        # Save updated inventory
+        inventory_df.to_csv("data/inventory.csv", index=False)
+        
+        # Record transaction in inventory_transactions.csv
+        try:
+            trans_df = pd.read_csv("data/inventory_transactions.csv")
+        except FileNotFoundError:
+            trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
+        
+        # Add deletion transaction - using loc instead of concat
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            datetime.datetime.now().strftime('%Y-%m-%d'),
+            item_name,
+            0,  # Quantity is 0 for deletion
+            "",  # Empty unit for deletion
+            0,   # Unit cost is 0 for deletion
+            0,   # Total cost is 0 for deletion
+            'Deletion'
+        ]
+        
+        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        st.success(f"Deleted inventory item: {item_name}")
+        
+        # After successful delete, refresh the form/page
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error deleting inventory item: {str(e)}")
+        
+def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new_date):
+    """Edit an inventory item"""
+    try:
+        # Load current inventory
+        try:
+            inventory_df = pd.read_csv("data/inventory.csv")
+        except FileNotFoundError:
+            st.error("No inventory data found")
+            return
+            
+        if inventory_df.empty:
+            st.error("Inventory is empty")
+            return
+            
+        # Find the item
+        if item_id not in inventory_df['ID'].values:
+            st.error(f"Item ID {item_id} not found in inventory")
+            return
+        
+        # Get original item details for recording changes
+        item_idx = inventory_df[inventory_df['ID'] == item_id].index[0]
+        old_item = inventory_df.loc[item_idx].copy()
+        
+        # Update the item
+        inventory_df.loc[item_idx, 'Name'] = new_name
+        inventory_df.loc[item_idx, 'Unit'] = new_unit
+        inventory_df.loc[item_idx, 'Quantity'] = new_quantity
+        inventory_df.loc[item_idx, 'Avg_Cost'] = new_cost
+        inventory_df.loc[item_idx, 'Date'] = new_date.strftime('%Y-%m-%d')
+        
+        # Save updated inventory
+        inventory_df.to_csv("data/inventory.csv", index=False)
+        
+        # Record transaction in inventory_transactions.csv
+        try:
+            trans_df = pd.read_csv("data/inventory_transactions.csv")
+        except FileNotFoundError:
+            trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
+        
+        # Add edit transaction
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            datetime.datetime.now().strftime('%Y-%m-%d'),
+            new_name,
+            new_quantity,
+            new_unit,
+            new_cost,
+            new_quantity * new_cost,
+            'Edit'
+        ]
+        
+        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        st.success(f"Updated inventory item: {new_name}")
+        
+        # After successful edit, refresh the form/page
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error editing inventory item: {str(e)}")
 
 try:
     # Ensure data directory exists
@@ -200,6 +321,106 @@ try:
         # Rearrange and display
         columns_to_show = ['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Total Value', 'Status', 'Date']
         st.dataframe(display_df[columns_to_show])
+        
+        # Add management options
+        st.subheader("Manage Inventory Items")
+        
+        # Create columns for management actions
+        manage_col1, manage_col2 = st.columns([1, 3])
+        
+        with manage_col1:
+            # Selection dropdown for item to manage
+            selected_item_id = st.selectbox(
+                "Select Item ID", 
+                options=inventory_df['ID'].tolist(),
+                format_func=lambda x: f"ID: {x} - {inventory_df[inventory_df['ID']==x]['Name'].values[0]}"
+            )
+        
+        with manage_col2:
+            # Display information about selected item
+            selected_item = inventory_df[inventory_df['ID'] == selected_item_id].iloc[0]
+            st.write(f"Selected: **{selected_item['Name']}** ({selected_item['Quantity']} {selected_item['Unit']})")
+            
+            # Initialize session state for editing
+            if 'edit_mode' not in st.session_state:
+                st.session_state.edit_mode = False
+            
+            # Action buttons - wrapped in columns for layout
+            action_col1, action_col2 = st.columns(2)
+            
+            with action_col1:
+                # Edit button
+                edit_button = st.button("✏️ Edit Item", key="edit_btn")
+                if edit_button:
+                    st.session_state.edit_mode = True
+                    
+            with action_col2:
+                # Delete button
+                delete_button = st.button("🗑️ Delete Item", key="delete_btn")
+                if delete_button:
+                    # Show confirmation dialog using session state
+                    st.warning(f"Are you sure you want to delete {selected_item['Name']}?")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("✓ Yes, Delete", key="confirm_delete"):
+                            delete_inventory_item(selected_item_id)
+                    with col2:
+                        if st.button("✗ Cancel", key="cancel_delete"):
+                            st.rerun()
+            
+            # Show edit form if in edit mode
+            if st.session_state.edit_mode:
+                st.write("---")
+                st.subheader(f"Edit Item: {selected_item['Name']}")
+                
+                edit_col1, edit_col2 = st.columns(2)
+                
+                with edit_col1:
+                    # Edit name
+                    edit_name = st.text_input("Material Name", value=selected_item['Name'], key="edit_name")
+                    
+                    # Edit unit
+                    unit_options = ["g", "ml", "pcs", "kg", "l"]
+                    current_unit_index = unit_options.index(selected_item['Unit']) if selected_item['Unit'] in unit_options else 0
+                    edit_unit = st.selectbox("Unit", options=unit_options, index=current_unit_index, key="edit_unit")
+                
+                with edit_col2:
+                    # Edit quantity
+                    edit_quantity = st.number_input("Quantity", min_value=0.0, value=selected_item['Quantity'], step=10.0, key="edit_quantity")
+                    
+                    # Edit cost
+                    edit_cost = st.number_input("Cost per Unit (VND)", min_value=0.0, value=selected_item['Avg_Cost'], step=1000.0, key="edit_cost")
+                    
+                    # Edit date
+                    try:
+                        original_date = datetime.datetime.strptime(selected_item['Date'], '%Y-%m-%d').date()
+                    except:
+                        original_date = datetime.datetime.now().date()
+                        
+                    edit_date = st.date_input("Last Updated", value=original_date, key="edit_date")
+                
+                # Total value calculation
+                edit_total_value = edit_quantity * edit_cost
+                st.info(f"Total Value: {utils.format_currency(edit_total_value)}")
+                
+                # Save and Cancel buttons
+                save_col1, save_col2 = st.columns(2)
+                
+                with save_col1:
+                    if st.button("💾 Save Changes", key="save_edit"):
+                        edit_inventory_item(
+                            selected_item_id,
+                            edit_name,
+                            edit_unit,
+                            edit_quantity,
+                            edit_cost,
+                            edit_date
+                        )
+                        
+                with save_col2:
+                    if st.button("❌ Cancel", key="cancel_edit"):
+                        st.session_state.edit_mode = False
+                        st.rerun()
         
         # Calculate total inventory value
         total_inventory_value = (inventory_df['Quantity'] * inventory_df['Avg_Cost']).sum()
