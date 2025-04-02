@@ -98,6 +98,24 @@ def save_order():
         if not order_id:
             order_id = str(uuid.uuid4())[:8]
         
+        # Parse time input (format: HH:MM)
+        try:
+            time_parts = time_input.split(':')
+            if len(time_parts) != 2:
+                st.error("Time must be in format HH:MM (e.g., 14:30)")
+                return
+            
+            hour = int(time_parts[0])
+            minute = int(time_parts[1])
+            
+            if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+                st.error("Invalid time. Hours must be 0-23, minutes must be 0-59")
+                return
+                
+        except ValueError:
+            st.error("Time must be in format HH:MM with valid numbers (e.g., 14:30)")
+            return
+        
         # Prepare order data for sales.csv
         order_data = []
         for item in st.session_state.order_items:
@@ -190,10 +208,11 @@ try:
         # Order date selection
         order_date = st.date_input("Order Date", datetime.datetime.now())
         
-        # Order time selection
+        # Order time selection - Text input format HH:MM
         current_time = datetime.datetime.now().time()
-        hour = st.selectbox("Hour", options=list(range(0, 24)), index=current_time.hour)
-        minute = st.selectbox("Minute", options=list(range(0, 60)), index=current_time.minute)
+        default_time = f"{current_time.hour:02d}:{current_time.minute:02d}"
+        time_input = st.text_input("Time (HH:MM)", value=default_time, 
+                                  help="Enter time in 24-hour format (e.g., 14:30 for 2:30 PM)")
         
         # Product selection
         product_name = st.selectbox("Select Product", options=products_df['Name'].tolist())
