@@ -351,9 +351,13 @@ try:
         recent_orders = recent_sales.groupby(['Date', 'Order_ID'])['Total'].sum().reset_index()
         recent_orders = recent_orders.sort_values('Date', ascending=False)
         
-        # Format for display
+        # Format for display - Thêm cột Time riêng từ Date
+        recent_orders['Time'] = recent_orders['Date'].dt.strftime('%H:%M')
         recent_orders['Date'] = recent_orders['Date'].dt.strftime('%d/%m/%y')
         recent_orders['Total'] = recent_orders['Total'].apply(utils.format_currency)
+        
+        # Sắp xếp lại các cột để hiển thị Date, Time, Order_ID, Total
+        recent_orders = recent_orders[['Date', 'Time', 'Order_ID', 'Total']]
         
         st.dataframe(recent_orders.head(10))
         
