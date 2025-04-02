@@ -67,12 +67,10 @@ try:
     gross_profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
     
     # Most profitable product
-    product_profit = merged_sales.groupby('Product').apply(
-        lambda x: (x['Price'] - x['COGS']) * x['Order_Quantity']
-    )
-    # Convert Series to DataFrame with proper column names
-    product_profit = pd.DataFrame({'Profit': product_profit.values}, index=product_profit.index)
-    product_profit = product_profit.reset_index()
+    def calc_profit(group):
+        return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
+        
+    product_profit = merged_sales.groupby('Product').apply(calc_profit).reset_index(name='Profit')
     
     most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
     

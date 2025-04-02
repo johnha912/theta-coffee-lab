@@ -44,8 +44,10 @@ def save_order():
         return
     
     try:
-        # Generate order ID
-        order_id = str(uuid.uuid4())[:8]
+        # Get order ID (either from manual input or generate a new one)
+        order_id = st.session_state.get('manual_order_id', '')
+        if not order_id:
+            order_id = str(uuid.uuid4())[:8]
         
         # Prepare order data for sales.csv
         order_data = []
@@ -120,6 +122,7 @@ def save_order():
         
         # Clear order after saving
         st.session_state.order_items = []
+        st.session_state.manual_order_id = ''  # Reset manual order ID
         st.success(f"Order {order_id} saved successfully!")
         
     except Exception as e:
@@ -163,6 +166,14 @@ try:
         
         # Add to order button
         st.button("Add to Order", on_click=add_item_to_order)
+    
+    # Manual Order ID input
+    st.header("Order ID")
+    manual_order_id = st.text_input("Enter Order ID (optional)", value=st.session_state.get('manual_order_id', ''),
+                                    help="If left empty, a random ID will be generated automatically")
+    
+    # Save to session state
+    st.session_state.manual_order_id = manual_order_id
     
     # Display current order
     st.header("Current Order")

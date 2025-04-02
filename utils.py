@@ -14,6 +14,14 @@ def initialize_session_state():
     else:
         # Ensure alert_threshold is float
         st.session_state.alert_threshold = float(st.session_state.alert_threshold)
+    
+    # Initialize order items
+    if 'order_items' not in st.session_state:
+        st.session_state.order_items = []
+    
+    # Initialize manual order ID
+    if 'manual_order_id' not in st.session_state:
+        st.session_state.manual_order_id = ''
 
 def format_currency(value):
     """Format a number as currency with comma separators"""
