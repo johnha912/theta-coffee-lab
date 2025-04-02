@@ -63,6 +63,29 @@ def edit_item_in_order(index, product_name, quantity, product_price):
     else:
         st.error("Invalid item index")
 
+def delete_saved_order(order_id):
+    """Delete a saved order from sales.csv"""
+    try:
+        # Load sales data
+        sales_df = pd.read_csv("data/sales.csv")
+        
+        # Check if order exists
+        if not sales_df[sales_df['Order_ID'] == order_id].empty:
+            # Remove order items
+            sales_df = sales_df[sales_df['Order_ID'] != order_id]
+            
+            # Save updated sales data
+            sales_df.to_csv("data/sales.csv", index=False)
+            
+            st.success(f"Order {order_id} deleted successfully")
+            return True
+        else:
+            st.error(f"Order {order_id} not found")
+            return False
+    except Exception as e:
+        st.error(f"Error deleting order: {str(e)}")
+        return False
+
 def save_order():
     """Save the current order to sales.csv and update inventory"""
     if not st.session_state.order_items:
@@ -314,6 +337,17 @@ try:
         recent_orders['Total'] = recent_orders['Total'].apply(utils.format_currency)
         
         st.dataframe(recent_orders.head(10))
+        
+        # Delete order section
+        with st.expander("Delete Saved Order"):
+            delete_order_id = st.text_input("Enter Order ID to delete", key="delete_order_id")
+            
+            if st.button("Delete Order"):
+                if delete_order_id:
+                    delete_saved_order(delete_order_id)
+                    st.rerun()
+                else:
+                    st.error("Please enter an Order ID to delete")
         
     except FileNotFoundError:
         st.info("No sales data available yet")
