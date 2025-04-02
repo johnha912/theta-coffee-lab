@@ -37,6 +37,32 @@ def clear_order():
     st.session_state.order_items = []
     st.success("Order cleared")
 
+def remove_item_from_order(index):
+    """Remove an item from the current order"""
+    if 0 <= index < len(st.session_state.order_items):
+        removed_item = st.session_state.order_items.pop(index)
+        st.success(f"Removed {removed_item['Product']} from order")
+    else:
+        st.error("Invalid item index")
+
+def edit_item_in_order(index, product_name, quantity, product_price):
+    """Edit an item in the current order"""
+    if 0 <= index < len(st.session_state.order_items):
+        # Calculate new total
+        total_price = product_price * quantity
+        
+        # Update the item
+        st.session_state.order_items[index] = {
+            'Product': product_name,
+            'Quantity': quantity,
+            'Unit_Price': product_price,
+            'Total': total_price
+        }
+        
+        st.success(f"Updated {product_name} in order")
+    else:
+        st.error("Invalid item index")
+
 def save_order():
     """Save the current order to sales.csv and update inventory"""
     if not st.session_state.order_items:
@@ -179,7 +205,18 @@ try:
     st.header("Current Order")
     
     if st.session_state.order_items:
+        # Initialize session state for edit mode if not exists
+        if 'edit_mode' not in st.session_state:
+            st.session_state.edit_mode = False
+            st.session_state.edit_index = -1
+        
+        # Show current items in order
         order_df = pd.DataFrame(st.session_state.order_items)
+        
+        # Add index column for reference
+        order_df = order_df.reset_index().rename(columns={'index': 'Item #'})
+        
+        # Format currency columns
         order_df['Unit_Price'] = order_df['Unit_Price'].apply(utils.format_currency)
         order_df['Total'] = order_df['Total'].apply(utils.format_currency)
         
@@ -188,6 +225,65 @@ try:
         # Calculate order total
         order_total = sum(item['Total'] for item in st.session_state.order_items)
         st.subheader(f"Order Total: {utils.format_currency(order_total)}")
+        
+        # Edit and Remove Items
+        with st.expander("Edit or Remove Items"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                item_index = st.number_input("Item #", min_value=0, 
+                                           max_value=len(st.session_state.order_items)-1, 
+                                           value=0,
+                                           help="Select the item number to edit or remove")
+                
+                if st.button("Remove Item"):
+                    remove_item_from_order(item_index)
+                    st.rerun()
+            
+            with col2:
+                # Edit Item UI
+                if st.button("Edit Item"):
+                    # Enable edit mode and set the selected item
+                    st.session_state.edit_mode = True
+                    st.session_state.edit_index = item_index
+                    st.rerun()
+        
+        # Show edit form if in edit mode
+        if st.session_state.edit_mode and 0 <= st.session_state.edit_index < len(st.session_state.order_items):
+            with st.form("edit_item_form"):
+                st.subheader(f"Edit Item #{st.session_state.edit_index}")
+                
+                # Get current values
+                current_item = st.session_state.order_items[st.session_state.edit_index]
+                
+                # Edit fields
+                edit_product = st.selectbox("Product", 
+                                           options=products_df['Name'].tolist(),
+                                           index=products_df['Name'].tolist().index(current_item['Product']) 
+                                                if current_item['Product'] in products_df['Name'].tolist() else 0)
+                
+                edit_quantity = st.number_input("Quantity", 
+                                              min_value=1, 
+                                              value=current_item['Quantity'])
+                
+                # Get product price
+                edit_price = float(products_df[products_df['Name'] == edit_product]['Price'].values[0])
+                
+                # Show calculated total
+                edit_total = edit_price * edit_quantity
+                st.info(f"New Total: {utils.format_currency(edit_total)}")
+                
+                # Submit button
+                if st.form_submit_button("Update Item"):
+                    edit_item_in_order(st.session_state.edit_index, edit_product, edit_quantity, edit_price)
+                    st.session_state.edit_mode = False
+                    st.session_state.edit_index = -1
+                    st.rerun()
+                
+                if st.form_submit_button("Cancel"):
+                    st.session_state.edit_mode = False
+                    st.session_state.edit_index = -1
+                    st.rerun()
         
         # Order action buttons
         col1, col2 = st.columns(2)

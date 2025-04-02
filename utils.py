@@ -22,6 +22,13 @@ def initialize_session_state():
     # Initialize manual order ID
     if 'manual_order_id' not in st.session_state:
         st.session_state.manual_order_id = ''
+        
+    # Initialize edit mode variables
+    if 'edit_mode' not in st.session_state:
+        st.session_state.edit_mode = False
+        
+    if 'edit_index' not in st.session_state:
+        st.session_state.edit_index = -1
 
 def format_currency(value):
     """Format a number as currency with comma separators"""
