@@ -8,6 +8,25 @@ import utils
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
 
+# Tạo template ggplot2 custom với nền xám và lưới
+custom_ggplot2_template = pio.templates['ggplot2']
+custom_ggplot2_template.layout.update(
+    paper_bgcolor='#F0F0F0',  # Màu nền paper
+    plot_bgcolor='#F0F0F0',   # Màu nền plot
+    xaxis=dict(
+        showgrid=True,
+        gridcolor='white',
+        gridwidth=1.5
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor='white',
+        gridwidth=1.5
+    )
+)
+pio.templates['custom_ggplot2'] = custom_ggplot2_template
+pio.templates.default = 'custom_ggplot2'
+
 st.set_page_config(page_title="Product Management", page_icon="☕", layout="wide")
 
 st.title("Product Management")
