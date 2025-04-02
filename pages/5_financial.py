@@ -2,8 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import datetime
 import utils
+
+# Set default template to seaborn
+pio.templates.default = 'seaborn'
 
 # Khởi tạo session_state
 utils.initialize_session_state()

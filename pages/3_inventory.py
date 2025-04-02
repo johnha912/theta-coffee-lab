@@ -1,8 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.io as pio
 import datetime
 import utils
+
+# Set default template to seaborn
+pio.templates.default = 'seaborn'
 
 st.set_page_config(page_title="Inventory Management", page_icon="📦", layout="wide")
 
