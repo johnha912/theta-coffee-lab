@@ -92,14 +92,21 @@ try:
     with col1:
         # Material selection
         existing_materials = inventory_df['Name'].unique().tolist() if not inventory_df.empty else []
-        material_name = st.selectbox(
+        default_materials = ["Coffee Beans", "Fresh Milk", "Sugar", "Plastic Cup", "Paper Cup", "Syrup", "Other"]
+        
+        material_selection = st.selectbox(
             "Material Name", 
-            options=existing_materials + ["Coffee Beans", "Fresh Milk", "Sugar", "Plastic Cup", "Paper Cup", "Syrup", "Other"],
-            index=0 if existing_materials else 7
+            options=existing_materials + default_materials if existing_materials else default_materials,
+            index=0 if existing_materials else 0
         )
         
-        if material_name == "Other":
-            material_name = st.text_input("Specify Material Name")
+        # Handle custom material name
+        if material_selection == "Other":
+            material_name = st.text_input("Specify Material Name", value="")
+            if not material_name:
+                material_name = "Custom Material"  # Default value to prevent empty names
+        else:
+            material_name = material_selection
         
         # Unit selection
         unit_options = ["g", "ml", "pcs", "kg", "l"]
