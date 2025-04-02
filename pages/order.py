@@ -19,27 +19,18 @@ def add_item_to_order():
         st.error("Please select a product and enter a valid quantity")
         return
     
-    try:
-        # Get product price
-        product_row = products_df[products_df['Name'] == product_name]
-        if product_row.empty:
-            st.error(f"Product '{product_name}' not found in database")
-            return
-            
-        product_price = float(product_row['Price'].values[0])
-        total_price = product_price * quantity
-        
-        # Add to order items
-        st.session_state.order_items.append({
-            'Product': product_name,
-            'Quantity': quantity,
-            'Unit_Price': product_price,
-            'Total': total_price
-        })
-        st.success(f"Added {quantity} {product_name}(s) to order")
-    except Exception as e:
-        st.error(f"Error adding item to order: {str(e)}")
-        return
+    # Get product price
+    product_price = float(products_df[products_df['Name'] == product_name]['Price'].values[0])
+    total_price = product_price * quantity
+    
+    # Add to order items
+    st.session_state.order_items.append({
+        'Product': product_name,
+        'Quantity': quantity,
+        'Unit_Price': product_price,
+        'Total': total_price
+    })
+    st.success(f"Added {quantity} {product_name}(s) to order")
 
 def clear_order():
     """Clear the current order"""
@@ -56,15 +47,11 @@ def save_order():
         # Generate order ID
         order_id = str(uuid.uuid4())[:8]
         
-        # Get current date if order_date is not defined
-        current_date = datetime.datetime.now().strftime('%Y-%m-%d')
-        order_date_str = getattr(order_date, 'strftime', lambda x: current_date)('%Y-%m-%d') if 'order_date' in locals() else current_date
-        
         # Prepare order data for sales.csv
         order_data = []
         for item in st.session_state.order_items:
             order_data.append({
-                'Date': order_date_str,
+                'Date': order_date.strftime('%Y-%m-%d'),
                 'Order_ID': order_id,
                 'Product': item['Product'],
                 'Quantity': item['Quantity'],
@@ -134,54 +121,37 @@ def save_order():
 
 try:
     # Load product data
-    try:
-        products_df = pd.read_csv("data/products.csv")
-    except:
-        products_df = pd.DataFrame(columns=['Name', 'Price', 'COGS', 'Profit'])
+    products_df = pd.read_csv("data/products.csv")
     
     # Order form
     st.header("Create New Order")
     
-    # Check if we have any products
-    if products_df.empty or len(products_df) == 0 or 'Name' not in products_df.columns or products_df['Name'].empty:
-        st.warning("No products available. Please go to the Product page to add products first.")
-        product_name = None
-        quantity = 0
-    else:
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Order date selection
+        order_date = st.date_input("Order Date", datetime.datetime.now())
         
-        with col1:
-            # Order date selection
-            order_date = st.date_input("Order Date", datetime.datetime.now())
-            
-            # Product selection
-            product_options = products_df['Name'].tolist()
-            if product_options:
-                product_name = st.selectbox("Select Product", options=product_options)
-                
-                # Get product details when selected
-                if product_name:
-                    selected_product = products_df[products_df['Name'] == product_name].iloc[0]
-                    st.info(f"Price: {utils.format_currency(selected_product['Price'])}")
-            else:
-                st.warning("No products available. Please add products first.")
-                product_name = None
+        # Product selection
+        product_name = st.selectbox("Select Product", options=products_df['Name'].tolist())
         
-        with col2:
-            # Quantity input
-            quantity = st.number_input("Quantity", min_value=1, value=1)
-            
-            # Calculate total price
-            if product_name:
-                product_price = float(products_df[products_df['Name'] == product_name]['Price'].values[0])
-                total_price = product_price * quantity
-                st.info(f"Total: {utils.format_currency(total_price)}")
-            
-            # Add to order button
-            if product_name:
-                st.button("Add to Order", on_click=add_item_to_order)
-            else:
-                st.button("Add to Order", disabled=True)
+        # Get product details when selected
+        if product_name:
+            selected_product = products_df[products_df['Name'] == product_name].iloc[0]
+            st.info(f"Price: {utils.format_currency(selected_product['Price'])}")
+    
+    with col2:
+        # Quantity input
+        quantity = st.number_input("Quantity", min_value=1, value=1)
+        
+        # Calculate total price
+        if product_name:
+            product_price = float(products_df[products_df['Name'] == product_name]['Price'].values[0])
+            total_price = product_price * quantity
+            st.info(f"Total: {utils.format_currency(total_price)}")
+        
+        # Add to order button
+        st.button("Add to Order", on_click=add_item_to_order)
     
     # Display current order
     st.header("Current Order")
