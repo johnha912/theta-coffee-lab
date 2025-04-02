@@ -11,6 +11,9 @@ def initialize_session_state():
     
     if 'alert_threshold' not in st.session_state:
         st.session_state.alert_threshold = 10.0
+    else:
+        # Ensure alert_threshold is float
+        st.session_state.alert_threshold = float(st.session_state.alert_threshold)
 
 def format_currency(value):
     """Format a number as currency with comma separators"""

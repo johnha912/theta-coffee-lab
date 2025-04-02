@@ -56,8 +56,9 @@ try:
     total_revenue = filtered_sales['Total'].sum()
     
     # Calculate COGS
-    merged_sales = pd.merge(filtered_sales, products_df, left_on='Product', right_on='Name')
-    total_cogs = (merged_sales['COGS'] * merged_sales['Quantity_x']).sum()
+    filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+    merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name')
+    total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
     
     # Calculate gross profit
     gross_profit = total_revenue - total_cogs
@@ -67,7 +68,7 @@ try:
     
     # Most profitable product
     product_profit = merged_sales.groupby('Product').apply(
-        lambda x: (x['Price'] - x['COGS']) * x['Quantity_x']
+        lambda x: (x['Price'] - x['COGS']) * x['Order_Quantity']
     ).reset_index(name='Profit')
     
     most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
@@ -114,7 +115,7 @@ try:
     daily_finance = pd.merge(
         daily_finance,
         merged_sales.groupby(merged_sales['Date'].dt.date).apply(
-            lambda x: (x['COGS'] * x['Quantity_x']).sum()
+            lambda x: (x['COGS'] * x['Order_Quantity']).sum()
         ).reset_index(name='COGS'),
         on='Date',
         how='left'

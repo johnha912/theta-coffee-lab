@@ -24,8 +24,9 @@ with col1:
     # Inventory alert threshold
     alert_threshold = st.number_input(
         "Inventory Alert Threshold",
-        min_value=1,
-        value=st.session_state.alert_threshold,
+        min_value=1.0,  # Ensure all numeric values are float
+        value=float(st.session_state.alert_threshold),
+        step=1.0,
         help="Set the minimum inventory level that will trigger alerts"
     )
     

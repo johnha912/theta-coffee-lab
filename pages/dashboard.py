@@ -55,14 +55,19 @@ try:
     total_cups = filtered_sales['Quantity'].sum()
     
     # Calculate ingredients used
-    merged_df = pd.merge(filtered_sales, product_recipe_df, left_on='Product', right_on='Product')
-    ingredients_used = merged_df.groupby('Ingredient')['Quantity_y'].sum().reset_index()
+    filtered_sales_recipe = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+    product_recipe_df_renamed = product_recipe_df.rename(columns={'Quantity': 'Recipe_Quantity'})  # Rename recipe quantity
+    merged_df = pd.merge(filtered_sales_recipe, product_recipe_df_renamed, left_on='Product', right_on='Product')
+    # Calculate total ingredient use (order quantity * recipe quantity)
+    merged_df['Total_Ingredient_Used'] = merged_df['Order_Quantity'] * merged_df['Recipe_Quantity'] 
+    ingredients_used = merged_df.groupby('Ingredient')['Total_Ingredient_Used'].sum().reset_index()
     ingredients_used.columns = ['Ingredient', 'Quantity_Used']
     top_ingredients = ingredients_used.sort_values('Quantity_Used', ascending=False).head(5)
     
     # Calculate gross profit
-    product_costs = pd.merge(filtered_sales, products_df, left_on='Product', right_on='Name')
-    gross_profit = total_revenue - (product_costs['COGS'] * product_costs['Quantity_x']).sum()
+    filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+    product_costs = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name')
+    gross_profit = total_revenue - (product_costs['COGS'] * product_costs['Order_Quantity']).sum()
     
     # Display KPIs
     st.header("Key Performance Indicators")
