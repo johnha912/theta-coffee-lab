@@ -448,16 +448,35 @@ try:
         # Inventory visualization
         st.header("Inventory Visualization")
         
-        # Bar chart for inventory quantities
-        fig = px.bar(
-            inventory_df,
-            x='Name',
-            y='Quantity',
-            color='Name',
-            labels={'Name': 'Material', 'Quantity': 'Quantity Available'},
-            title="Current Inventory Levels"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        # Group inventory by unit type
+        if not inventory_df.empty:
+            # Extract base unit types (remove numbers)
+            inventory_df['Unit_Group'] = inventory_df['Unit'].str.lower().replace({'kg': 'g', 'l': 'ml'})
+            
+            # Get unique unit groups
+            unit_groups = sorted(inventory_df['Unit_Group'].unique())
+            
+            # Create tabs for each unit group
+            tabs = st.tabs([unit.upper() for unit in unit_groups])
+            
+            # Display inventory by unit group
+            for i, unit in enumerate(unit_groups):
+                with tabs[i]:
+                    unit_data = inventory_df[inventory_df['Unit_Group'] == unit].copy()
+                    
+                    if not unit_data.empty:
+                        # Bar chart for this unit group
+                        fig = px.bar(
+                            unit_data,
+                            x='Name',
+                            y='Quantity',
+                            color='Name',
+                            labels={'Name': 'Material', 'Quantity': f'Quantity ({unit})'},
+                            title=f"Inventory Levels - {unit.upper()} Units"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info(f"No inventory items with unit type: {unit}")
         
         # Low inventory alerts
         low_inventory = inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold]
