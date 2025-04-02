@@ -7,12 +7,70 @@ st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
 st.title("Settings")
 st.subheader("Configure application preferences")
 
+# Function to toggle theme
+def toggle_theme():
+    # Toggle the theme between light and dark
+    current_theme = st.session_state.get('theme', 'light')
+    new_theme = 'dark' if current_theme == 'light' else 'light'
+    
+    # Update the theme in session state
+    st.session_state.theme = new_theme
+    
+    # Update config.toml file with new theme
+    theme_config = {
+        'light': {
+            'primaryColor': "#FF4B4B",
+            'backgroundColor': "#FFFFFF",
+            'secondaryBackgroundColor': "#F0F2F6",
+            'textColor': "#262730"
+        },
+        'dark': {
+            'primaryColor': "#FF4B4B",
+            'backgroundColor': "#0E1117",
+            'secondaryBackgroundColor': "#262730",
+            'textColor': "#FAFAFA"
+        }
+    }
+    
+    # Get the current theme configuration
+    selected_theme = theme_config[new_theme]
+    
+    # Update config.toml
+    with open('.streamlit/config.toml', 'r') as file:
+        config_content = file.read()
+    
+    # Replace theme section
+    import re
+    theme_section = f"""[theme]
+primaryColor = "{selected_theme['primaryColor']}"
+backgroundColor = "{selected_theme['backgroundColor']}"
+secondaryBackgroundColor = "{selected_theme['secondaryBackgroundColor']}"
+textColor = "{selected_theme['textColor']}"
+font = "sans serif"
+"""
+    
+    # Check if theme section exists and replace it
+    if '[theme]' in config_content:
+        pattern = r'\[theme\].*?(?=\[|\Z)'
+        config_content = re.sub(pattern, theme_section, config_content, flags=re.DOTALL)
+    else:
+        # Add theme section if it doesn't exist
+        config_content += "\n" + theme_section
+    
+    # Write updated config back to file
+    with open('.streamlit/config.toml', 'w') as file:
+        file.write(config_content)
+    
+    st.success(f"Theme changed to {new_theme.capitalize()} Mode! Restarting app...")
+    st.rerun()  # Rerun to apply theme changes
+
 # Save settings function
 def save_settings():
     st.session_state.currency = currency
     st.session_state.alert_threshold = alert_threshold
     st.session_state.default_time_filter = default_time_filter
     st.session_state.username = username
+    st.session_state.theme = theme_mode
     st.success("Settings saved successfully!")
 
 # Settings form
@@ -55,9 +113,23 @@ with col2:
         value=st.session_state.username,
         help="Enter your name or username for the application"
     )
+    
+    # Theme Mode selection
+    theme_options = ["light", "dark"]
+    current_theme = st.session_state.get('theme', 'light')
+    theme_mode = st.selectbox(
+        "Theme Mode",
+        options=theme_options,
+        index=theme_options.index(current_theme),
+        help="Choose between Light and Dark mode for the application"
+    )
 
 # Save settings button
-st.button("Save Settings", on_click=save_settings)
+col1, col2 = st.columns(2)
+with col1:
+    st.button("Save Settings", on_click=save_settings)
+with col2:
+    st.button("Toggle Theme Now", on_click=toggle_theme, help="Immediately switch between light and dark mode")
 
 # Data management
 st.header("Data Management")

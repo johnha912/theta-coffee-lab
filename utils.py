@@ -29,6 +29,18 @@ def initialize_session_state():
         
     if 'edit_index' not in st.session_state:
         st.session_state.edit_index = -1
+        
+    # Initialize theme
+    if 'theme' not in st.session_state:
+        st.session_state.theme = 'light'
+    
+    # Initialize default time filter
+    if 'default_time_filter' not in st.session_state:
+        st.session_state.default_time_filter = "Today"
+        
+    # Initialize username
+    if 'username' not in st.session_state:
+        st.session_state.username = "Cafe Manager"
 
 def format_currency(value):
     """Format a number as currency with comma separators"""
