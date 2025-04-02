@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 import datetime
 import utils
 
+# Khởi tạo session_state
+utils.initialize_session_state()
+
 st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
 
 st.title("Financial Report")
@@ -70,7 +73,10 @@ try:
     def calc_profit(group):
         return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
         
-    product_profit = merged_sales.groupby('Product').apply(calc_profit).reset_index(name='Profit')
+    # Fix groupby warning by explicitly selecting columns after groupby
+    product_profit = merged_sales.groupby('Product', as_index=False).apply(
+        lambda group: pd.Series({'Profit': calc_profit(group)})
+    )
     
     most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
     
@@ -115,9 +121,9 @@ try:
     # Add COGS data
     daily_finance = pd.merge(
         daily_finance,
-        merged_sales.groupby(merged_sales['Date'].dt.date).apply(
-            lambda x: (x['COGS'] * x['Order_Quantity']).sum()
-        ).reset_index(name='COGS'),
+        merged_sales.groupby(merged_sales['Date'].dt.date, as_index=False).apply(
+            lambda x: pd.Series({'COGS': (x['COGS'] * x['Order_Quantity']).sum()})
+        ),
         on='Date',
         how='left'
     ).fillna(0)
@@ -243,10 +249,137 @@ try:
         if not filtered_costs.empty:
             # Format for display
             display_costs = filtered_costs.copy()
-            display_costs['Date'] = display_costs['Date'].dt.strftime('%d/%m/%y')
-            display_costs['Amount'] = display_costs['Amount'].apply(utils.format_currency)
             
-            st.dataframe(display_costs)
+            # Add index column for reference
+            display_costs = display_costs.reset_index().rename(columns={'index': 'ID'})
+            
+            # Format date and amount for display
+            display_costs['Date_Formatted'] = display_costs['Date'].dt.strftime('%d/%m/%y')
+            display_costs['Amount_Formatted'] = display_costs['Amount'].apply(utils.format_currency)
+            
+            # Display with formatted columns but keep original data in the background
+            st.dataframe(
+                display_costs[['ID', 'Date_Formatted', 'Type', 'Amount_Formatted']].rename(
+                    columns={'Date_Formatted': 'Date', 'Amount_Formatted': 'Amount'}
+                )
+            )
+            
+            # Edit and Delete section for operational costs
+            with st.expander("Edit or Delete Operational Cost"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    cost_id = st.number_input("Cost ID", 
+                                            min_value=0, 
+                                            max_value=len(display_costs)-1 if not display_costs.empty else 0,
+                                            value=0,
+                                            help="Select the ID of the cost to edit or delete")
+                    
+                    # Delete cost button
+                    if st.button("Delete Cost"):
+                        try:
+                            # Load current costs data
+                            costs_df = pd.read_csv("data/operational_costs.csv")
+                            
+                            # Get the actual index from original dataframe
+                            if not filtered_costs.empty and cost_id < len(display_costs):
+                                actual_index = display_costs.loc[cost_id, 'ID']
+                                
+                                # Remove the selected cost
+                                costs_df = costs_df.drop(actual_index).reset_index(drop=True)
+                                
+                                # Save updated costs
+                                costs_df.to_csv("data/operational_costs.csv", index=False)
+                                
+                                st.success(f"Cost ID {cost_id} deleted successfully!")
+                                st.rerun()
+                            else:
+                                st.error("Invalid cost ID selected")
+                        except Exception as e:
+                            st.error(f"Error deleting cost: {str(e)}")
+                
+                with col2:
+                    # Edit cost button
+                    if st.button("Edit Cost"):
+                        if not filtered_costs.empty and cost_id < len(display_costs):
+                            # Store the selected cost ID in session state for the edit form
+                            st.session_state.edit_cost_id = cost_id
+                            st.session_state.edit_cost_mode = True
+                            st.rerun()
+                        else:
+                            st.error("Invalid cost ID selected")
+            
+            # Edit form (only shown when in edit mode)
+            if st.session_state.get('edit_cost_mode', False) and 'edit_cost_id' in st.session_state:
+                edit_id = st.session_state.edit_cost_id
+                
+                if edit_id < len(display_costs):
+                    selected_cost = display_costs.loc[edit_id]
+                    
+                    with st.form("edit_cost_form"):
+                        st.subheader(f"Edit Cost ID: {edit_id}")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            # Convert pandas Timestamp to Python date for date_input
+                            edit_date = st.date_input("Date", 
+                                                    selected_cost['Date'].date() 
+                                                    if pd.notna(selected_cost['Date']) 
+                                                    else datetime.datetime.now())
+                        
+                        with col2:
+                            cost_types = ["Rent", "Salary", "Utilities", "Marketing", "Maintenance", "Other"]
+                            edit_type = st.selectbox("Cost Type", 
+                                                    options=cost_types,
+                                                    index=cost_types.index(selected_cost['Type']) 
+                                                          if selected_cost['Type'] in cost_types 
+                                                          else 0)
+                            
+                            if edit_type == "Other":
+                                edit_type = st.text_input("Specify Cost Type", 
+                                                         value=selected_cost['Type'] if selected_cost['Type'] not in cost_types else "")
+                        
+                        with col3:
+                            edit_amount = st.number_input("Amount (VND)", 
+                                                        min_value=0.0, 
+                                                        value=float(selected_cost['Amount']),
+                                                        step=10000.0)
+                        
+                        # Submit buttons
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.form_submit_button("Update Cost"):
+                                try:
+                                    # Load current costs
+                                    costs_df = pd.read_csv("data/operational_costs.csv")
+                                    
+                                    # Get the actual index from original dataframe
+                                    actual_index = selected_cost['ID']
+                                    
+                                    # Update values
+                                    costs_df.loc[actual_index, 'Date'] = edit_date.strftime('%Y-%m-%d')
+                                    costs_df.loc[actual_index, 'Type'] = edit_type
+                                    costs_df.loc[actual_index, 'Amount'] = edit_amount
+                                    
+                                    # Save updated costs
+                                    costs_df.to_csv("data/operational_costs.csv", index=False)
+                                    
+                                    # Reset edit mode
+                                    st.session_state.edit_cost_mode = False
+                                    del st.session_state.edit_cost_id
+                                    
+                                    st.success("Cost updated successfully!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error updating cost: {str(e)}")
+                        
+                        with col2:
+                            if st.form_submit_button("Cancel"):
+                                # Reset edit mode
+                                st.session_state.edit_cost_mode = False
+                                del st.session_state.edit_cost_id
+                                st.rerun()
             
             # Pie chart of cost breakdown
             cost_breakdown = filtered_costs.groupby('Type')['Amount'].sum().reset_index()

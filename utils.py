@@ -23,6 +23,13 @@ def initialize_session_state():
     if 'manual_order_id' not in st.session_state:
         st.session_state.manual_order_id = ''
         
+    # Initialize edit cost mode variables
+    if 'edit_cost_mode' not in st.session_state:
+        st.session_state.edit_cost_mode = False
+        
+    if 'edit_cost_id' not in st.session_state:
+        st.session_state.edit_cost_id = None
+        
     # Initialize edit mode variables
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False

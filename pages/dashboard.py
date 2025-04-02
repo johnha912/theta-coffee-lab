@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import utils
 
+# Khởi tạo session_state
+utils.initialize_session_state()
+
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
 st.title("Dashboard")
