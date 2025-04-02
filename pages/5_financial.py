@@ -6,8 +6,8 @@ import plotly.io as pio
 import datetime
 import utils
 
-# Set default template to seaborn
-pio.templates.default = 'seaborn'
+# Set default template to ggplot2
+pio.templates.default = 'ggplot2'
 
 # Khởi tạo session_state
 utils.initialize_session_state()

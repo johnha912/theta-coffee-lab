@@ -5,8 +5,8 @@ import plotly.io as pio
 import uuid
 import utils
 
-# Set default template to seaborn
-pio.templates.default = 'seaborn'
+# Set default template to ggplot2
+pio.templates.default = 'ggplot2'
 
 st.set_page_config(page_title="Product Management", page_icon="☕", layout="wide")
 
