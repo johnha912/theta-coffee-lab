@@ -73,10 +73,17 @@ try:
     def calc_profit(group):
         return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
         
-    # Fix groupby warning by explicitly selecting columns after groupby
-    product_profit = merged_sales.groupby('Product', as_index=False).apply(
-        lambda group: pd.Series({'Profit': calc_profit(group)})
-    )
+    # Fix groupby warning by handling product profit calculation differently
+    product_profit_list = []
+    
+    # Process each product individually
+    for product in merged_sales['Product'].unique():
+        product_data = merged_sales[merged_sales['Product'] == product]
+        profit = calc_profit(product_data)
+        product_profit_list.append({'Product': product, 'Profit': profit})
+    
+    # Convert to DataFrame
+    product_profit = pd.DataFrame(product_profit_list)
     
     most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
     
@@ -118,12 +125,20 @@ try:
         'Total': 'sum'
     }).reset_index()
     
-    # Add COGS data
+    # Add COGS data - revert to original method to avoid Date error
+    merged_sales_with_date = merged_sales.copy()
+    merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
+    
+    cogs_by_date = merged_sales_with_date.groupby('Date_Only').apply(
+        lambda x: (x['COGS'] * x['Order_Quantity']).sum()
+    ).reset_index(name='COGS')
+    
+    # Convert Date_Only back to same format as in daily_finance
+    cogs_by_date['Date'] = cogs_by_date['Date_Only']
+    
     daily_finance = pd.merge(
         daily_finance,
-        merged_sales.groupby(merged_sales['Date'].dt.date, as_index=False).apply(
-            lambda x: pd.Series({'COGS': (x['COGS'] * x['Order_Quantity']).sum()})
-        ),
+        cogs_by_date[['Date', 'COGS']],
         on='Date',
         how='left'
     ).fillna(0)
