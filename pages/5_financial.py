@@ -108,7 +108,16 @@ try:
     # Convert to DataFrame
     product_profit = pd.DataFrame(product_profit_list)
     
-    most_profitable = product_profit.loc[product_profit['Profit'].idxmax()] if not product_profit.empty else pd.Series({'Product': 'N/A', 'Profit': 0})
+    # Safely get the most profitable product with multiple checks
+    if not product_profit.empty and 'Profit' in product_profit.columns and product_profit['Profit'].notnull().any():
+        # Only proceed if we have valid profit data
+        max_idx = product_profit['Profit'].idxmax()
+        if max_idx is not None:
+            most_profitable = product_profit.loc[max_idx]
+        else:
+            most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
+    else:
+        most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
     
     # Calculate operational costs in the period
     if not operational_costs_df.empty:
@@ -227,14 +236,25 @@ try:
     
     with col2:
         # Profit by product
-        fig3 = px.bar(
-            product_profit.sort_values('Profit', ascending=False).head(5),
-            x='Product',
-            y='Profit',
-            title='Top 5 Most Profitable Products',
-            labels={'Product': 'Product', 'Profit': 'Profit (VND)'}
-        )
-        st.plotly_chart(fig3, use_container_width=True)
+        if not product_profit.empty and 'Profit' in product_profit.columns:
+            # Sort by profit and get top 5 or less if we don't have 5
+            top_products = product_profit.sort_values('Profit', ascending=False).head(
+                min(5, len(product_profit))
+            )
+            
+            if not top_products.empty:
+                fig3 = px.bar(
+                    top_products,
+                    x='Product',
+                    y='Profit',
+                    title='Top 5 Most Profitable Products',
+                    labels={'Product': 'Product', 'Profit': 'Profit (VND)'}
+                )
+                st.plotly_chart(fig3, use_container_width=True)
+            else:
+                st.info("No profit data available for display")
+        else:
+            st.info("No product profit data available for this period")
     
     # Operational costs breakdown
     st.header("Operational Costs")
