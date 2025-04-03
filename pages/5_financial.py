@@ -155,7 +155,7 @@ expenses_df = load_expenses_data()
 # Add Profit calculation to sales data
 if not sales_df.empty and not products_df.empty:
     # Merge sales with product COGS
-    sales_with_cogs = sales_df.merge(products_df[['Name', 'COGS']], on='Product', how='left')
+    sales_with_cogs = sales_df.merge(products_df[['Name', 'COGS']], left_on='Product', right_on='Name', how='left')
     
     # Handle NaN COGS (products without COGS data)
     sales_with_cogs['COGS'] = sales_with_cogs['COGS'].fillna(0)

@@ -157,8 +157,8 @@ with col2:
             if not weight_units.empty:
                 # Group by item name and get the latest entry
                 latest_items = {}
-                for item in weight_units['Item'].unique():
-                    item_df = weight_units[weight_units['Item'] == item].sort_values('Date')
+                for item in weight_units['Name'].unique():
+                    item_df = weight_units[weight_units['Name'] == item].sort_values('Date')
                     latest_items[item] = item_df.iloc[-1].name
                 
                 # Display all entries with edit/delete options
@@ -207,8 +207,8 @@ with col2:
             if not volume_units.empty:
                 # Group by item name and get the latest entry
                 latest_items = {}
-                for item in volume_units['Item'].unique():
-                    item_df = volume_units[volume_units['Item'] == item].sort_values('Date')
+                for item in volume_units['Name'].unique():
+                    item_df = volume_units[volume_units['Name'] == item].sort_values('Date')
                     latest_items[item] = item_df.iloc[-1].name
                 
                 # Display all entries with edit/delete options
@@ -257,8 +257,8 @@ with col2:
             if not count_units.empty:
                 # Group by item name and get the latest entry
                 latest_items = {}
-                for item in count_units['Item'].unique():
-                    item_df = count_units[count_units['Item'] == item].sort_values('Date')
+                for item in count_units['Name'].unique():
+                    item_df = count_units[count_units['Name'] == item].sort_values('Date')
                     latest_items[item] = item_df.iloc[-1].name
                 
                 # Display all entries with edit/delete options
@@ -308,10 +308,10 @@ with col2:
 st.subheader("Inventory Summary")
 
 if not inventory_df.empty:
-    # Group by Item and take the latest entry for each
+    # Group by Name and take the latest entry for each
     unique_items = []
-    for item in inventory_df['Item'].unique():
-        item_df = inventory_df[inventory_df['Item'] == item].sort_values('Date')
+    for item in inventory_df['Name'].unique():
+        item_df = inventory_df[inventory_df['Name'] == item].sort_values('Date')
         unique_items.append(item_df.iloc[-1])
     
     latest_inventory = pd.DataFrame(unique_items)
@@ -328,7 +328,7 @@ if not inventory_df.empty:
         fig = px.pie(
             latest_inventory, 
             values='Value', 
-            names='Item',
+            names='Name',
             title='Inventory Value Distribution',
             template='ggplot2'
         )

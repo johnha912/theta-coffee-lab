@@ -103,7 +103,7 @@ if not sales_df.empty:
     
     # Calculate profit if COGS is available
     if not products_df.empty and 'COGS' in products_df.columns:
-        sales_with_products = sales_df.merge(products_df[['Product', 'COGS']], on='Product', how='left')
+        sales_with_products = sales_df.merge(products_df[['Name', 'COGS']], left_on='Product', right_on='Name', how='left')
         sales_with_products['Profit'] = sales_with_products['Total'] - (sales_with_products['Quantity'] * sales_with_products['COGS'])
         total_profit = sales_with_products['Profit'].sum()
     else:
@@ -218,7 +218,7 @@ with col2:
     st.subheader("Category Distribution")
     if not sales_df.empty and not products_df.empty:
         # Merge sales with product categories
-        sales_with_category = sales_df.merge(products_df[['Product', 'Category']], on='Product', how='left')
+        sales_with_category = sales_df.merge(products_df[['Name', 'Category']], left_on='Product', right_on='Name', how='left')
         
         # Group by category
         category_sales = sales_with_category.groupby('Category').agg(

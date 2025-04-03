@@ -294,26 +294,26 @@ with col2:
     st.subheader("Recent Orders")
     
     if not sales_df.empty:
-        # Group by OrderID and calculate totals
-        order_totals = sales_df.groupby('OrderID').agg(
+        # Group by Order_ID and calculate totals
+        order_totals = sales_df.groupby('Order_ID').agg(
             Date=('Date', 'first'),
             Time=('Time', 'first'),
             Items=('Product', 'count'),
             Total=('Total', 'sum')
-        ).reset_index().sort_values('OrderID', ascending=False).head(10)
+        ).reset_index().sort_values('Order_ID', ascending=False).head(10)
         
         # Display as a table
         for i, row in order_totals.iterrows():
-            with st.expander(f"Order #{int(row['OrderID'])} - {row['Date']} {row['Time']} - {format_currency(row['Total'])}"):
+            with st.expander(f"Order #{int(row['Order_ID'])} - {row['Date']} {row['Time']} - {format_currency(row['Total'])}"):
                 # Get order details
-                order_details = sales_df[sales_df['OrderID'] == row['OrderID']]
+                order_details = sales_df[sales_df['Order_ID'] == row['Order_ID']]
                 
                 # Display order details
                 display_styled_table(order_details[['Product', 'Quantity', 'Price', 'Total']])
                 
                 # Delete button
-                if st.button("Delete Order", key=f"delete_order_{int(row['OrderID'])}", use_container_width=True):
-                    if delete_saved_order(int(row['OrderID'])):
+                if st.button("Delete Order", key=f"delete_order_{int(row['Order_ID'])}", use_container_width=True):
+                    if delete_saved_order(int(row['Order_ID'])):
                         st.rerun()
     else:
         st.info("No recent orders found.")

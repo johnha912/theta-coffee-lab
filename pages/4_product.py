@@ -317,12 +317,11 @@ with col2:
                                         products_df['Name'].tolist(),
                                         key="delete_product")
         
-        if st.button("Delete Selected Product", use_container_width=True):
-            confirm = st.checkbox("Confirm deletion? This cannot be undone.")
-            if confirm:
-                if delete_product(product_to_delete):
-                    st.success(f"Product {product_to_delete} deleted successfully!")
-                    st.rerun()
+        delete_confirm = st.checkbox("Confirm deletion? This cannot be undone.", key="delete_confirm")
+        if st.button("Delete Selected Product", use_container_width=True, disabled=not delete_confirm):
+            if delete_product(product_to_delete):
+                st.success(f"Product {product_to_delete} deleted successfully!")
+                st.rerun()
         
         # Product analysis
         st.subheader("Product Analysis")
