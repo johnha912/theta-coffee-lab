@@ -148,13 +148,16 @@ try:
         'Total': 'sum'
     }).reset_index()
     
-    # Add COGS data - revert to original method to avoid Date error
+    # Add COGS data - use a safer approach that works with all pandas versions
     merged_sales_with_date = merged_sales.copy()
     merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
     
-    cogs_by_date = merged_sales_with_date.groupby('Date_Only').apply(
-        lambda x: (x['COGS'] * x['Order_Quantity']).sum()
-    ).reset_index(name='COGS')
+    # Calculate COGS per row
+    merged_sales_with_date['Row_COGS'] = merged_sales_with_date['COGS'] * merged_sales_with_date['Order_Quantity']
+    
+    # Group by date and sum the COGS
+    cogs_by_date = merged_sales_with_date.groupby('Date_Only')['Row_COGS'].sum().reset_index()
+    cogs_by_date.rename(columns={'Row_COGS': 'COGS'}, inplace=True)
     
     # Convert Date_Only back to same format as in daily_finance
     cogs_by_date['Date'] = cogs_by_date['Date_Only']
