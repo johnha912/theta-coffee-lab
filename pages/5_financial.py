@@ -78,13 +78,24 @@ try:
     # Financial KPIs
     st.header("Financial Key Performance Indicators")
     
-    # Calculate revenue
-    total_revenue = filtered_sales['Total'].sum()
-    
-    # Calculate COGS
-    filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
-    merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name')
-    total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
+    # Check if filtered_sales is empty
+    if filtered_sales.empty:
+        total_revenue = 0
+        total_cogs = 0
+        merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
+    else:
+        # Calculate revenue
+        total_revenue = filtered_sales['Total'].sum()
+        
+        # Calculate COGS
+        filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+        merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name', how='left')
+        
+        # Check if COGS column exists in products_df
+        if 'COGS' in merged_sales.columns:
+            total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
+        else:
+            total_cogs = 0
     
     # Calculate gross profit
     gross_profit = total_revenue - total_cogs
@@ -94,18 +105,29 @@ try:
     
     # Most profitable product
     def calc_profit(group):
-        return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
+        # Only calculate if all required columns exist
+        if all(col in group.columns for col in ['Price', 'COGS', 'Order_Quantity']):
+            # Make sure all values are numeric
+            try:
+                return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
+            except:
+                return 0
+        return 0
         
     # Fix groupby warning by handling product profit calculation differently
     product_profit_list = []
     
-    # Process each product individually
-    for product in merged_sales['Product'].unique():
-        product_data = merged_sales[merged_sales['Product'] == product]
-        profit = calc_profit(product_data)
-        product_profit_list.append({'Product': product, 'Profit': profit})
+    # Check if necessary columns are present
+    required_cols = ['Product', 'Price', 'COGS', 'Order_Quantity']
+    if all(col in merged_sales.columns for col in required_cols) and not merged_sales.empty:
+        # Process each product individually
+        for product in merged_sales['Product'].unique():
+            if pd.notna(product):  # Skip NaN product names
+                product_data = merged_sales[merged_sales['Product'] == product]
+                profit = calc_profit(product_data)
+                product_profit_list.append({'Product': product, 'Profit': profit})
     
-    # Convert to DataFrame
+    # Convert to DataFrame (empty if no products)
     product_profit = pd.DataFrame(product_profit_list)
     
     # Safely get the most profitable product with multiple checks
@@ -153,86 +175,108 @@ try:
     st.header("Financial Performance Visualization")
     
     # Daily revenue and costs chart
-    daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
-        'Total': 'sum'
-    }).reset_index()
-    
-    # Add COGS data - use a safer approach that works with all pandas versions
-    merged_sales_with_date = merged_sales.copy()
-    merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
-    
-    # Calculate COGS per row
-    merged_sales_with_date['Row_COGS'] = merged_sales_with_date['COGS'] * merged_sales_with_date['Order_Quantity']
-    
-    # Group by date and sum the COGS
-    cogs_by_date = merged_sales_with_date.groupby('Date_Only')['Row_COGS'].sum().reset_index()
-    cogs_by_date.rename(columns={'Row_COGS': 'COGS'}, inplace=True)
-    
-    # Convert Date_Only back to same format as in daily_finance
-    cogs_by_date['Date'] = cogs_by_date['Date_Only']
-    
-    daily_finance = pd.merge(
-        daily_finance,
-        cogs_by_date[['Date', 'COGS']],
-        on='Date',
-        how='left'
-    ).fillna(0)
-    
-    # Calculate daily gross profit
-    daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
-    
-    # Format date to DD/MM/YY
-    daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
-    
-    # Line chart for revenue, COGS, gross profit
-    fig1 = go.Figure()
-    
-    fig1.add_trace(go.Scatter(
-        x=daily_finance['Date_Formatted'],
-        y=daily_finance['Total'],
-        mode='lines+markers',
-        name='Revenue'
-    ))
-    
-    fig1.add_trace(go.Scatter(
-        x=daily_finance['Date_Formatted'],
-        y=daily_finance['COGS'],
-        mode='lines+markers',
-        name='COGS'
-    ))
-    
-    fig1.add_trace(go.Scatter(
-        x=daily_finance['Date_Formatted'],
-        y=daily_finance['Gross_Profit'],
-        mode='lines+markers',
-        name='Gross Profit',
-        line=dict(color='green')
-    ))
-    
-    fig1.update_layout(
-        title='Daily Financial Performance',
-        xaxis_title='Date',
-        yaxis_title='Amount (VND)'
-    )
-    
-    st.plotly_chart(fig1, use_container_width=True)
+    if not filtered_sales.empty:
+        daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
+            'Total': 'sum'
+        }).reset_index()
+        
+        # Add COGS data - use a safer approach that works with all pandas versions
+        if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:
+            merged_sales_with_date = merged_sales.copy()
+            
+            if 'Date' in merged_sales_with_date.columns:
+                merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
+                
+                # Calculate COGS per row
+                merged_sales_with_date['Row_COGS'] = merged_sales_with_date['COGS'] * merged_sales_with_date['Order_Quantity']
+                
+                # Group by date and sum the COGS
+                cogs_by_date = merged_sales_with_date.groupby('Date_Only')['Row_COGS'].sum().reset_index()
+                cogs_by_date.rename(columns={'Row_COGS': 'COGS'}, inplace=True)
+                
+                # Convert Date_Only back to same format as in daily_finance
+                cogs_by_date['Date'] = cogs_by_date['Date_Only']
+                
+                daily_finance = pd.merge(
+                    daily_finance,
+                    cogs_by_date[['Date', 'COGS']],
+                    on='Date',
+                    how='left'
+                ).fillna(0)
+            else:
+                # If no Date column, simply add a COGS column with zeros
+                daily_finance['COGS'] = 0
+        else:
+            # If no COGS data, add it as zeros
+            daily_finance['COGS'] = 0
+        
+        # Calculate daily gross profit
+        daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
+        
+        # Format date to DD/MM/YY
+        daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+        
+        # Line chart for revenue, COGS, gross profit
+        fig1 = go.Figure()
+        
+        fig1.add_trace(go.Scatter(
+            x=daily_finance['Date_Formatted'],
+            y=daily_finance['Total'],
+            mode='lines+markers',
+            name='Revenue'
+        ))
+        
+        fig1.add_trace(go.Scatter(
+            x=daily_finance['Date_Formatted'],
+            y=daily_finance['COGS'],
+            mode='lines+markers',
+            name='COGS'
+        ))
+        
+        fig1.add_trace(go.Scatter(
+            x=daily_finance['Date_Formatted'],
+            y=daily_finance['Gross_Profit'],
+            mode='lines+markers',
+            name='Gross Profit',
+            line=dict(color='green')
+        ))
+        
+        fig1.update_layout(
+            title='Daily Financial Performance',
+            xaxis_title='Date',
+            yaxis_title='Amount (VND)'
+        )
+        
+        st.plotly_chart(fig1, use_container_width=True)
+    else:
+        st.info("No sales data available for the selected period to display charts")
     
     # Product analysis
     col1, col2 = st.columns(2)
     
     with col1:
         # Top selling products
-        product_sales = filtered_sales.groupby('Product')['Quantity'].sum().reset_index()
-        product_sales = product_sales.sort_values('Quantity', ascending=False).head(5)
-        
-        fig2 = px.bar(
-            product_sales,
-            x='Product',
-            y='Quantity',
-            title='Top 5 Best Selling Products',
-            labels={'Product': 'Product', 'Quantity': 'Units Sold'}
-        )
-        st.plotly_chart(fig2, use_container_width=True)
+        if not filtered_sales.empty:
+            product_sales = filtered_sales.groupby('Product')['Quantity'].sum().reset_index()
+            
+            if not product_sales.empty:
+                # Sort by quantity and get top 5 or less if we don't have 5
+                product_sales = product_sales.sort_values('Quantity', ascending=False).head(
+                    min(5, len(product_sales))
+                )
+                
+                fig2 = px.bar(
+                    product_sales,
+                    x='Product',
+                    y='Quantity',
+                    title='Top 5 Best Selling Products',
+                    labels={'Product': 'Product', 'Quantity': 'Units Sold'}
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+            else:
+                st.info("No product sales data available to display")
+        else:
+            st.info("No sales data available for the selected period")
     
     with col2:
         # Profit by product
