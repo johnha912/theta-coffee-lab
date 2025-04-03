@@ -1,175 +1,282 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 from datetime import datetime, timedelta
-import utils
+import os
+from utils import initialize_session_state, format_currency, get_date_range
+from ui_utils import display_header, display_card, display_summary_metrics, display_styled_table
 
-# Khởi tạo session_state
-utils.initialize_session_state()
+# Initialize session state
+initialize_session_state()
 
-# Set default template to ggplot2
-pio.templates.default = 'ggplot2'
-
-# Tạo template ggplot2 custom với nền xám và lưới
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Màu nền paper
-    plot_bgcolor='#F0F0F0',   # Màu nền plot
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
+# Page config
+st.set_page_config(
+    page_title="Dashboard - Theta Coffee Lab",
+    page_icon="☕",
+    layout="wide"
 )
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-pio.templates.default = 'custom_ggplot2'
 
-st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
+# Display common header
+display_header()
 
+# Main title
 st.title("Dashboard")
-st.subheader("Overview of Cafe Performance")
 
 # Time filter
-time_options = ["Today", "Last 7 Days", "Last 30 Days", "Custom"]
-time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
+time_filter = st.selectbox(
+    "Time range",
+    ["Today", "Last 7 days", "Last 30 days", "This month", "All time"],
+    index=1  # Default to "Last 7 days"
+)
 
-# Date range for custom filter
-if time_filter == "Custom":
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("Start Date", datetime.now() - timedelta(days=7))
-    with col2:
-        end_date = st.date_input("End Date", datetime.now())
-else:
-    # Set date range based on selection
-    end_date = datetime.now().date()
-    if time_filter == "Today":
-        start_date = end_date
-    elif time_filter == "Last 7 Days":
-        start_date = end_date - timedelta(days=6)
-    elif time_filter == "Last 30 Days":
-        start_date = end_date - timedelta(days=29)
-
-try:
-    # Load data
+def load_sales_data():
+    """Load and filter sales data"""
+    if not os.path.exists("data/sales.csv"):
+        return pd.DataFrame()
+    
     sales_df = pd.read_csv("data/sales.csv")
-    inventory_df = pd.read_csv("data/inventory.csv")
-    products_df = pd.read_csv("data/products.csv")
-    product_recipe_df = pd.read_csv("data/product_recipe.csv")
+    if sales_df.empty:
+        return pd.DataFrame()
     
-    # Prepare sales data
+    # Convert Date to datetime
     sales_df['Date'] = pd.to_datetime(sales_df['Date'])
-    filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
-                             (sales_df['Date'].dt.date <= end_date)]
     
-    # Calculate KPIs
-    total_revenue = filtered_sales['Total'].sum()
-    total_orders = len(filtered_sales['Order_ID'].unique())
+    # Filter by date range
+    start_date, end_date = get_date_range(time_filter)
+    filtered_df = sales_df[(sales_df['Date'] >= start_date) & (sales_df['Date'] <= end_date)]
     
-    # Top selling product
-    product_sales = filtered_sales.groupby('Product')['Quantity'].sum().reset_index()
-    top_product = product_sales.loc[product_sales['Quantity'].idxmax()] if not product_sales.empty else pd.Series({'Product': 'N/A', 'Quantity': 0})
+    return filtered_df
+
+def load_expenses_data():
+    """Load and filter expenses data"""
+    if not os.path.exists("data/expenses.csv"):
+        return pd.DataFrame()
     
-    # Total coffee cups sold
-    total_cups = filtered_sales['Quantity'].sum()
+    expenses_df = pd.read_csv("data/expenses.csv")
+    if expenses_df.empty:
+        return pd.DataFrame()
     
-    # Calculate ingredients used
-    filtered_sales_recipe = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
-    product_recipe_df_renamed = product_recipe_df.rename(columns={'Quantity': 'Recipe_Quantity'})  # Rename recipe quantity
-    merged_df = pd.merge(filtered_sales_recipe, product_recipe_df_renamed, left_on='Product', right_on='Product')
-    # Calculate total ingredient use (order quantity * recipe quantity)
-    merged_df['Total_Ingredient_Used'] = merged_df['Order_Quantity'] * merged_df['Recipe_Quantity'] 
-    ingredients_used = merged_df.groupby('Ingredient')['Total_Ingredient_Used'].sum().reset_index()
-    ingredients_used.columns = ['Ingredient', 'Quantity_Used']
-    top_ingredients = ingredients_used.sort_values('Quantity_Used', ascending=False).head(5)
+    # Convert Date to datetime
+    expenses_df['Date'] = pd.to_datetime(expenses_df['Date'])
     
-    # Calculate gross profit
-    filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
-    product_costs = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name')
-    gross_profit = total_revenue - (product_costs['COGS'] * product_costs['Order_Quantity']).sum()
+    # Filter by date range
+    start_date, end_date = get_date_range(time_filter)
+    filtered_df = expenses_df[(expenses_df['Date'] >= start_date) & (expenses_df['Date'] <= end_date)]
     
-    # Display KPIs
-    st.header("Key Performance Indicators")
+    return filtered_df
+
+def load_inventory_data():
+    """Load inventory data"""
+    if not os.path.exists("data/inventory.csv"):
+        return pd.DataFrame()
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Revenue", utils.format_currency(total_revenue))
-        st.metric("Total Orders", f"{total_orders}")
+    inventory_df = pd.read_csv("data/inventory.csv")
+    return inventory_df
+
+def load_product_data():
+    """Load product data"""
+    if not os.path.exists("data/products.csv"):
+        return pd.DataFrame()
     
-    with col2:
-        st.metric("Best Selling Product", f"{top_product['Product']} ({int(top_product['Quantity'])} units)")
-        st.metric("Total Coffee Cups Sold", f"{total_cups}")
+    products_df = pd.read_csv("data/products.csv")
+    return products_df
+
+# Load data
+sales_df = load_sales_data()
+expenses_df = load_expenses_data()
+inventory_df = load_inventory_data()
+products_df = load_product_data()
+
+# Calculate metrics
+if not sales_df.empty:
+    total_sales = sales_df['Total'].sum()
+    total_orders = sales_df['OrderID'].nunique()
+    avg_order_value = total_sales / total_orders if total_orders > 0 else 0
     
-    with col3:
-        st.metric("Gross Profit", utils.format_currency(gross_profit))
-        gp_percentage = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
-        st.metric("Gross Profit Margin", f"{gp_percentage:.2f}%")
+    # Top selling products
+    product_sales = sales_df.groupby('Product').agg(
+        Sales=('Total', 'sum'),
+        Quantity=('Quantity', 'sum')
+    ).reset_index().sort_values('Sales', ascending=False)
     
-    # Charts
-    st.header("Performance Charts")
-    
-    # Daily revenue chart
-    daily_revenue = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Total'].sum().reset_index()
+    # Calculate profit if COGS is available
+    if not products_df.empty and 'COGS' in products_df.columns:
+        sales_with_products = sales_df.merge(products_df[['Product', 'COGS']], on='Product', how='left')
+        sales_with_products['Profit'] = sales_with_products['Total'] - (sales_with_products['Quantity'] * sales_with_products['COGS'])
+        total_profit = sales_with_products['Profit'].sum()
+    else:
+        total_profit = 0
+else:
+    total_sales = 0
+    total_orders = 0
+    avg_order_value = 0
+    total_profit = 0
+    product_sales = pd.DataFrame(columns=['Product', 'Sales', 'Quantity'])
+
+# Expenses
+total_expenses = expenses_df['Amount'].sum() if not expenses_df.empty else 0
+net_income = total_profit - total_expenses
+
+# Display metrics
+with st.container():
+    metrics = {
+        "Total Revenue": {
+            "value": total_sales,
+            "help": "Total revenue from all sales in the selected period",
+            "unit": "VND"
+        },
+        "Total Orders": {
+            "value": total_orders,
+            "help": "Number of unique orders in the selected period"
+        },
+        "Average Order Value": {
+            "value": avg_order_value,
+            "help": "Average value per order",
+            "unit": "VND"
+        },
+        "Net Income": {
+            "value": net_income,
+            "help": "Profit after expenses",
+            "unit": "VND"
+        }
+    }
+    display_summary_metrics(metrics)
+
+# Sales trend chart
+st.subheader("Sales Trend")
+
+if not sales_df.empty:
+    # Group by date
+    daily_sales = sales_df.groupby('Date').agg(
+        Revenue=('Total', 'sum'),
+        Orders=('OrderID', 'nunique')
+    ).reset_index()
     
     # Format date to DD/MM/YY
-    daily_revenue['Date_Formatted'] = daily_revenue['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+    daily_sales['FormattedDate'] = daily_sales['Date'].dt.strftime('%d/%m/%y')
     
-    fig1 = px.line(
-        daily_revenue, 
-        x='Date_Formatted', 
-        y='Total',
+    # Plot using Plotly
+    fig_sales = px.line(
+        daily_sales, 
+        x='Date', 
+        y='Revenue',
+        labels={'Date': 'Date', 'Revenue': 'Revenue (VND)'},
         title='Daily Revenue',
-        labels={'Date_Formatted': 'Date', 'Total': 'Revenue (VND)'}
+        template='ggplot2'
     )
-    fig1.update_layout(xaxis_title='Date', yaxis_title='Revenue (VND)')
-    st.plotly_chart(fig1, use_container_width=True)
-    
-    # Top 5 ingredients used chart
-    fig2 = px.bar(
-        top_ingredients,
-        x='Ingredient',
-        y='Quantity_Used',
-        title='Top 5 Ingredients Used',
-        labels={'Ingredient': 'Ingredient', 'Quantity_Used': 'Quantity Used'}
+    fig_sales.update_traces(mode='lines+markers')
+    fig_sales.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Revenue (VND)',
+        xaxis=dict(tickformat='%d/%m/%y'),
+        plot_bgcolor='rgba(240, 240, 240, 0.8)',
+        paper_bgcolor='rgba(255, 255, 255, 0.8)',
+        height=400
     )
-    fig2.update_layout(xaxis_title='Ingredient', yaxis_title='Quantity Used')
-    st.plotly_chart(fig2, use_container_width=True)
-    
-    # Additional insights
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Product sales breakdown
-        st.subheader("Product Sales Breakdown")
-        product_breakdown = filtered_sales.groupby('Product')['Quantity'].sum().reset_index()
-        product_breakdown = product_breakdown.sort_values('Quantity', ascending=False)
-        
-        fig3 = px.pie(
-            product_breakdown, 
-            values='Quantity', 
-            names='Product',
-            title='Product Sales Distribution'
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-    
-    with col2:
-        # Low inventory alert
-        st.subheader("Inventory Alerts")
-        low_inventory = inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold]
-        
-        if not low_inventory.empty:
-            st.warning(f"{len(low_inventory)} items below threshold!")
-            st.dataframe(low_inventory[['Name', 'Quantity', 'Unit']])
-        else:
-            st.success("All inventory items are above threshold levels")
+    st.plotly_chart(fig_sales, use_container_width=True)
+else:
+    st.info("No sales data available for the selected time period.")
 
-except Exception as e:
-    st.error(f"Error loading dashboard data: {str(e)}")
-    st.write("Please check that your data files exist and are properly formatted.")
+# Columns for charts
+col1, col2 = st.columns(2)
+
+# Top selling products
+with col1:
+    st.subheader("Top Selling Products")
+    if not product_sales.empty:
+        # Create a bar chart for top 5 products
+        top_products = product_sales.head(5)
+        fig_products = px.bar(
+            top_products,
+            y='Product',
+            x='Sales',
+            title='Top 5 Products by Sales',
+            orientation='h',
+            text='Sales',
+            labels={'Sales': 'Sales (VND)', 'Product': 'Product'},
+            template='ggplot2'
+        )
+        fig_products.update_traces(
+            texttemplate='%{text:,.0f} VND', 
+            textposition='outside'
+        )
+        fig_products.update_layout(
+            xaxis_title='Sales (VND)',
+            yaxis_title='Product',
+            plot_bgcolor='rgba(240, 240, 240, 0.8)',
+            paper_bgcolor='rgba(255, 255, 255, 0.8)',
+            height=400
+        )
+        st.plotly_chart(fig_products, use_container_width=True)
+    else:
+        st.info("No product sales data available for the selected time period.")
+
+# Category distribution
+with col2:
+    st.subheader("Category Distribution")
+    if not sales_df.empty and not products_df.empty:
+        # Merge sales with product categories
+        sales_with_category = sales_df.merge(products_df[['Product', 'Category']], on='Product', how='left')
+        
+        # Group by category
+        category_sales = sales_with_category.groupby('Category').agg(
+            Sales=('Total', 'sum')
+        ).reset_index().sort_values('Sales', ascending=False)
+        
+        # Create a pie chart
+        fig_categories = px.pie(
+            category_sales,
+            values='Sales',
+            names='Category',
+            title='Sales by Category',
+            template='ggplot2'
+        )
+        fig_categories.update_traces(
+            textinfo='percent+label',
+            hole=0.4
+        )
+        fig_categories.update_layout(
+            plot_bgcolor='rgba(240, 240, 240, 0.8)',
+            paper_bgcolor='rgba(255, 255, 255, 0.8)',
+            height=400
+        )
+        st.plotly_chart(fig_categories, use_container_width=True)
+    else:
+        st.info("No category data available for the selected time period.")
+
+# Recent orders section
+st.subheader("Recent Orders")
+if not sales_df.empty:
+    recent_orders = sales_df.sort_values('Date', ascending=False).head(10)
+    
+    # Format the table
+    display_df = recent_orders[['OrderID', 'Date', 'Time', 'Product', 'Quantity', 'Total']].copy()
+    
+    # Format date
+    display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
+    
+    # Add currency formatting
+    display_df['Total'] = display_df['Total'].apply(lambda x: f"{x:,.0f}")
+    
+    # Display the table
+    display_styled_table(display_df)
+else:
+    st.info("No recent orders available for the selected time period.")
+
+# Low inventory alert
+st.subheader("Inventory Alerts")
+if not inventory_df.empty:
+    # Calculate threshold
+    threshold = st.session_state.alert_threshold if 'alert_threshold' in st.session_state else 10
+    
+    # Find low stock items
+    low_stock = inventory_df[inventory_df['Quantity'] <= threshold].sort_values('Quantity')
+    
+    if not low_stock.empty:
+        display_styled_table(low_stock[['Item', 'Unit', 'Quantity']])
+    else:
+        st.success("All inventory items are above the alert threshold.")
+else:
+    st.info("No inventory data available.")

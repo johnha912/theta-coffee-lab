@@ -4,10 +4,8 @@ address = "0.0.0.0"
 port = 5000
 
 [theme]
-primaryColor = "#FF4B4B"
-backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#262730"
-textColor = "#FAFAFA"
+primaryColor = "#795548"  # Coffee color
+backgroundColor = "#F5F5F5"  # Light gray
+secondaryBackgroundColor = "#EFEBE9"  # Light coffee
+textColor = "#5D4037"  # Dark coffee for text
 font = "sans serif"
-[browser]
-gatherUsageStats = false

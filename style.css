@@ -1,0 +1,74 @@
+/* CSS chung cho Theta Coffee Lab Management System */
+
+/* Card styles */
+.card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* Dashboard header */
+.dashboard-header {
+    background: linear-gradient(to right, #795548, #A1887F);
+    padding: 15px;
+    color: white;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+/* Button styling */
+div.stButton > button {
+    background-color: #795548;
+    color: white;
+    font-weight: 500;
+    border-radius: 5px;
+    border: none;
+}
+
+div.stButton > button:hover {
+    background-color: #5D4037;
+}
+
+/* Metric styles */
+div.css-1wivap2.e1i5pmia3 {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+    background-color: #EFEBE9;
+}
+
+/* Adjusting header margins */
+.main h1, .main h2, .main h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* DataFrames styling */
+div.stDataFrame {
+    border: 1px solid #E0E0E0;
+    border-radius: 5px;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    font-weight: 600;
+    color: #5D4037;
+}
+
+/* Input fields styling */
+div.stTextInput input, div.stNumberInput input, div.stDateInput input {
+    border-radius: 5px;
+    border: 1px solid #D7CCC8;
+}
+
+/* Selectbox styling */
+div.stSelectbox > div[data-baseweb="select"] > div {
+    border-radius: 5px;
+    border: 1px solid #D7CCC8;
+}
