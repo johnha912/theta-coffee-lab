@@ -64,11 +64,11 @@ else:
             "help": "Total number of products in the system"
         },
         "Inventory Items": {
-            "value": len(inventory_df['Item'].unique()) if not inventory_df.empty else 0,
+            "value": len(inventory_df['Name'].unique()) if not inventory_df.empty else 0,
             "help": "Number of unique inventory items"
         },
         "Orders Processed": {
-            "value": len(sales_df['OrderID'].unique()) if not sales_df.empty else 0,
+            "value": len(sales_df['Order_ID'].unique()) if not sales_df.empty else 0,
             "help": "Total number of orders processed"
         },
         "Total Revenue": {
@@ -106,12 +106,12 @@ else:
             with st.expander("View Low Stock Items"):
                 # Display latest entry for each item below threshold
                 unique_items = []
-                for item in low_stock['Item'].unique():
-                    item_df = low_stock[low_stock['Item'] == item].sort_values('Date')
+                for item in low_stock['Name'].unique():
+                    item_df = low_stock[low_stock['Name'] == item].sort_values('Date')
                     unique_items.append(item_df.iloc[-1])
                 
                 unique_low_stock = pd.DataFrame(unique_items)
-                display_styled_table(unique_low_stock[['Item', 'Unit', 'Quantity']])
+                display_styled_table(unique_low_stock[['Name', 'Unit', 'Quantity']])
     
     # Quick links
     st.header("Quick Navigation")

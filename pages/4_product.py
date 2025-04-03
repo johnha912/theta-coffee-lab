@@ -222,7 +222,7 @@ with col1:
         st.session_state.recipe_ingredients = {}
     
     # Product selection for editing
-    existing_products = products_df['Product'].tolist() if not products_df.empty else []
+    existing_products = products_df['Name'].tolist() if not products_df.empty else []
     
     product_action = st.radio("Action", ["Create New", "Edit Existing"], horizontal=True)
     
@@ -250,7 +250,7 @@ with col1:
         
         # Ingredient selection
         if not inventory_df.empty:
-            ingredient_options = inventory_df['Item'].unique().tolist()
+            ingredient_options = inventory_df['Name'].unique().tolist()
             st.selectbox("Ingredient", ingredient_options, key="recipe_ingredient")
             st.number_input("Amount", min_value=0.0, step=0.1, key="recipe_amount")
             
@@ -272,7 +272,7 @@ with col1:
                     st.text(ingredient)
                 with amt_col:
                     # Get unit
-                    ing_data = inventory_df[inventory_df['Item'] == ingredient]
+                    ing_data = inventory_df[inventory_df['Name'] == ingredient]
                     unit = ing_data.iloc[0]['Unit'] if not ing_data.empty else ""
                     st.text(f"{amount} {unit}")
                 with btn_col:
@@ -314,7 +314,7 @@ with col2:
         # Delete product functionality
         st.subheader("Delete Product")
         product_to_delete = st.selectbox("Select Product to Delete", 
-                                        products_df['Product'].tolist(),
+                                        products_df['Name'].tolist(),
                                         key="delete_product")
         
         if st.button("Delete Selected Product", use_container_width=True):
@@ -330,7 +330,7 @@ with col2:
         # Profit margin comparison
         fig_margin = px.bar(
             analysis_df.sort_values('Margin', ascending=False), 
-            x='Product',
+            x='Name',
             y='Margin',
             color='Category',
             title='Profit Margin by Product (%)',
@@ -351,7 +351,7 @@ with col2:
             y='Price',
             color='Category',
             size='Profit',
-            hover_name='Product',
+            hover_name='Name',
             title='Price vs COGS',
             template='ggplot2'
         )

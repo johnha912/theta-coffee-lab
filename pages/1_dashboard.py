@@ -92,7 +92,7 @@ products_df = load_product_data()
 # Calculate metrics
 if not sales_df.empty:
     total_sales = sales_df['Total'].sum()
-    total_orders = sales_df['OrderID'].nunique()
+    total_orders = sales_df['Order_ID'].nunique()
     avg_order_value = total_sales / total_orders if total_orders > 0 else 0
     
     # Top selling products
@@ -151,7 +151,7 @@ if not sales_df.empty:
     # Group by date
     daily_sales = sales_df.groupby('Date').agg(
         Revenue=('Total', 'sum'),
-        Orders=('OrderID', 'nunique')
+        Orders=('Order_ID', 'nunique')
     ).reset_index()
     
     # Format date to DD/MM/YY
@@ -252,7 +252,7 @@ if not sales_df.empty:
     recent_orders = sales_df.sort_values('Date', ascending=False).head(10)
     
     # Format the table
-    display_df = recent_orders[['OrderID', 'Date', 'Time', 'Product', 'Quantity', 'Total']].copy()
+    display_df = recent_orders[['Order_ID', 'Date', 'Time', 'Product', 'Quantity', 'Total']].copy()
     
     # Format date
     display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
@@ -275,7 +275,7 @@ if not inventory_df.empty:
     low_stock = inventory_df[inventory_df['Quantity'] <= threshold].sort_values('Quantity')
     
     if not low_stock.empty:
-        display_styled_table(low_stock[['Item', 'Unit', 'Quantity']])
+        display_styled_table(low_stock[['Name', 'Unit', 'Quantity']])
     else:
         st.success("All inventory items are above the alert threshold.")
 else:

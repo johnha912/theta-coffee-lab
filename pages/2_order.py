@@ -67,7 +67,7 @@ def add_item_to_order():
     """Add an item to the current order"""
     # Get selected product info
     product_name = st.session_state.product_select
-    product_info = products_df[products_df['Product'] == product_name]
+    product_info = products_df[products_df['Name'] == product_name]
     
     if not product_info.empty:
         product_price = product_info.iloc[0]['Price']
@@ -207,7 +207,7 @@ with col1:
         
         with product_col:
             st.selectbox("Select Product", 
-                        products_df['Product'].tolist(),
+                        products_df['Name'].tolist(),
                         key="product_select")
         
         with quantity_col:
@@ -233,7 +233,7 @@ with col1:
             col1, col2, col3, col4, col5 = st.columns([3, 1, 2, 1, 1])
             
             with col1:
-                product_list = products_df['Product'].tolist()
+                product_list = products_df['Name'].tolist()
                 product_index = product_list.index(row['Product']) if row['Product'] in product_list else 0
                 new_product = st.selectbox(f"Product #{i+1}", 
                                           product_list,
@@ -247,7 +247,7 @@ with col1:
                                              key=f"edit_qty_{i}")
             
             with col3:
-                product_price = products_df.loc[products_df['Product'] == new_product, 'Price'].values[0]
+                product_price = products_df.loc[products_df['Name'] == new_product, 'Price'].values[0]
                 new_total = new_quantity * product_price
                 st.text_input(f"Price #{i+1}", 
                              value=format_currency(product_price),

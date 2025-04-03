@@ -14,8 +14,8 @@ def display_header():
     # Header
     col1, col2 = st.columns([1, 4])
     with col1:
-        if os.path.exists('assets/logo.svg'):
-            st.image('assets/logo.svg', width=100)
+        if os.path.exists('assets/logo.jpg'):
+            st.image('assets/logo.jpg', width=100)
     with col2:
         st.markdown("""
         <div class="dashboard-header">

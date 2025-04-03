@@ -4,8 +4,8 @@ address = "0.0.0.0"
 port = 5000
 
 [theme]
-primaryColor = "#795548"  # Coffee color
-backgroundColor = "#F5F5F5"  # Light gray
-secondaryBackgroundColor = "#EFEBE9"  # Light coffee
-textColor = "#5D4037"  # Dark coffee for text
+primaryColor = "#404040"  # Dark gray
+backgroundColor = "#ffffff"  # White
+secondaryBackgroundColor = "#bfbfbf"  # Light gray
+textColor = "#000000"  # Black for text
 font = "sans serif"

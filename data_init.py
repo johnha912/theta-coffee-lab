@@ -17,14 +17,14 @@ def initialize_data_files():
     # Create inventory.csv if it doesn't exist
     if not os.path.exists('data/inventory.csv'):
         inventory_df = pd.DataFrame(columns=[
-            'Item', 'Unit', 'Quantity', 'Cost', 'Date'
+            'ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'
         ])
         inventory_df.to_csv('data/inventory.csv', index=False)
     
     # Create products.csv if it doesn't exist
     if not os.path.exists('data/products.csv'):
         products_df = pd.DataFrame(columns=[
-            'Product', 'Price', 'Category', 'COGS'
+            'Name', 'Price', 'COGS', 'Profit'
         ])
         products_df.to_csv('data/products.csv', index=False)
     
