@@ -1,342 +1,515 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
-import os
-from utils import initialize_session_state, format_currency, ensure_data_dir
-from ui_utils import display_header, display_styled_table, create_tabs_with_icons
+import plotly.io as pio
+import datetime
+import utils
 
-# Initialize session state
-initialize_session_state()
+# Khởi tạo session_state
+utils.initialize_session_state()
 
-# Page config
-st.set_page_config(
-    page_title="Inventory Management - Theta Coffee Lab",
-    page_icon="📦",
-    layout="wide"
+# Set default template to ggplot2
+pio.templates.default = 'ggplot2'
+
+# Tạo template ggplot2 custom với nền xám và lưới
+custom_ggplot2_template = pio.templates['ggplot2']
+custom_ggplot2_template.layout.update(
+    paper_bgcolor='#F0F0F0',  # Màu nền paper
+    plot_bgcolor='#F0F0F0',   # Màu nền plot
+    xaxis=dict(
+        showgrid=True,
+        gridcolor='white',
+        gridwidth=1.5
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor='white',
+        gridwidth=1.5
+    )
 )
+pio.templates['custom_ggplot2'] = custom_ggplot2_template
+pio.templates.default = 'custom_ggplot2'
 
-# Display common header
-display_header()
+st.set_page_config(page_title="Inventory Management", page_icon="📦", layout="wide")
 
-# Main title
 st.title("Inventory Management")
+st.subheader("Track and manage inventory items")
 
-# Load inventory data
-def load_inventory_data():
-    """Load inventory data"""
-    ensure_data_dir()
-    if not os.path.exists("data/inventory.csv"):
-        # Create empty inventory file
-        pd.DataFrame(columns=['Name', 'Unit', 'Quantity', 'Cost', 'Date']).to_csv("data/inventory.csv", index=False)
-        return pd.DataFrame(columns=['Name', 'Unit', 'Quantity', 'Cost', 'Date'])
-    
-    inventory_df = pd.read_csv("data/inventory.csv")
-    return inventory_df
-
-# Add new inventory
 def add_inventory():
     """Add new inventory items"""
-    # Get form data
-    item_name = st.session_state.item_name
-    unit = st.session_state.unit
-    quantity = st.session_state.quantity
-    cost = st.session_state.cost
-    date = st.session_state.date
-    
-    # Add to inventory
-    new_item = pd.DataFrame({
-        'Name': [item_name],
-        'Unit': [unit],
-        'Quantity': [quantity],
-        'Cost': [cost],
-        'Date': [date]
-    })
-    
-    # Load existing data
-    inventory_df = load_inventory_data()
-    
-    # Append new data
-    inventory_df = pd.concat([inventory_df, new_item], ignore_index=True)
-    
-    # Save to file
-    inventory_df.to_csv("data/inventory.csv", index=False)
-    
-    # Reset form
-    st.session_state.item_name = ""
-    st.session_state.quantity = 0
-    st.session_state.cost = 0
-
-# Delete an inventory item
+    try:
+        # Validate input
+        if not material_name or material_name.isspace():
+            st.error("Please enter a valid material name")
+            return
+            
+        if add_quantity <= 0:
+            st.error("Quantity must be greater than zero")
+            return
+        
+        # Load current inventory
+        try:
+            inventory_df = pd.read_csv("data/inventory.csv")
+        except FileNotFoundError:
+            inventory_df = pd.DataFrame(columns=['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'])
+        
+        # Find the item if it exists
+        if material_name in inventory_df['Name'].values:
+            # Update existing material
+            idx = inventory_df[inventory_df['Name'] == material_name].index[0]
+            current_qty = inventory_df.loc[idx, 'Quantity']
+            current_avg_cost = inventory_df.loc[idx, 'Avg_Cost']
+            
+            # Calculate new average cost
+            new_total_value = (current_qty * current_avg_cost) + (add_quantity * unit_cost)
+            new_total_qty = current_qty + add_quantity
+            new_avg_cost = new_total_value / new_total_qty if new_total_qty > 0 else unit_cost
+            
+            # Update the inventory
+            inventory_df.loc[idx, 'Quantity'] = new_total_qty
+            inventory_df.loc[idx, 'Avg_Cost'] = new_avg_cost
+            inventory_df.loc[idx, 'Date'] = inventory_date.strftime('%Y-%m-%d')
+            
+            message = f"Updated {material_name} inventory: added {add_quantity} {unit}"
+        else:
+            # Add new material - using loc to avoid concat warnings
+            new_id = len(inventory_df) + 1
+            
+            # Create a new row index
+            new_idx = len(inventory_df)
+            
+            # Use DataFrame.loc to add the new row
+            inventory_df.loc[new_idx] = [
+                new_id,
+                material_name,
+                add_quantity,
+                unit,
+                unit_cost,
+                inventory_date.strftime('%Y-%m-%d')
+            ]
+            
+            message = f"Added new material: {material_name}"
+        
+        # Save updated inventory
+        inventory_df.to_csv("data/inventory.csv", index=False)
+        st.success(message)
+        
+        # Record transaction in inventory_transactions.csv
+        try:
+            trans_df = pd.read_csv("data/inventory_transactions.csv")
+        except FileNotFoundError:
+            trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
+        
+        # Add transaction - using loc instead of concat
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            inventory_date.strftime('%Y-%m-%d'),
+            material_name,
+            add_quantity,
+            unit,
+            unit_cost,
+            add_quantity * unit_cost,
+            'Addition'
+        ]
+        
+        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        # After successful add, refresh the form/page
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error adding inventory: {str(e)}")
+        
 def delete_inventory_item(item_id):
     """Delete an inventory item"""
-    inventory_df = load_inventory_data()
-    if not inventory_df.empty and item_id < len(inventory_df):
-        inventory_df = inventory_df.drop(item_id).reset_index(drop=True)
+    try:
+        # Load current inventory
+        try:
+            inventory_df = pd.read_csv("data/inventory.csv")
+        except FileNotFoundError:
+            st.error("No inventory data found")
+            return
+            
+        if inventory_df.empty:
+            st.error("Inventory is empty")
+            return
+            
+        # Find the item
+        if item_id not in inventory_df['ID'].values:
+            st.error(f"Item ID {item_id} not found in inventory")
+            return
+            
+        # Get item details for confirmation message
+        item_row = inventory_df[inventory_df['ID'] == item_id].iloc[0]
+        item_name = item_row['Name']
+        
+        # Delete the item
+        inventory_df = inventory_df[inventory_df['ID'] != item_id].reset_index(drop=True)
+        
+        # Reindex IDs to maintain sequence
+        inventory_df['ID'] = range(1, len(inventory_df) + 1)
+        
+        # Save updated inventory
         inventory_df.to_csv("data/inventory.csv", index=False)
-        return True
-    return False
-
-# Edit an inventory item
+        
+        # Record transaction in inventory_transactions.csv
+        try:
+            trans_df = pd.read_csv("data/inventory_transactions.csv")
+        except FileNotFoundError:
+            trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
+        
+        # Add deletion transaction - using loc instead of concat
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            datetime.datetime.now().strftime('%Y-%m-%d'),
+            item_name,
+            0,  # Quantity is 0 for deletion
+            "",  # Empty unit for deletion
+            0,   # Unit cost is 0 for deletion
+            0,   # Total cost is 0 for deletion
+            'Deletion'
+        ]
+        
+        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        st.success(f"Deleted inventory item: {item_name}")
+        
+        # After successful delete, refresh the form/page
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error deleting inventory item: {str(e)}")
+        
 def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new_date):
     """Edit an inventory item"""
-    inventory_df = load_inventory_data()
-    if not inventory_df.empty and item_id < len(inventory_df):
-        inventory_df.at[item_id, 'Name'] = new_name
-        inventory_df.at[item_id, 'Unit'] = new_unit
-        inventory_df.at[item_id, 'Quantity'] = new_quantity
-        inventory_df.at[item_id, 'Cost'] = new_cost
-        inventory_df.at[item_id, 'Date'] = new_date
+    try:
+        # Load current inventory
+        try:
+            inventory_df = pd.read_csv("data/inventory.csv")
+        except FileNotFoundError:
+            st.error("No inventory data found")
+            return
+            
+        if inventory_df.empty:
+            st.error("Inventory is empty")
+            return
+            
+        # Find the item
+        if item_id not in inventory_df['ID'].values:
+            st.error(f"Item ID {item_id} not found in inventory")
+            return
+        
+        # Get original item details for recording changes
+        item_idx = inventory_df[inventory_df['ID'] == item_id].index[0]
+        old_item = inventory_df.loc[item_idx].copy()
+        
+        # Update the item
+        inventory_df.loc[item_idx, 'Name'] = new_name
+        inventory_df.loc[item_idx, 'Unit'] = new_unit
+        inventory_df.loc[item_idx, 'Quantity'] = new_quantity
+        inventory_df.loc[item_idx, 'Avg_Cost'] = new_cost
+        inventory_df.loc[item_idx, 'Date'] = new_date.strftime('%Y-%m-%d')
+        
+        # Save updated inventory
         inventory_df.to_csv("data/inventory.csv", index=False)
-        return True
-    return False
+        
+        # Record transaction in inventory_transactions.csv
+        try:
+            trans_df = pd.read_csv("data/inventory_transactions.csv")
+        except FileNotFoundError:
+            trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
+        
+        # Add edit transaction
+        new_idx = len(trans_df)
+        trans_df.loc[new_idx] = [
+            datetime.datetime.now().strftime('%Y-%m-%d'),
+            new_name,
+            new_quantity,
+            new_unit,
+            new_cost,
+            new_quantity * new_cost,
+            'Edit'
+        ]
+        
+        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        
+        st.success(f"Updated inventory item: {new_name}")
+        
+        # After successful edit, refresh the form/page
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error editing inventory item: {str(e)}")
 
-# Load inventory data
-inventory_df = load_inventory_data()
-
-# Create layout with two columns
-col1, col2 = st.columns([2, 3])
-
-# Left column - Add inventory form
-with col1:
-    st.subheader("Add Inventory")
+try:
+    # Ensure data directory exists
+    utils.ensure_data_dir()
     
-    with st.form("add_inventory_form", clear_on_submit=True):
-        st.text_input("Item Name", key="item_name")
+    # Initialize session state variables
+    utils.initialize_session_state()
         
-        unit_col, quantity_col = st.columns(2)
-        with unit_col:
-            st.selectbox("Unit", ["g", "kg", "ml", "l", "pcs"], key="unit")
-        with quantity_col:
-            st.number_input("Quantity", min_value=0.0, step=0.1, key="quantity")
-        
-        st.number_input("Cost (VND)", min_value=0, step=1000, key="cost")
-        st.date_input("Date", value=datetime.now(), key="date")
-        
-        submit_col, _ = st.columns(2)
-        with submit_col:
-            submit_button = st.form_submit_button("Add to Inventory", use_container_width=True)
+    # Load inventory data
+    try:
+        inventory_df = pd.read_csv("data/inventory.csv")
+    except FileNotFoundError:
+        inventory_df = pd.DataFrame(columns=['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'])
+        inventory_df.to_csv("data/inventory.csv", index=False)
     
-    # Process form submission
-    if submit_button:
-        if st.session_state.item_name and st.session_state.quantity > 0 and st.session_state.cost > 0:
-            # Convert date to string
-            st.session_state.date = st.session_state.date.strftime("%Y-%m-%d")
-            add_inventory()
-            st.success("Inventory added successfully!")
-            st.rerun()
+    # Form for adding inventory
+    st.header("Add Inventory Items")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Option to switch between select and manual input
+        input_method = st.radio(
+            "Material Input Method",
+            ["Select from list", "Enter manually"],
+            horizontal=True
+        )
+        
+        if input_method == "Enter manually":
+            # Direct text input for material name
+            material_name = st.text_input("Material Name", value="")
+            if not material_name.strip():
+                st.warning("Please enter a material name")
+                material_name = ""  # Prevent empty names by using empty string which won't match any existing material
         else:
-            st.error("Please fill in all fields.")
-
-# Right column - Inventory overview
-with col2:
-    st.subheader("Current Inventory")
+            # Select from existing options
+            existing_materials = inventory_df['Name'].unique().tolist() if not inventory_df.empty else []
+            default_materials = ["Coffee Beans", "Fresh Milk", "Sugar", "Plastic Cup", "Paper Cup", "Syrup"]
+            
+            # Combine and remove duplicates while preserving order
+            all_materials = []
+            for item in existing_materials + default_materials:
+                if item not in all_materials:
+                    all_materials.append(item)
+            
+            if not all_materials:
+                all_materials = ["Coffee Beans"]  # Default if no materials exist
+                
+            material_name = st.selectbox(
+                "Material Name", 
+                options=all_materials,
+                index=0
+            )
+        
+        # Unit selection
+        unit_options = ["g", "ml", "pcs", "kg", "l"]
+        if not inventory_df.empty and material_name in inventory_df['Name'].values:
+            default_unit = inventory_df[inventory_df['Name'] == material_name]['Unit'].values[0]
+            unit_index = unit_options.index(default_unit) if default_unit in unit_options else 0
+        else:
+            unit_index = 0
+        
+        unit = st.selectbox("Unit", options=unit_options, index=unit_index)
+    
+    with col2:
+        # Quantity input
+        add_quantity = st.number_input("Purchase Quantity", min_value=0.0, value=500.0, step=50.0)
+        
+        # Cost input - now for total purchase
+        total_purchase_cost = st.number_input("Purchase Cost (VND)", min_value=0.0, value=100000.0, step=10000.0)
+        
+        # Calculate unit cost from total purchase
+        unit_cost = total_purchase_cost / add_quantity if add_quantity > 0 else 0
+        
+        # Date selection
+        inventory_date = st.date_input("Date", datetime.datetime.now())
+    
+    # Display calculated unit cost and total
+    st.info(f"Unit Cost: {utils.format_currency(unit_cost)} per {unit}")
+    st.info(f"Total Purchase Cost: {utils.format_currency(total_purchase_cost)}")
+    
+    # Add inventory button
+    if st.button("Add to Inventory"):
+        add_inventory()
+    
+    # Display current inventory
+    st.header("Current Inventory")
     
     if not inventory_df.empty:
-        # Group items by unit for better visualization
-        inventory_by_unit = {}
-        units = inventory_df['Unit'].unique()
+        # Format inventory table for display
+        display_df = inventory_df.copy()
+        display_df['Total Value'] = display_df['Quantity'] * display_df['Avg_Cost']
         
-        # Group similar units
-        unit_groups = {
-            'Weight': ['g', 'kg'],
-            'Volume': ['ml', 'l'],
-            'Count': ['pcs']
-        }
+        # Format columns
+        display_df['Avg_Cost'] = display_df['Avg_Cost'].apply(utils.format_currency)
+        display_df['Total Value'] = display_df['Total Value'].apply(utils.format_currency)
         
-        # Create tabs for unit types
-        tabs = create_tabs_with_icons({
-            "Weight (g/kg)": "weight",
-            "Volume (ml/l)": "volume",
-            "Count (pcs)": "count"
-        })
+        # Rearrange and display
+        columns_to_show = ['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Total Value', 'Date']
+        st.dataframe(display_df[columns_to_show])
         
-        # Weight units tab
-        with tabs["weight"]:
-            weight_units = inventory_df[inventory_df['Unit'].isin(['g', 'kg'])]
-            if not weight_units.empty:
-                # Group by item name and get the latest entry
-                latest_items = {}
-                for item in weight_units['Name'].unique():
-                    item_df = weight_units[weight_units['Name'] == item].sort_values('Date')
-                    latest_items[item] = item_df.iloc[-1].name
-                
-                # Display all entries with edit/delete options
-                for i, row in weight_units.iterrows():
-                    col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1.5, 1.5, 1])
+        # Add management options
+        st.subheader("Manage Inventory Items")
+        
+        # Create columns for management actions
+        manage_col1, manage_col2 = st.columns([1, 3])
+        
+        with manage_col1:
+            # Selection dropdown for item to manage
+            selected_item_id = st.selectbox(
+                "Select Item ID", 
+                options=inventory_df['ID'].tolist(),
+                format_func=lambda x: f"ID: {x} - {inventory_df[inventory_df['ID']==x]['Name'].values[0]}"
+            )
+        
+        with manage_col2:
+            # Display information about selected item
+            selected_item = inventory_df[inventory_df['ID'] == selected_item_id].iloc[0]
+            st.write(f"Selected: **{selected_item['Name']}** ({selected_item['Quantity']} {selected_item['Unit']})")
+            
+            # Initialize session state for editing
+            if 'edit_mode' not in st.session_state:
+                st.session_state.edit_mode = False
+            
+            # Action buttons - wrapped in columns for layout
+            action_col1, action_col2 = st.columns(2)
+            
+            with action_col1:
+                # Edit button
+                edit_button = st.button("✏️ Edit Item", key="edit_btn")
+                if edit_button:
+                    st.session_state.edit_mode = True
                     
-                    # Highlight latest entry
-                    is_latest = i in latest_items.values()
-                    style = "color: #5D4037; font-weight: bold;" if is_latest else ""
-                    
+            with action_col2:
+                # Delete button
+                delete_button = st.button("🗑️ Delete Item", key="delete_btn")
+                if delete_button:
+                    # Show confirmation dialog using session state
+                    st.warning(f"Are you sure you want to delete {selected_item['Name']}?")
+                    col1, col2 = st.columns(2)
                     with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
-                    
+                        if st.button("✓ Yes, Delete", key="confirm_delete"):
+                            delete_inventory_item(selected_item_id)
                     with col2:
-                        unit = st.selectbox(f"Unit {i}", ["g", "kg"], index=0 if row['Unit'] == 'g' else 1, key=f"unit_{i}")
-                    
-                    with col3:
-                        quantity = st.number_input(f"Qty {i}", min_value=0.0, value=float(row['Quantity']), step=0.1, key=f"qty_{i}")
-                    
-                    with col4:
-                        cost = st.number_input(f"Cost {i}", min_value=0, value=int(row['Cost']), step=1000, key=f"cost_{i}")
-                    
-                    with col5:
-                        date = st.date_input(f"Date {i}", 
-                                           value=datetime.strptime(row['Date'], "%Y-%m-%d") if isinstance(row['Date'], str) else datetime.now(),
-                                           key=f"date_{i}")
-                    
-                    with col6:
-                        st.markdown("<br>", unsafe_allow_html=True)  # Add some space
-                        
-                        if st.button("Save", key=f"save_{i}", use_container_width=True):
-                            if edit_inventory_item(i, item_name, unit, quantity, cost, date.strftime("%Y-%m-%d")):
-                                st.success("Item updated successfully!")
-                                st.rerun()
-                        
-                        if st.button("Delete", key=f"delete_{i}", use_container_width=True):
-                            if delete_inventory_item(i):
-                                st.success("Item deleted successfully!")
-                                st.rerun()
-            else:
-                st.info("No weight items in inventory.")
-        
-        # Volume units tab
-        with tabs["volume"]:
-            volume_units = inventory_df[inventory_df['Unit'].isin(['ml', 'l'])]
-            if not volume_units.empty:
-                # Group by item name and get the latest entry
-                latest_items = {}
-                for item in volume_units['Name'].unique():
-                    item_df = volume_units[volume_units['Name'] == item].sort_values('Date')
-                    latest_items[item] = item_df.iloc[-1].name
+                        if st.button("✗ Cancel", key="cancel_delete"):
+                            st.rerun()
+            
+            # Show edit form if in edit mode
+            if st.session_state.edit_mode:
+                st.write("---")
+                st.subheader(f"Edit Item: {selected_item['Name']}")
                 
-                # Display all entries with edit/delete options
-                for i, row in volume_units.iterrows():
-                    col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1.5, 1.5, 1])
-                    
-                    # Highlight latest entry
-                    is_latest = i in latest_items.values()
-                    style = "color: #5D4037; font-weight: bold;" if is_latest else ""
-                    
-                    with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
-                    
-                    with col2:
-                        unit = st.selectbox(f"Unit {i}", ["ml", "l"], index=0 if row['Unit'] == 'ml' else 1, key=f"unit_{i}")
-                    
-                    with col3:
-                        quantity = st.number_input(f"Qty {i}", min_value=0.0, value=float(row['Quantity']), step=0.1, key=f"qty_{i}")
-                    
-                    with col4:
-                        cost = st.number_input(f"Cost {i}", min_value=0, value=int(row['Cost']), step=1000, key=f"cost_{i}")
-                    
-                    with col5:
-                        date = st.date_input(f"Date {i}", 
-                                           value=datetime.strptime(row['Date'], "%Y-%m-%d") if isinstance(row['Date'], str) else datetime.now(),
-                                           key=f"date_{i}")
-                    
-                    with col6:
-                        st.markdown("<br>", unsafe_allow_html=True)  # Add some space
-                        
-                        if st.button("Save", key=f"save_{i}", use_container_width=True):
-                            if edit_inventory_item(i, item_name, unit, quantity, cost, date.strftime("%Y-%m-%d")):
-                                st.success("Item updated successfully!")
-                                st.rerun()
-                        
-                        if st.button("Delete", key=f"delete_{i}", use_container_width=True):
-                            if delete_inventory_item(i):
-                                st.success("Item deleted successfully!")
-                                st.rerun()
-            else:
-                st.info("No volume items in inventory.")
-        
-        # Count units tab
-        with tabs["count"]:
-            count_units = inventory_df[inventory_df['Unit'].isin(['pcs'])]
-            if not count_units.empty:
-                # Group by item name and get the latest entry
-                latest_items = {}
-                for item in count_units['Name'].unique():
-                    item_df = count_units[count_units['Name'] == item].sort_values('Date')
-                    latest_items[item] = item_df.iloc[-1].name
+                edit_col1, edit_col2 = st.columns(2)
                 
-                # Display all entries with edit/delete options
-                for i, row in count_units.iterrows():
-                    col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1.5, 1.5, 1])
+                with edit_col1:
+                    # Edit name
+                    edit_name = st.text_input("Material Name", value=selected_item['Name'], key="edit_name")
                     
-                    # Highlight latest entry
-                    is_latest = i in latest_items.values()
-                    style = "color: #5D4037; font-weight: bold;" if is_latest else ""
+                    # Edit unit
+                    unit_options = ["g", "ml", "pcs", "kg", "l"]
+                    current_unit_index = unit_options.index(selected_item['Unit']) if selected_item['Unit'] in unit_options else 0
+                    edit_unit = st.selectbox("Unit", options=unit_options, index=current_unit_index, key="edit_unit")
+                
+                with edit_col2:
+                    # Edit quantity
+                    edit_quantity = st.number_input("Quantity", min_value=0.0, value=selected_item['Quantity'], step=10.0, key="edit_quantity")
                     
-                    with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
+                    # Edit cost
+                    edit_cost = st.number_input("Cost per Unit (VND)", min_value=0.0, value=selected_item['Avg_Cost'], step=1000.0, key="edit_cost")
                     
-                    with col2:
-                        unit = st.selectbox(f"Unit {i}", ["pcs"], index=0, key=f"unit_{i}")
-                    
-                    with col3:
-                        quantity = st.number_input(f"Qty {i}", min_value=0, value=int(row['Quantity']), step=1, key=f"qty_{i}")
-                    
-                    with col4:
-                        cost = st.number_input(f"Cost {i}", min_value=0, value=int(row['Cost']), step=1000, key=f"cost_{i}")
-                    
-                    with col5:
-                        date = st.date_input(f"Date {i}", 
-                                           value=datetime.strptime(row['Date'], "%Y-%m-%d") if isinstance(row['Date'], str) else datetime.now(),
-                                           key=f"date_{i}")
-                    
-                    with col6:
-                        st.markdown("<br>", unsafe_allow_html=True)  # Add some space
+                    # Edit date
+                    try:
+                        original_date = datetime.datetime.strptime(selected_item['Date'], '%Y-%m-%d').date()
+                    except:
+                        original_date = datetime.datetime.now().date()
                         
-                        if st.button("Save", key=f"save_{i}", use_container_width=True):
-                            if edit_inventory_item(i, item_name, unit, quantity, cost, date.strftime("%Y-%m-%d")):
-                                st.success("Item updated successfully!")
-                                st.rerun()
+                    edit_date = st.date_input("Last Updated", value=original_date, key="edit_date")
+                
+                # Total value calculation
+                edit_total_value = edit_quantity * edit_cost
+                st.info(f"Total Value: {utils.format_currency(edit_total_value)}")
+                
+                # Save and Cancel buttons
+                save_col1, save_col2 = st.columns(2)
+                
+                with save_col1:
+                    if st.button("💾 Save Changes", key="save_edit"):
+                        edit_inventory_item(
+                            selected_item_id,
+                            edit_name,
+                            edit_unit,
+                            edit_quantity,
+                            edit_cost,
+                            edit_date
+                        )
                         
-                        if st.button("Delete", key=f"delete_{i}", use_container_width=True):
-                            if delete_inventory_item(i):
-                                st.success("Item deleted successfully!")
-                                st.rerun()
-            else:
-                st.info("No count items in inventory.")
+                with save_col2:
+                    if st.button("❌ Cancel", key="cancel_edit"):
+                        st.session_state.edit_mode = False
+                        st.rerun()
         
+        # Calculate total inventory value
+        total_inventory_value = (inventory_df['Quantity'] * inventory_df['Avg_Cost']).sum()
+        st.subheader(f"Total Inventory Value: {utils.format_currency(total_inventory_value)}")
+        
+        # Inventory visualization
+        st.header("Inventory Visualization")
+        
+        # Group inventory by unit type
+        if not inventory_df.empty:
+            # Extract base unit types (remove numbers)
+            inventory_df['Unit_Group'] = inventory_df['Unit'].str.lower().replace({'kg': 'g', 'l': 'ml'})
+            
+            # Get unique unit groups
+            unit_groups = sorted(inventory_df['Unit_Group'].unique())
+            
+            # Create tabs for each unit group
+            tabs = st.tabs([unit.upper() for unit in unit_groups])
+            
+            # Display inventory by unit group
+            for i, unit in enumerate(unit_groups):
+                with tabs[i]:
+                    unit_data = inventory_df[inventory_df['Unit_Group'] == unit].copy()
+                    
+                    if not unit_data.empty:
+                        # Bar chart for this unit group
+                        fig = px.bar(
+                            unit_data,
+                            x='Name',
+                            y='Quantity',
+                            color='Name',
+                            labels={'Name': 'Material', 'Quantity': f'Quantity ({unit})'},
+                            title=f"Inventory Levels - {unit.upper()} Units"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info(f"No inventory items with unit type: {unit}")
+        
+        # Low inventory alerts
+        low_inventory = inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold]
+        
+        if not low_inventory.empty:
+            st.header("Low Inventory Alerts")
+            st.warning(f"{len(low_inventory)} items below threshold!")
+            
+            for _, row in low_inventory.iterrows():
+                st.info(f"{row['Name']}: {row['Quantity']} {row['Unit']} remaining (threshold: {st.session_state.alert_threshold})")
     else:
-        st.info("No inventory items found. Add inventory items using the form.")
+        st.info("No inventory data available. Please add items.")
+    
+    # Inventory transactions
+    st.header("Recent Inventory Transactions")
+    
+    try:
+        trans_df = pd.read_csv("data/inventory_transactions.csv")
+        trans_df['Date'] = pd.to_datetime(trans_df['Date'])
+        
+        # Sort by date (most recent first)
+        trans_df = trans_df.sort_values('Date', ascending=False)
+        
+        # Format for display
+        display_trans = trans_df.copy()
+        display_trans['Date'] = display_trans['Date'].dt.strftime('%Y-%m-%d')
+        display_trans['Unit_Cost'] = display_trans['Unit_Cost'].apply(utils.format_currency)
+        display_trans['Total_Cost'] = display_trans['Total_Cost'].apply(utils.format_currency)
+        
+        st.dataframe(display_trans.head(10))
+    except FileNotFoundError:
+        st.info("No transaction history available yet")
 
-# Inventory summary at the bottom
-st.subheader("Inventory Summary")
-
-if not inventory_df.empty:
-    # Group by Name and take the latest entry for each
-    unique_items = []
-    for item in inventory_df['Name'].unique():
-        item_df = inventory_df[inventory_df['Name'] == item].sort_values('Date')
-        unique_items.append(item_df.iloc[-1])
-    
-    latest_inventory = pd.DataFrame(unique_items)
-    
-    # Calculate total inventory value
-    latest_inventory['Value'] = latest_inventory['Quantity'] * latest_inventory['Cost'] / latest_inventory['Quantity']
-    total_value = latest_inventory['Value'].sum()
-    
-    # Show summary
-    st.markdown(f"**Total Inventory Value:** {format_currency(total_value)}")
-    
-    # Display inventory value by category
-    if len(latest_inventory) > 0:
-        fig = px.pie(
-            latest_inventory, 
-            values='Value', 
-            names='Name',
-            title='Inventory Value Distribution',
-            template='ggplot2'
-        )
-        fig.update_traces(textinfo='percent+label')
-        fig.update_layout(
-            plot_bgcolor='rgba(240, 240, 240, 0.8)',
-            paper_bgcolor='rgba(255, 255, 255, 0.8)',
-        )
-        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No inventory data available for summary.")
+except Exception as e:
+    st.error(f"Error loading inventory data: {str(e)}")
+    st.write("Please check that your data files exist and are properly formatted.")
