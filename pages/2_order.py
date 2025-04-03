@@ -54,6 +54,17 @@ def load_sales_data():
         return pd.DataFrame()
     
     sales_df = pd.read_csv("data/sales.csv")
+    
+    # Ensure Time column exists for legacy data
+    if 'Time' not in sales_df.columns:
+        sales_df['Time'] = '00:00'  # Default time for legacy records
+    
+    # Cleanup column names
+    if 'Order_ID' in sales_df.columns and 'OrderID' not in sales_df.columns:
+        sales_df['OrderID'] = sales_df['Order_ID']
+    elif 'OrderID' in sales_df.columns and 'Order_ID' not in sales_df.columns:
+        sales_df['Order_ID'] = sales_df['OrderID']
+    
     return sales_df
 
 # Load data

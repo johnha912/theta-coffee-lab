@@ -217,6 +217,11 @@ with col1:
 with col2:
     st.subheader("Category Distribution")
     if not sales_df.empty and not products_df.empty:
+        # Ensure products_df has the required columns
+        if 'Category' not in products_df.columns:
+            # Add default category if missing
+            products_df['Category'] = 'Other'
+            
         # Merge sales with product categories
         sales_with_category = sales_df.merge(products_df[['Name', 'Category']], left_on='Product', right_on='Name', how='left')
         

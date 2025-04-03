@@ -28,8 +28,8 @@ def load_inventory_data():
     ensure_data_dir()
     if not os.path.exists("data/inventory.csv"):
         # Create empty inventory file
-        pd.DataFrame(columns=['Item', 'Unit', 'Quantity', 'Cost', 'Date']).to_csv("data/inventory.csv", index=False)
-        return pd.DataFrame(columns=['Item', 'Unit', 'Quantity', 'Cost', 'Date'])
+        pd.DataFrame(columns=['Name', 'Unit', 'Quantity', 'Cost', 'Date']).to_csv("data/inventory.csv", index=False)
+        return pd.DataFrame(columns=['Name', 'Unit', 'Quantity', 'Cost', 'Date'])
     
     inventory_df = pd.read_csv("data/inventory.csv")
     return inventory_df
@@ -46,7 +46,7 @@ def add_inventory():
     
     # Add to inventory
     new_item = pd.DataFrame({
-        'Item': [item_name],
+        'Name': [item_name],
         'Unit': [unit],
         'Quantity': [quantity],
         'Cost': [cost],
@@ -82,7 +82,7 @@ def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new
     """Edit an inventory item"""
     inventory_df = load_inventory_data()
     if not inventory_df.empty and item_id < len(inventory_df):
-        inventory_df.at[item_id, 'Item'] = new_name
+        inventory_df.at[item_id, 'Name'] = new_name
         inventory_df.at[item_id, 'Unit'] = new_unit
         inventory_df.at[item_id, 'Quantity'] = new_quantity
         inventory_df.at[item_id, 'Cost'] = new_cost
@@ -170,7 +170,7 @@ with col2:
                     style = "color: #5D4037; font-weight: bold;" if is_latest else ""
                     
                     with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Item'], key=f"item_{i}")
+                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
                     
                     with col2:
                         unit = st.selectbox(f"Unit {i}", ["g", "kg"], index=0 if row['Unit'] == 'g' else 1, key=f"unit_{i}")
@@ -220,7 +220,7 @@ with col2:
                     style = "color: #5D4037; font-weight: bold;" if is_latest else ""
                     
                     with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Item'], key=f"item_{i}")
+                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
                     
                     with col2:
                         unit = st.selectbox(f"Unit {i}", ["ml", "l"], index=0 if row['Unit'] == 'ml' else 1, key=f"unit_{i}")
@@ -270,7 +270,7 @@ with col2:
                     style = "color: #5D4037; font-weight: bold;" if is_latest else ""
                     
                     with col1:
-                        item_name = st.text_input(f"Item {i}", value=row['Item'], key=f"item_{i}")
+                        item_name = st.text_input(f"Item {i}", value=row['Name'], key=f"item_{i}")
                     
                     with col2:
                         unit = st.selectbox(f"Unit {i}", ["pcs"], index=0, key=f"unit_{i}")

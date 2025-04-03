@@ -27,8 +27,8 @@ def load_products_data():
     """Load products data"""
     ensure_data_dir()
     if not os.path.exists("data/products.csv"):
-        pd.DataFrame(columns=['Product', 'Price', 'Category', 'COGS']).to_csv("data/products.csv", index=False)
-        return pd.DataFrame(columns=['Product', 'Price', 'Category', 'COGS'])
+        pd.DataFrame(columns=['Name', 'Price', 'Category', 'COGS']).to_csv("data/products.csv", index=False)
+        return pd.DataFrame(columns=['Name', 'Price', 'Category', 'COGS'])
     
     products_df = pd.read_csv("data/products.csv")
     return products_df
@@ -62,7 +62,7 @@ def get_cogs(selected_ingredients):
     
     for ingredient, amount in selected_ingredients.items():
         # Find the ingredient in inventory
-        ingredient_data = inventory_df[inventory_df['Item'] == ingredient]
+        ingredient_data = inventory_df[inventory_df['Name'] == ingredient]
         if not ingredient_data.empty:
             # Calculate cost per unit based on latest inventory entry
             latest_entry = ingredient_data.iloc[-1]
@@ -90,16 +90,16 @@ def save_product():
     products_df = load_products_data()
     
     # Check if product already exists
-    existing_product = products_df[products_df['Product'] == product_name]
+    existing_product = products_df[products_df['Name'] == product_name]
     if not existing_product.empty:
         # Update existing product
-        products_df.loc[products_df['Product'] == product_name, 'Price'] = price
-        products_df.loc[products_df['Product'] == product_name, 'Category'] = category
-        products_df.loc[products_df['Product'] == product_name, 'COGS'] = cogs
+        products_df.loc[products_df['Name'] == product_name, 'Price'] = price
+        products_df.loc[products_df['Name'] == product_name, 'Category'] = category
+        products_df.loc[products_df['Name'] == product_name, 'COGS'] = cogs
     else:
         # Add new product
         new_product = pd.DataFrame({
-            'Product': [product_name],
+            'Name': [product_name],
             'Price': [price],
             'Category': [category],
             'COGS': [cogs]
@@ -120,7 +120,7 @@ def save_product():
     for ingredient, amount in st.session_state.recipe_ingredients.items():
         # Get unit from inventory
         inventory_df = load_inventory_data()
-        ingredient_data = inventory_df[inventory_df['Item'] == ingredient]
+        ingredient_data = inventory_df[inventory_df['Name'] == ingredient]
         unit = ingredient_data.iloc[0]['Unit'] if not ingredient_data.empty else ""
         
         recipe_entries.append({
@@ -170,7 +170,7 @@ def load_product(product_name):
     recipe_df = load_recipe_data()
     
     # Get product data
-    product_data = products_df[products_df['Product'] == product_name]
+    product_data = products_df[products_df['Name'] == product_name]
     if not product_data.empty:
         # Set form values
         st.session_state.product_name = product_name
@@ -196,7 +196,7 @@ def delete_product(product_name):
     recipe_df = load_recipe_data()
     
     # Remove product
-    products_df = products_df[products_df['Product'] != product_name]
+    products_df = products_df[products_df['Name'] != product_name]
     products_df.to_csv("data/products.csv", index=False)
     
     # Remove recipe
