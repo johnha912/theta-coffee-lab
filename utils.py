@@ -37,6 +37,10 @@ def initialize_session_state():
     if 'edit_index' not in st.session_state:
         st.session_state.edit_index = -1
         
+    # Initialize delete confirmation
+    if 'delete_confirmation' not in st.session_state:
+        st.session_state.delete_confirmation = False
+        
     # Initialize theme
     if 'theme' not in st.session_state:
         st.session_state.theme = 'light'

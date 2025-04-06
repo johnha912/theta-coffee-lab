@@ -378,14 +378,19 @@ try:
                 delete_button = st.button("🗑️ Delete Item", key="delete_btn")
                 if delete_button:
                     # Show confirmation dialog using session state
-                    st.warning(f"Are you sure you want to delete {selected_item['Name']}?")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("✓ Yes, Delete", key="confirm_delete"):
-                            delete_inventory_item(selected_item_id)
-                    with col2:
-                        if st.button("✗ Cancel", key="cancel_delete"):
-                            st.rerun()
+                    st.session_state.delete_confirmation = True
+            
+            # Show delete confirmation outside of the columns
+            if st.session_state.get('delete_confirmation', False):
+                st.warning(f"Are you sure you want to delete {selected_item['Name']}?")
+                confirm_col1, confirm_col2 = st.columns(2)
+                with confirm_col1:
+                    if st.button("✓ Yes, Delete", key="confirm_delete"):
+                        delete_inventory_item(selected_item_id)
+                with confirm_col2:
+                    if st.button("✗ Cancel", key="cancel_delete"):
+                        st.session_state.delete_confirmation = False
+                        st.rerun()
             
             # Show edit form if in edit mode
             if st.session_state.edit_mode:

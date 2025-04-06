@@ -2,3 +2,5 @@ Date,Material,Quantity,Unit,Unit_Cost,Total_Cost,Type
 2025-04-02,Office Espresso,500.0,g,430.0,215000.0,Addition
 2025-04-02,Aumis Sugar Syrup,1000.0,g,50.0,50000.0,Addition
 2025-04-02,Aumis Sugar Syrup,1000.0,ml,50.0,50000.0,Edit
+2025-04-06,Office Espresso,500.0,g,200.0,100000.0,Addition
+2025-04-06,Office Espresso,279.0,g,282.37483953786904,78782.58023106545,Edit
