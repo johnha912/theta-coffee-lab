@@ -10,6 +10,32 @@ utils.initialize_session_state()
 
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
+        # Define CSS for button-like links
+        button_css = """
+        <style>
+            div[data-testid="stPageLink"] {
+                background-color: #f0f2f6;
+                border-radius: 8px;
+                padding: 8px 5px;
+                text-align: center;
+                margin: 5px 2px;
+                font-weight: bold;
+                border: 1px solid #ddd;
+                transition: all 0.3s;
+            }
+            div[data-testid="stPageLink"]:hover {
+                background-color: #e6e9ef;
+                transform: translateY(-2px);
+                box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            }
+            div.stPageLink > div {
+                display: flex;
+                justify-content: center;
+            }
+        </style>
+        """
+        st.markdown(button_css, unsafe_allow_html=True)
+
 
 # Tạo template ggplot2 custom với nền xám và lưới
 custom_ggplot2_template = pio.templates['ggplot2']

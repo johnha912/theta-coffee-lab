@@ -37,6 +37,32 @@ st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 def display_navigation():
     menu_container = st.container()
     with menu_container:
+        # Define CSS for button-like links
+        button_css = """
+        <style>
+            div[data-testid="stPageLink"] {
+                background-color: #f0f2f6;
+                border-radius: 8px;
+                padding: 8px 5px;
+                text-align: center;
+                margin: 5px 2px;
+                font-weight: bold;
+                border: 1px solid #ddd;
+                transition: all 0.3s;
+            }
+            div[data-testid="stPageLink"]:hover {
+                background-color: #e6e9ef;
+                transform: translateY(-2px);
+                box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            }
+            div.stPageLink > div {
+                display: flex;
+                justify-content: center;
+            }
+        </style>
+        """
+        st.markdown(button_css, unsafe_allow_html=True)
+        
         col1, col2, col3, col4 = st.columns([1, 3, 2, 1])
         with col2:
             nav_cols = st.columns(7)
