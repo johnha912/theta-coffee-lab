@@ -501,6 +501,64 @@ try:
     else:
         st.info("No operational costs data available")
     
+    # Comprehensive business costs breakdown
+    st.header("Business Costs Breakdown")
+    
+    # Prepare data for comprehensive costs pie chart
+    # 1. Get COGS by product category if available
+    if not filtered_sales.empty and 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:
+        # Calculate COGS by product
+        product_cogs = merged_sales.groupby('Product')['COGS'].sum().reset_index()
+        product_cogs.rename(columns={'Product': 'Category', 'COGS': 'Amount'}, inplace=True)
+        product_cogs['Type'] = 'COGS'
+    else:
+        product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+        
+    # 2. Get operational costs if available
+    if not operational_costs_df.empty:
+        filtered_op_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
+                                           (operational_costs_df['Date'].dt.date <= end_date)]
+        
+        if not filtered_op_costs.empty:
+            # Summarize operational costs by type
+            op_costs = filtered_op_costs.groupby('Type')['Amount'].sum().reset_index()
+            op_costs.rename(columns={'Type': 'Category'}, inplace=True)
+            op_costs['Type'] = 'Operational'
+        else:
+            op_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+    else:
+        op_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+    
+    # 3. Combine all cost categories
+    all_costs = pd.concat([product_cogs, op_costs], ignore_index=True)
+    
+    # Display pie chart of all business costs
+    if not all_costs.empty and all_costs['Amount'].sum() > 0:
+        # Create a pie chart showing percentage breakdown of all costs
+        fig_all_costs = px.pie(
+            all_costs,
+            values='Amount',
+            names='Category',
+            title='All Business Costs Distribution',
+            color='Type',  # Color by cost type
+            hover_data=['Amount'],  # Show amount on hover
+            labels={'Amount': 'Cost (VND)'}
+        )
+        
+        # Update hover template to show the percentage and formatted amount
+        fig_all_costs.update_traces(
+            hovertemplate='<b>%{label}</b><br>Amount: %{customdata[0]:,.0f} VND<br>Percentage: %{percent:.1%}'
+        )
+        
+        # Custom legend title
+        fig_all_costs.update_layout(
+            legend_title_text='Cost Type'
+        )
+        
+        st.plotly_chart(fig_all_costs, use_container_width=True)
+    else:
+        st.info("No cost data available for the selected period")
+    
     # Financial summary table
     st.header("Financial Summary")
     
