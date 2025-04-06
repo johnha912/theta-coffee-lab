@@ -28,7 +28,7 @@ def display_navigation():
             with nav_cols[5]:
                 st.page_link("pages/5_financial.py", label="💵", help="Financial")
             with nav_cols[6]:
-                st.page_link("pages/6_settings.py", label="⚙️", help="Settings", active=True)
+                st.page_link("pages/6_settings.py", label="⚙️", help="Settings")
         with col3:
             st.write(f"👤 User: {st.session_state.username}")
 

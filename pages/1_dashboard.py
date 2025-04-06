@@ -43,7 +43,7 @@ def display_navigation():
             with nav_cols[0]:
                 st.page_link("app.py", label="🏠", help="Home")
             with nav_cols[1]:
-                st.page_link("pages/1_dashboard.py", label="📊", help="Dashboard", active=True)
+                st.page_link("pages/1_dashboard.py", label="📊", help="Dashboard")
             with nav_cols[2]:
                 st.page_link("pages/2_order.py", label="🧾", help="Order")
             with nav_cols[3]:

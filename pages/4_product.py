@@ -48,7 +48,7 @@ def display_navigation():
             with nav_cols[3]:
                 st.page_link("pages/3_inventory.py", label="🗄️", help="Inventory")
             with nav_cols[4]:
-                st.page_link("pages/4_product.py", label="☕️", help="Product", active=True)
+                st.page_link("pages/4_product.py", label="☕️", help="Product")
             with nav_cols[5]:
                 st.page_link("pages/5_financial.py", label="💵", help="Financial")
             with nav_cols[6]:
