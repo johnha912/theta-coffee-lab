@@ -33,58 +33,6 @@ pio.templates.default = 'custom_ggplot2'
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
-# Navigation menu
-def display_navigation():
-    menu_container = st.container()
-    with menu_container:
-        # Define CSS for button-like links
-        button_css = """
-        <style>
-            div[data-testid="stPageLink"] {
-                background-color: #f0f2f6;
-                border-radius: 8px;
-                padding: 8px 5px;
-                text-align: center;
-                margin: 5px 2px;
-                font-weight: bold;
-                border: 1px solid #ddd;
-                transition: all 0.3s;
-            }
-            div[data-testid="stPageLink"]:hover {
-                background-color: #e6e9ef;
-                transform: translateY(-2px);
-                box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-            }
-            div.stPageLink > div {
-                display: flex;
-                justify-content: center;
-            }
-        </style>
-        """
-        st.markdown(button_css, unsafe_allow_html=True)
-        
-        col1, col2, col3, col4 = st.columns([1, 3, 2, 1])
-        with col2:
-            nav_cols = st.columns(7)
-            with nav_cols[0]:
-                st.page_link("app.py", label="🏠", help="Home")
-            with nav_cols[1]:
-                st.page_link("pages/1_dashboard.py", label="📊", help="Dashboard")
-            with nav_cols[2]:
-                st.page_link("pages/2_order.py", label="🧾", help="Order")
-            with nav_cols[3]:
-                st.page_link("pages/3_inventory.py", label="🗄️", help="Inventory")
-            with nav_cols[4]:
-                st.page_link("pages/4_product.py", label="☕️", help="Product")
-            with nav_cols[5]:
-                st.page_link("pages/5_financial.py", label="💵", help="Financial")
-            with nav_cols[6]:
-                st.page_link("pages/6_settings.py", label="⚙️", help="Settings")
-        # Removed user display from navigation menu as per user request
-
-display_navigation()
-st.divider()
-
 st.title("Dashboard")
 st.subheader("Overview of Cafe Performance")
 
