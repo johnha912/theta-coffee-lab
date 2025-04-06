@@ -76,17 +76,26 @@ except Exception as e:
     st.error(f"Error loading data: {str(e)}")
     st.write("Please check that your data files exist and are properly formatted.")
 
-# Navigation guidance
+# Custom Navigation using page_link
 st.subheader("Navigation")
-st.write("""
-Use the sidebar to navigate to different sections of the application:
-1. **Dashboard** - View KPIs and performance metrics
-2. **Order** - Enter new orders and track sales
-3. **Inventory** - Manage your inventory and supplies
-4. **Product** - Design product recipes and menu items
-5. **Financial Report** - Access detailed financial analytics
-6. **Settings** - Configure application preferences
-""")
+st.write("Click on any of the links below to navigate to different sections of the application:")
+
+# Create a container for navigation links with a nice layout
+nav_container = st.container()
+col1, col2, col3 = nav_container.columns(3)
+
+with col1:
+    st.page_link("app.py", label="🏠 Home", icon=None)
+    st.page_link("pages/1_dashboard.py", label="📊 Dashboard", icon=None)
+    
+with col2:
+    st.page_link("pages/2_order.py", label="🧾 Order", icon=None)
+    st.page_link("pages/3_inventory.py", label="🗄️ Inventory", icon=None)
+    
+with col3:
+    st.page_link("pages/4_product.py", label="☕️ Product", icon=None)
+    st.page_link("pages/5_financial.py", label="💵 Financial", icon=None)
+    st.page_link("pages/6_settings.py", label="⚙️ Settings", icon=None)
 
 # Footer
 st.markdown("---")

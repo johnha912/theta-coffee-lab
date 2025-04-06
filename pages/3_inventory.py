@@ -30,7 +30,34 @@ custom_ggplot2_template.layout.update(
 pio.templates['custom_ggplot2'] = custom_ggplot2_template
 pio.templates.default = 'custom_ggplot2'
 
-st.set_page_config(page_title="Inventory Management", page_icon="📦", layout="wide")
+st.set_page_config(page_title="Inventory Management", page_icon="🗄️", layout="wide")
+
+# Navigation menu
+def display_navigation():
+    menu_container = st.container()
+    with menu_container:
+        col1, col2, col3, col4 = st.columns([1, 3, 2, 1])
+        with col2:
+            nav_cols = st.columns(7)
+            with nav_cols[0]:
+                st.page_link("app.py", label="🏠", help="Home")
+            with nav_cols[1]:
+                st.page_link("pages/1_dashboard.py", label="📊", help="Dashboard")
+            with nav_cols[2]:
+                st.page_link("pages/2_order.py", label="🧾", help="Order")
+            with nav_cols[3]:
+                st.page_link("pages/3_inventory.py", label="🗄️", help="Inventory", active=True)
+            with nav_cols[4]:
+                st.page_link("pages/4_product.py", label="☕️", help="Product")
+            with nav_cols[5]:
+                st.page_link("pages/5_financial.py", label="💵", help="Financial")
+            with nav_cols[6]:
+                st.page_link("pages/6_settings.py", label="⚙️", help="Settings")
+        with col3:
+            st.write(f"👤 User: {st.session_state.username}")
+
+display_navigation()
+st.divider()
 
 st.title("Inventory Management")
 st.subheader("Track and manage inventory items")
