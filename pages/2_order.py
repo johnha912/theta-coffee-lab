@@ -339,12 +339,22 @@ try:
     # Recent orders
     st.header("Recent Orders")
     
+    # Time filter for recent orders
+    order_time_options = ["Last 7 Days", "Last 30 Days", "All Time"]
+    order_time_filter = st.selectbox("Time Period", options=order_time_options, index=0, key="order_time_filter")
+    
     try:
         sales_df = pd.read_csv("data/sales.csv")
         sales_df['Date'] = pd.to_datetime(sales_df['Date'])
         
-        # Get orders from the last 7 days
-        recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
+        # Get orders based on selected time filter
+        if order_time_filter == "Last 7 Days":
+            recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
+        elif order_time_filter == "Last 30 Days":
+            recent_date = datetime.datetime.now() - datetime.timedelta(days=30)
+        else:  # All Time
+            recent_date = datetime.datetime(2020, 1, 1)
+            
         recent_sales = sales_df[sales_df['Date'] >= recent_date]
         
         # Group by order

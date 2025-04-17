@@ -37,7 +37,7 @@ st.title("Financial Report")
 st.subheader("Financial KPIs and Analysis")
 
 # Time filter
-time_options = ["Today", "Last 7 Days", "Last 30 Days", "Custom"]
+time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
 time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
 
 # Date range for custom filter
@@ -56,6 +56,9 @@ else:
         start_date = end_date - datetime.timedelta(days=6)
     elif time_filter == "Last 30 Days":
         start_date = end_date - datetime.timedelta(days=29)
+    elif time_filter == "All Time":
+        # Set to a very old date for "All Time"
+        start_date = datetime.datetime(2020, 1, 1).date()
 
 try:
     # Load data
