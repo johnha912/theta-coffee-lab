@@ -145,7 +145,15 @@ try:
     if not operational_costs_df.empty:
         filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
                                            (operational_costs_df['Date'].dt.date <= end_date)]
+        # Make sure Amount column is numeric
+        operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
+        filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
+        
+        # Calculate sum of filtered costs
         operational_costs = filtered_costs['Amount'].sum()
+        
+        # Debug information 
+        st.write(f"DEBUG - Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
     else:
         operational_costs = 0
     
