@@ -502,42 +502,50 @@ try:
         st.info("No operational costs data available")
     
     # Comprehensive business costs breakdown
-    st.header("All Business Costs Breakdown (All Time)")
-    st.info("This chart shows all business costs regardless of the selected time period")
+    st.header("Business Costs Breakdown by Category")
+    st.info("This chart shows inventory item costs and operational expenses")
     
     # Prepare data for comprehensive costs pie chart
-    # 1. Get COGS by product category from actual recipes and inventory
+    # 1. Get costs by inventory item (raw materials)
     try:
-        # Load inventory data to calculate accurate COGS
+        # Load inventory data
         inventory_df = pd.read_csv("data/inventory.csv")
-        recipe_df = pd.read_csv("data/product_recipe.csv")
-        products_df = pd.read_csv("data/products.csv")
         
-        # Initialize product_cogs dataframe
-        product_cogs_list = []
+        # Calculate total value of each inventory item
+        inventory_costs_list = []
         
-        # For each product, calculate ingredient costs based on current recipes and inventory
-        for _, product_row in products_df.iterrows():
-            product_name = product_row['Name']
-            
-            # Calculate COGS from recipes and current inventory costs
-            product_cogs_amount = utils.calculate_product_cogs(product_name, recipe_df, inventory_df)
-            
-            if product_cogs_amount > 0:
-                product_cogs_list.append({
-                    'Category': product_name, 
-                    'Amount': product_cogs_amount,
-                    'Type': 'COGS'
-                })
+        if not inventory_df.empty:
+            # For each inventory item, calculate its total value
+            for _, item in inventory_df.iterrows():
+                try:
+                    # Skip invalid entries
+                    if pd.isna(item['Name']) or pd.isna(item['Quantity']) or pd.isna(item['Avg_Cost']):
+                        continue
+                        
+                    name = item['Name']
+                    quantity = float(item['Quantity'])
+                    unit_cost = float(item['Avg_Cost'])
+                    
+                    # Calculate total value
+                    total_value = quantity * unit_cost
+                    
+                    if total_value > 0:
+                        inventory_costs_list.append({
+                            'Category': name,
+                            'Amount': total_value,
+                            'Type': 'Variable Cost'
+                        })
+                except (ValueError, TypeError):
+                    continue
         
         # Convert to DataFrame
-        if product_cogs_list:
-            product_cogs = pd.DataFrame(product_cogs_list)
+        if inventory_costs_list:
+            inventory_costs = pd.DataFrame(inventory_costs_list)
         else:
-            product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+            inventory_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
     except Exception as e:
-        st.error(f"Error calculating product COGS: {str(e)}")
-        product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+        st.error(f"Error calculating inventory costs: {str(e)}")
+        inventory_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
         
     # 2. Get all operational costs (not filtered by time period for this chart)
     if not operational_costs_df.empty:
@@ -549,7 +557,7 @@ try:
         op_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
     
     # 3. Combine all cost categories
-    all_costs = pd.concat([product_cogs, op_costs], ignore_index=True)
+    all_costs = pd.concat([inventory_costs, op_costs], ignore_index=True)
     
     # Remove any NaN values 
     all_costs = all_costs.dropna(subset=['Amount'])
@@ -565,7 +573,7 @@ try:
             all_costs,
             values='Amount',
             names='Category',
-            title='All Business Costs Distribution',
+            title='Inventory Items & Operational Costs',
             color='Type',  # Color by cost type
             hover_data=['Amount'],  # Show amount on hover
             labels={'Amount': 'Cost (VND)'}
@@ -583,7 +591,7 @@ try:
         
         st.plotly_chart(fig_all_costs, use_container_width=True)
     else:
-        st.info("No cost data available. Add products with recipes and inventory items to see costs.")
+        st.info("No cost data available. Add inventory items and operational costs to see breakdown.")
     
     # Financial summary table
     st.header("Financial Summary")
