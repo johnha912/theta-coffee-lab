@@ -49,6 +49,11 @@ def initialize_session_state():
     if 'default_time_filter' not in st.session_state:
         st.session_state.default_time_filter = "Today"
         
+    # Make sure the default_time_filter is one of the valid options
+    valid_time_filters = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
+    if st.session_state.default_time_filter not in valid_time_filters:
+        st.session_state.default_time_filter = "Today"
+        
     # Initialize username
     if 'username' not in st.session_state:
         st.session_state.username = "Cafe Manager"
@@ -72,6 +77,8 @@ def get_date_range(time_filter):
         start_date = end_date - timedelta(days=6)
     elif time_filter == "Last 30 Days":
         start_date = end_date - timedelta(days=29)
+    elif time_filter == "All Time":
+        start_date = datetime(2020, 1, 1).date()
     else:  # Custom - handled separately in the app
         start_date = end_date - timedelta(days=7)  # Default fallback
     
