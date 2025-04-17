@@ -505,13 +505,43 @@ try:
     st.header("Business Costs Breakdown")
     
     # Prepare data for comprehensive costs pie chart
-    # 1. Get COGS by product category if available
-    if not filtered_sales.empty and 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:
-        # Calculate COGS by product
-        product_cogs = merged_sales.groupby('Product')['COGS'].sum().reset_index()
-        product_cogs.rename(columns={'Product': 'Category', 'COGS': 'Amount'}, inplace=True)
-        product_cogs['Type'] = 'COGS'
-    else:
+    # 1. Get COGS by product category from actual recipes and inventory
+    try:
+        # Load inventory data to calculate accurate COGS
+        inventory_df = pd.read_csv("data/inventory.csv")
+        recipe_df = pd.read_csv("data/product_recipe.csv")
+        
+        if not filtered_sales.empty and not inventory_df.empty and not recipe_df.empty:
+            # Get unique products sold
+            unique_products = filtered_sales['Product'].unique()
+            
+            # Initialize product_cogs dataframe
+            product_cogs_list = []
+            
+            # Calculate COGS for each product based on recipe and inventory
+            for product in unique_products:
+                # Get quantity sold
+                product_quantity = filtered_sales[filtered_sales['Product'] == product]['Quantity'].sum()
+                
+                # Calculate COGS from recipes and current inventory costs
+                product_cogs_amount = utils.calculate_product_cogs(product, recipe_df, inventory_df) * product_quantity
+                
+                if product_cogs_amount > 0:
+                    product_cogs_list.append({
+                        'Category': product, 
+                        'Amount': product_cogs_amount,
+                        'Type': 'COGS'
+                    })
+            
+            # Convert to DataFrame
+            if product_cogs_list:
+                product_cogs = pd.DataFrame(product_cogs_list)
+            else:
+                product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+        else:
+            product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+    except Exception as e:
+        st.error(f"Error calculating product COGS: {str(e)}")
         product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
         
     # 2. Get operational costs if available

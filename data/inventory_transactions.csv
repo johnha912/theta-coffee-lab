@@ -11,3 +11,11 @@ Date,Material,Quantity,Unit,Unit_Cost,Total_Cost,Type
 2025-04-06,Plastic Cup,7.0,pcs,465.0,3255.0,Edit
 2025-04-06,Plastic Lid,8.0,pcs,330.0,2640.0,Addition
 2025-04-06,Double Plastic Bag,14.0,pcs,4214.285714285715,59000.00000000001,Addition
+2025-04-16,Plastic Cup,0.0,,0.0,0.0,Deletion
+2025-04-16,Double Plastic Bag,0.0,,0.0,0.0,Deletion
+2025-04-16,Plastic Lid,0.0,,0.0,0.0,Deletion
+2025-04-17,Plastic Cup,1000.0,pcs,688.0,688000.0,Addition
+2025-04-17,Plastic Lid,1000.0,pcs,349.0,349000.0,Addition
+2025-04-17,Lid Liner,500.0,pcs,72.0,36000.0,Addition
+2025-04-17,Office Espresso,1000.0,g,380.0,380000.0,Addition
+2025-04-17,Aumis Sugar Syrup,900.0,ml,50.0,45000.0,Addition

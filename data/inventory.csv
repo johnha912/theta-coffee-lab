@@ -1,5 +1,7 @@
 ID,Name,Quantity,Unit,Avg_Cost,Date
 1,Plastic Straw,324.0,pcs,141.35802469135805,2025-04-06
-2,Plastic Cup,7.0,pcs,465.0,2025-04-06
-3,Plastic Lid,8.0,pcs,330.0,2025-04-06
-4,Double Plastic Bag,14.0,pcs,4214.285714285715,2025-04-06
+2,Plastic Cup,1000.0,pcs,688.0,2025-04-17
+3,Plastic Lid,1000.0,pcs,349.0,2025-04-17
+4,Lid Liner,500.0,pcs,72.0,2025-04-17
+5,Office Espresso,1000.0,g,380.0,2025-04-17
+6,Aumis Sugar Syrup,900.0,ml,50.0,2025-04-17
