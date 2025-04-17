@@ -502,7 +502,8 @@ try:
         st.info("No operational costs data available")
     
     # Comprehensive business costs breakdown
-    st.header("Business Costs Breakdown")
+    st.header("All Business Costs Breakdown (All Time)")
+    st.info("This chart shows all business costs regardless of the selected time period")
     
     # Prepare data for comprehensive costs pie chart
     # 1. Get COGS by product category from actual recipes and inventory
@@ -510,52 +511,40 @@ try:
         # Load inventory data to calculate accurate COGS
         inventory_df = pd.read_csv("data/inventory.csv")
         recipe_df = pd.read_csv("data/product_recipe.csv")
+        products_df = pd.read_csv("data/products.csv")
         
-        if not filtered_sales.empty and not inventory_df.empty and not recipe_df.empty:
-            # Get unique products sold
-            unique_products = filtered_sales['Product'].unique()
+        # Initialize product_cogs dataframe
+        product_cogs_list = []
+        
+        # For each product, calculate ingredient costs based on current recipes and inventory
+        for _, product_row in products_df.iterrows():
+            product_name = product_row['Name']
             
-            # Initialize product_cogs dataframe
-            product_cogs_list = []
+            # Calculate COGS from recipes and current inventory costs
+            product_cogs_amount = utils.calculate_product_cogs(product_name, recipe_df, inventory_df)
             
-            # Calculate COGS for each product based on recipe and inventory
-            for product in unique_products:
-                # Get quantity sold
-                product_quantity = filtered_sales[filtered_sales['Product'] == product]['Quantity'].sum()
-                
-                # Calculate COGS from recipes and current inventory costs
-                product_cogs_amount = utils.calculate_product_cogs(product, recipe_df, inventory_df) * product_quantity
-                
-                if product_cogs_amount > 0:
-                    product_cogs_list.append({
-                        'Category': product, 
-                        'Amount': product_cogs_amount,
-                        'Type': 'COGS'
-                    })
-            
-            # Convert to DataFrame
-            if product_cogs_list:
-                product_cogs = pd.DataFrame(product_cogs_list)
-            else:
-                product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+            if product_cogs_amount > 0:
+                product_cogs_list.append({
+                    'Category': product_name, 
+                    'Amount': product_cogs_amount,
+                    'Type': 'COGS'
+                })
+        
+        # Convert to DataFrame
+        if product_cogs_list:
+            product_cogs = pd.DataFrame(product_cogs_list)
         else:
             product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
     except Exception as e:
         st.error(f"Error calculating product COGS: {str(e)}")
         product_cogs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
         
-    # 2. Get operational costs if available
+    # 2. Get all operational costs (not filtered by time period for this chart)
     if not operational_costs_df.empty:
-        filtered_op_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
-                                           (operational_costs_df['Date'].dt.date <= end_date)]
-        
-        if not filtered_op_costs.empty:
-            # Summarize operational costs by type
-            op_costs = filtered_op_costs.groupby('Type')['Amount'].sum().reset_index()
-            op_costs.rename(columns={'Type': 'Category'}, inplace=True)
-            op_costs['Type'] = 'Operational'
-        else:
-            op_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
+        # Summarize all operational costs by type
+        op_costs = operational_costs_df.groupby('Type')['Amount'].sum().reset_index()
+        op_costs.rename(columns={'Type': 'Category'}, inplace=True)
+        op_costs['Type'] = 'Operational'
     else:
         op_costs = pd.DataFrame(columns=['Category', 'Amount', 'Type'])
     
@@ -587,7 +576,7 @@ try:
         
         st.plotly_chart(fig_all_costs, use_container_width=True)
     else:
-        st.info("No cost data available for the selected period")
+        st.info("No cost data available. Add products with recipes and inventory items to see costs.")
     
     # Financial summary table
     st.header("Financial Summary")
