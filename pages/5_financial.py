@@ -551,6 +551,13 @@ try:
     # 3. Combine all cost categories
     all_costs = pd.concat([product_cogs, op_costs], ignore_index=True)
     
+    # Remove any NaN values 
+    all_costs = all_costs.dropna(subset=['Amount'])
+    
+    # Convert to numeric and ensure non-zero values
+    all_costs['Amount'] = pd.to_numeric(all_costs['Amount'], errors='coerce').fillna(0)
+    all_costs = all_costs[all_costs['Amount'] > 0]
+    
     # Display pie chart of all business costs
     if not all_costs.empty and all_costs['Amount'].sum() > 0:
         # Create a pie chart showing percentage breakdown of all costs

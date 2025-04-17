@@ -90,18 +90,34 @@ def calculate_product_cogs(product_name, recipe_df, inventory_df):
     # Get recipe items for this product
     product_recipe = recipe_df[recipe_df['Product'] == product_name]
     
+    # If no recipe found for this product
+    if product_recipe.empty:
+        return 0
+    
     total_cost = 0
     for _, row in product_recipe.iterrows():
-        ingredient = row['Ingredient']
-        quantity = row['Quantity']
-        
-        # Get cost from inventory
-        inventory_item = inventory_df[inventory_df['Name'] == ingredient]
-        if not inventory_item.empty:
-            unit_cost = inventory_item.iloc[0]['Avg_Cost']
-            total_cost += quantity * unit_cost
+        try:
+            ingredient = row['Ingredient']
+            # Convert quantity to float to ensure numeric calculation
+            quantity = float(row['Quantity'])
+            
+            # Skip if ingredient is missing or quantity is invalid
+            if pd.isna(ingredient) or pd.isna(quantity) or quantity <= 0:
+                continue
+                
+            # Get cost from inventory
+            inventory_item = inventory_df[inventory_df['Name'] == ingredient]
+            if not inventory_item.empty:
+                # Ensure unit_cost is a valid number
+                unit_cost = inventory_item.iloc[0]['Avg_Cost']
+                if not pd.isna(unit_cost) and unit_cost > 0:
+                    total_cost += quantity * unit_cost
+        except (ValueError, TypeError) as e:
+            # Skip this ingredient if any calculation error
+            continue
     
-    return total_cost
+    # Ensure we don't return NaN or negative values
+    return max(0, total_cost)
 
 def update_inventory_from_sale(product, quantity, recipe_df, inventory_df):
     """Update inventory based on a sale"""
