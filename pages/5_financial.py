@@ -568,20 +568,33 @@ try:
     
     # Display pie chart of all business costs
     if not all_costs.empty and all_costs['Amount'].sum() > 0:
+        # Sort the data by amount for better color gradient
+        all_costs = all_costs.sort_values('Amount')
+        
         # Create a pie chart showing percentage breakdown of all costs
         fig_all_costs = px.pie(
             all_costs,
             values='Amount',
             names='Category',
             title='Inventory Items & Operational Costs',
-            color='Type',  # Color by cost type
-            hover_data=['Amount'],  # Show amount on hover
+            color='Amount',  # Color by amount value for gradient
+            color_discrete_sequence=px.colors.sequential.Plasma_r,  # Use a sequential colorscale (plasma reversed)
+            hover_data=['Amount', 'Type'],  # Show amount and type on hover
             labels={'Amount': 'Cost (VND)'}
         )
         
         # Update hover template to show the percentage and formatted amount
+        # Create a custom hover template that safely formats the amount and includes type
+        hover_data = []
+        for _, row in all_costs.iterrows():
+            formatted_amount = f"{int(row['Amount']):,} VND"
+            cost_type = row['Type']
+            hover_data.append([formatted_amount, cost_type])
+            
+        # Update figure with customized hover information
         fig_all_costs.update_traces(
-            hovertemplate='<b>%{label}</b><br>Amount: %{customdata[0]:,.0f} VND<br>Percentage: %{percent:.1%}'
+            customdata=hover_data,
+            hovertemplate='<b>%{label}</b><br>Amount: %{customdata[0]}<br>Type: %{customdata[1]}<br>Percentage: %{percent:.1%}'
         )
         
         # Custom legend title
