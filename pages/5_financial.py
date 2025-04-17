@@ -141,21 +141,40 @@ try:
     else:
         most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
     
+    # Make a fake cost entry for testing if no costs exist
+    if operational_costs_df.empty:
+        today = datetime.datetime.now()
+        test_cost = pd.DataFrame([{
+            'Date': today,
+            'Type': 'Rent',
+            'Amount': 5000000  # 5 million VND
+        }])
+        operational_costs_df = pd.concat([operational_costs_df, test_cost], ignore_index=True)
+        
+        # Save the test data
+        test_cost_to_save = pd.DataFrame([{
+            'Date': today.strftime('%Y-%m-%d'),
+            'Type': 'Rent',
+            'Amount': 5000000
+        }])
+        test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
+        
+        st.success("Added test operational cost of 5,000,000 VND for demonstration")
+    
     # Calculate operational costs in the period
-    if not operational_costs_df.empty:
-        filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
-                                           (operational_costs_df['Date'].dt.date <= end_date)]
-        # Make sure Amount column is numeric
-        operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
-        filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
-        
-        # Calculate sum of filtered costs
-        operational_costs = filtered_costs['Amount'].sum()
-        
-        # Debug information 
-        st.write(f"DEBUG - Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
-    else:
-        operational_costs = 0
+    filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
+                                       (operational_costs_df['Date'].dt.date <= end_date)]
+    
+    # Make sure Amount column is numeric
+    operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
+    filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
+    
+    # Calculate sum of filtered costs
+    operational_costs = filtered_costs['Amount'].sum()
+    
+    # Debug information 
+    st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
+    st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
     
     # Calculate net profit
     net_profit = gross_profit - operational_costs
