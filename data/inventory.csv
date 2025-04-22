@@ -1,8 +1,11 @@
 ID,Name,Quantity,Unit,Avg_Cost,Date
-1,Plastic Straw,323.0,pcs,141.35802469135805,2025-04-06
-2,Plastic Cup,999.0,pcs,688.0,2025-04-17
-3,Plastic Lid,999.0,pcs,349.0,2025-04-17
-4,Lid Liner,499.0,pcs,72.0,2025-04-17
-5,Office Espresso,983.0,g,380.0,2025-04-17
-6,Aumis Sugar Syrup,890.0,ml,50.0,2025-04-17
+1,Plastic Straw,324.0,pcs,141.35802469135805,2025-04-06
+2,Plastic Cup,1000.0,pcs,688.0,2025-04-17
+3,Plastic Lid,1000.0,pcs,349.0,2025-04-17
+4,Lid Liner,500.0,pcs,72.0,2025-04-17
+5,Office Espresso,1000.0,g,380.0,2025-04-17
+6,Aumis Sugar Syrup,900.0,ml,50.0,2025-04-17
 7,Phuong Nam Condensed Milk,1284.0,g,52.9595015576324,2025-04-17
+8,Fresh Milk,12000.0,ml,38.882666666666665,2025-04-22
+9,Hershey Chocolate Sauce,1360.0,g,112.40441176470588,2025-04-22
+10,Urban Barman Chocolate Syrup,730.0,ml,114.72191780821917,2025-04-22

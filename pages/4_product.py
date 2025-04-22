@@ -285,8 +285,21 @@ try:
     else:
         st.info("No products created yet")
     
+    # Define function to clear recipe and form
+    def clear_product_form():
+        """Clear the product form and reset all values"""
+        st.session_state.selected_ingredients = []
+        st.session_state.product_name = ""
+        st.session_state.selling_price = 25000.0
+        st.success("Form cleared successfully!")
+
     # Create or edit product form
     st.header("Create or Edit Product")
+    
+    # Add refresh button
+    refresh_col1, refresh_col2 = st.columns([4, 1])
+    with refresh_col2:
+        st.button("Clear Form", on_click=clear_product_form, type="primary")
     
     col1, col2 = st.columns(2)
     
