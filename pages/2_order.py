@@ -64,20 +64,53 @@ def edit_item_in_order(index, product_name, quantity, product_price):
         st.error("Invalid item index")
 
 def delete_saved_order(order_id):
-    """Delete a saved order from sales.csv"""
+    """Delete a saved order from sales.csv and restore inventory"""
     try:
         # Load sales data
         sales_df = pd.read_csv("data/sales.csv")
         
         # Check if order exists
-        if not sales_df[sales_df['Order_ID'] == order_id].empty:
-            # Remove order items
+        order_items = sales_df[sales_df['Order_ID'] == order_id]
+        if not order_items.empty:
+            # First, restore inventory based on the deleted items
+            try:
+                inventory_df = pd.read_csv("data/inventory.csv")
+                recipe_df = pd.read_csv("data/product_recipe.csv")
+                
+                # For each deleted item, restore inventory
+                for _, item in order_items.iterrows():
+                    product = item['Product']
+                    quantity_sold = item['Quantity']
+                    
+                    # Get recipe for this product
+                    product_recipe = recipe_df[recipe_df['Product'] == product]
+                    
+                    # Restore inventory for each ingredient
+                    for _, recipe_row in product_recipe.iterrows():
+                        ingredient = recipe_row['Ingredient']
+                        quantity_to_restore = recipe_row['Quantity'] * quantity_sold
+                        
+                        # Update inventory - add the quantity back
+                        inventory_index = inventory_df[inventory_df['Name'] == ingredient].index
+                        if not inventory_index.empty:
+                            current_quantity = inventory_df.loc[inventory_index[0], 'Quantity']
+                            new_quantity = current_quantity + quantity_to_restore
+                            inventory_df.loc[inventory_index[0], 'Quantity'] = new_quantity
+                            st.info(f"Restored {quantity_to_restore} {ingredient} to inventory")
+                
+                # Save updated inventory
+                inventory_df.to_csv("data/inventory.csv", index=False)
+                
+            except Exception as e:
+                st.error(f"Error restoring inventory: {str(e)}")
+            
+            # Now remove the order from sales data
             sales_df = sales_df[sales_df['Order_ID'] != order_id]
             
             # Save updated sales data
             sales_df.to_csv("data/sales.csv", index=False)
             
-            st.success(f"Order {order_id} deleted successfully")
+            st.success(f"Order {order_id} deleted successfully and inventory restored")
             return True
         else:
             st.error(f"Order {order_id} not found")
