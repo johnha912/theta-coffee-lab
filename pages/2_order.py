@@ -412,7 +412,7 @@ try:
     
     try:
         sales_df = pd.read_csv("data/sales.csv")
-        sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+        sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
         
         # Get orders based on selected time filter
         if order_time_filter == "Last 7 Days":
@@ -575,8 +575,10 @@ try:
                                 # Xử lý chỉnh sửa Promo
                                 if 'Promo' in edited_data:
                                     try:
-                                        new_promo = float(edited_data['Promo'])
-                                    except (ValueError, TypeError):
+                                        # Remove commas from the input string before converting to float
+                                        cleaned_promo = edited_data['Promo'].replace(',', '') if isinstance(edited_data['Promo'], str) else edited_data['Promo']
+                                        new_promo = float(cleaned_promo)
+                                    except (ValueError, TypeError, AttributeError):
                                         new_promo = 0
                                         
                                     old_promo = float(old_order_data.iloc[0]['Promo_Value'])
