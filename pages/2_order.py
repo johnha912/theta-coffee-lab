@@ -496,7 +496,7 @@ try:
                     "Promo (VND)",
                     help="Promotion value. Click on cell to edit.",
                     min_value=0,
-                    format="%d"
+                    format="%,d"
                 ),
                 "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
             },
