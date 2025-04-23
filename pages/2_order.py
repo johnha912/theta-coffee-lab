@@ -466,15 +466,21 @@ try:
         st.subheader("Recent Orders (Last 10)")
         st.info("Click on the Promo cell to edit promotion value directly")
         
-        # Loại bỏ các cột không hiển thị trước khi đưa vào data_editor
-        editor_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total']].copy()
-        # Lưu cột Promo_Value và Total_Value riêng để tham chiếu sau
-        promo_values = display_df['Promo_Value'].tolist()
-        total_values = display_df['Total_Value'].tolist()
+        # Tạo df chỉ có các cột cần thiết và chuyển đổi tất cả về định dạng đúng
+        editor_data = []
+        for _, row in display_df.head(10).iterrows():
+            editor_data.append({
+                "Date": row['Date'],
+                "Time": row['Time'],
+                "Order_ID": row['Order_ID'],
+                "Total": row['Total'],
+                "Promo": float(row['Promo_Value']),  # Chuyển đổi sang float
+                "Net_Total": row['Net_Total']
+            })
         
-        # Tạo dataframe có thể chỉnh sửa
+        # Tạo dataframe có thể chỉnh sửa với dữ liệu đã được xử lý
         edited_df = st.data_editor(
-            editor_df.head(10),
+            editor_data,
             column_config={
                 "Date": st.column_config.TextColumn("Date", disabled=True),
                 "Time": st.column_config.TextColumn("Time", disabled=True),
@@ -489,8 +495,8 @@ try:
                 "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
             },
             hide_index=True,
-            num_rows="fixed",
-            key="editable_orders"
+            key="editable_orders",
+            on_change=None  # Không sử dụng callback mà lấy giá trị từ session_state sau khi chỉnh sửa
         )
         
         # Kiểm tra nếu có thay đổi trong giá trị Promo
@@ -499,61 +505,41 @@ try:
             sales_df_copy = sales_df.copy()
             
             # Duyệt qua từng hàng trong bảng đã chỉnh sửa
-            for i, row in enumerate(st.session_state["editable_orders"]):
-                # Xử lý dữ liệu của từng hàng một cách an toàn
+            for row in st.session_state["editable_orders"]:
                 try:
-                    # Lấy order_id từ hàng hiện tại
-                    if isinstance(row, dict):
-                        order_id = row["Order_ID"]
-                        
-                        # Lấy giá trị Promo từ dictionary
-                        promo_str = str(row.get("Promo", "0"))
-                        # Loại bỏ các ký tự không phải số
-                        promo_str = ''.join(c for c in promo_str if c.isdigit() or c == '.')
-                        # Chuyển sang số nếu có thể, nếu không thì dùng 0
-                        new_promo = float(promo_str) if promo_str else 0
-                        
-                    elif hasattr(row, 'iloc'):
-                        # Nếu là pandas Series
-                        order_id = row.iloc[2]  # Cột 2 là Order_ID
-                        promo_val = row.iloc[4]  # Cột 4 là Promo
-                        
-                        # Chuyển đổi Promo an toàn
-                        if isinstance(promo_val, (int, float)):
-                            new_promo = float(promo_val)
-                        else:
-                            new_promo = 0
-                    else:
-                        # Giả sử là list hoặc array
-                        order_id = row[2]
-                        promo_val = row[4]
-                        
-                        # Chuyển đổi Promo an toàn
-                        if isinstance(promo_val, (int, float)):
-                            new_promo = float(promo_val)
-                        else:
-                            new_promo = 0
-                except Exception:
-                    # Bắt tất cả các lỗi, sử dụng giá trị mặc định
-                    continue  # Bỏ qua hàng này nếu có lỗi
-                
-                old_promo = promo_values[i] if i < len(promo_values) else 0
-                
-                # Nếu giá trị Promo đã thay đổi
-                if i < len(promo_values) and new_promo != promo_values[i]:
-                    changed = True
-                    # Tìm tất cả các mục của đơn hàng này
-                    order_items = sales_df[sales_df['Order_ID'] == order_id]
-                    total_order_value = order_items['Total'].sum()
+                    # Với dữ liệu từ data_editor, row luôn là dict
+                    order_id = row["Order_ID"]
                     
-                    # Cập nhật từng mục trong đơn hàng
-                    for idx, item in order_items.iterrows():
-                        item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
-                        item_net_total = item['Total'] - item_promo
+                    # Lấy giá trị Promo đã chỉnh sửa
+                    new_promo = float(row["Promo"]) if isinstance(row["Promo"], (int, float)) else 0
+                    
+                    # Tính giá trị cũ từ dữ liệu gốc
+                    old_order_data = display_df[display_df['Order_ID'] == order_id]
+                    if not old_order_data.empty:
+                        old_promo = float(old_order_data.iloc[0]['Promo_Value'])
+                    else:
+                        # Nếu không tìm thấy, dùng 0 là giá trị mặc định
+                        old_promo = 0
+                    
+                    # Nếu giá trị thay đổi
+                    if new_promo != old_promo:
+                        changed = True
                         
-                        # Cập nhật giá trị trong DataFrame
-                        sales_df_copy.loc[idx, 'Promo'] = item_promo
-                        sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                        # Tìm tất cả các mục của đơn hàng này
+                        order_items = sales_df[sales_df['Order_ID'] == order_id]
+                        total_order_value = order_items['Total'].sum()
+                        
+                        # Cập nhật từng mục trong đơn hàng
+                        for idx, item in order_items.iterrows():
+                            item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
+                            item_net_total = item['Total'] - item_promo
+                            
+                            # Cập nhật giá trị trong DataFrame
+                            sales_df_copy.loc[idx, 'Promo'] = item_promo
+                            sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                except Exception as e:
+                    st.error(f"Error processing row: {str(e)}")
+                    continue
             
             # Nếu có sự thay đổi, lưu lại DataFrame
             if changed:
