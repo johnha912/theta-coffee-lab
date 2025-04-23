@@ -504,29 +504,63 @@ try:
             changed = False
             sales_df_copy = sales_df.copy()
             
-            # Duyệt qua từng hàng trong bảng đã chỉnh sửa
-            for row in st.session_state["editable_orders"]:
+            # In ra kiểu dữ liệu của session_state
+            st.write("Debugging - Check data type:", type(st.session_state["editable_orders"]))
+            
+            # Duyệt qua từng hàng trong bảng đã chỉnh sửa - luôn kiểm tra kiểu dữ liệu
+            for i, row in enumerate(st.session_state["editable_orders"]):
                 try:
-                    # Với dữ liệu từ data_editor, row luôn là dict
-                    order_id = row["Order_ID"]
+                    st.write(f"Row type: {type(row)}")
                     
-                    # Lấy giá trị Promo đã chỉnh sửa
-                    new_promo = float(row["Promo"]) if isinstance(row["Promo"], (int, float)) else 0
+                    # Xử lý theo kiểu dữ liệu của row
+                    if isinstance(row, dict):
+                        # Nếu là dictionary
+                        order_id = row["Order_ID"]
+                        try:
+                            new_promo = float(row["Promo"])
+                        except (ValueError, TypeError):
+                            new_promo = 0
+                    elif isinstance(row, (list, tuple)):
+                        # Nếu là list hoặc tuple, lấy theo chỉ mục
+                        order_id = row[2]  # Vị trí Order_ID
+                        try:
+                            new_promo = float(row[4])  # Vị trí Promo
+                        except (ValueError, TypeError, IndexError):
+                            new_promo = 0
+                    elif hasattr(row, 'iloc'):
+                        # Nếu là pandas Series
+                        order_id = row.iloc[2]  # Vị trí Order_ID
+                        try:
+                            new_promo = float(row.iloc[4])  # Vị trí Promo
+                        except (ValueError, TypeError):
+                            new_promo = 0
+                    elif isinstance(row, str):
+                        # Nếu là chuỗi, bỏ qua (không thể xử lý)
+                        st.error(f"Skipping string row: {row}")
+                        continue
+                    else:
+                        # Không thể xác định kiểu dữ liệu
+                        st.error(f"Unknown row type: {type(row)}")
+                        continue
                     
                     # Tính giá trị cũ từ dữ liệu gốc
-                    old_order_data = display_df[display_df['Order_ID'] == order_id]
-                    if not old_order_data.empty:
-                        old_promo = float(old_order_data.iloc[0]['Promo_Value'])
+                    if i < len(display_df):
+                        old_order_data = display_df.iloc[i]
+                        old_promo = float(old_order_data['Promo_Value'])
                     else:
-                        # Nếu không tìm thấy, dùng 0 là giá trị mặc định
                         old_promo = 0
                     
                     # Nếu giá trị thay đổi
                     if new_promo != old_promo:
                         changed = True
+                        st.success(f"Changing promo for order {order_id} from {old_promo} to {new_promo}")
                         
                         # Tìm tất cả các mục của đơn hàng này
                         order_items = sales_df[sales_df['Order_ID'] == order_id]
+                        if order_items.empty:
+                            st.warning(f"Order {order_id} not found in sales data")
+                            continue
+                            
                         total_order_value = order_items['Total'].sum()
                         
                         # Cập nhật từng mục trong đơn hàng
@@ -538,7 +572,7 @@ try:
                             sales_df_copy.loc[idx, 'Promo'] = item_promo
                             sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
                 except Exception as e:
-                    st.error(f"Error processing row: {str(e)}")
+                    st.error(f"Error processing row {i}: {str(e)}")
                     continue
             
             # Nếu có sự thay đổi, lưu lại DataFrame
