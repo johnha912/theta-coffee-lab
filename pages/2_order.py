@@ -457,10 +457,10 @@ try:
         display_df['Total_Value'] = display_df['Total']
         display_df['Promo_Value'] = display_df['Promo']
         
-        # Format các giá trị tiền tệ
-        display_df['Total'] = display_df['Total'].apply(utils.format_currency)
+        # Format các giá trị tiền tệ - ẩn đi chữ VND ở Total và Net Total theo yêu cầu
+        display_df['Total'] = display_df['Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
         display_df['Promo'] = display_df['Promo'].apply(utils.format_currency)
-        display_df['Net_Total'] = display_df['Net_Total'].apply(utils.format_currency)
+        display_df['Net_Total'] = display_df['Net_Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
         
         # Sắp xếp lại các cột để hiển thị 
         display_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total', 'Total_Value', 'Promo_Value']]

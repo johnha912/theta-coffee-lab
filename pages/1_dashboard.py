@@ -110,6 +110,7 @@ try:
     
     col1, col2, col3 = st.columns(3)
     with col1:
+        # Use format_currency with include_currency=True since this is a display metric
         st.metric("Total Revenue", utils.format_currency(total_revenue))
         st.metric("Total Orders", f"{total_orders}")
     

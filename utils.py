@@ -76,13 +76,22 @@ def initialize_session_state():
     if 'username' not in st.session_state:
         st.session_state.username = "Cafe Manager"
 
-def format_currency(value):
-    """Format a number as currency with comma separators"""
+def format_currency(value, include_currency=True):
+    """Format a number as currency with comma separators
+    
+    Args:
+        value: The numeric value to format
+        include_currency: Whether to include 'VND' at the end (default: True)
+    """
     if pd.isna(value):
-        return "0 VND"
+        return "0" if not include_currency else "0 VND"
     
     # Format with commas
-    formatted = f"{value:,.0f} VND"
+    if include_currency:
+        formatted = f"{value:,.0f} VND"
+    else:
+        formatted = f"{value:,.0f}"
+    
     return formatted
 
 def get_date_range(time_filter):
