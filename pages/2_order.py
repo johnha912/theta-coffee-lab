@@ -447,16 +447,96 @@ try:
         
         st.dataframe(recent_orders.head(10))
         
-        # Delete order section
-        with st.expander("Delete Saved Order"):
-            delete_order_id = st.text_input("Enter Order ID to delete", key="delete_order_id")
+        # Edit or Delete order section
+        with st.expander("Edit or Delete Saved Order"):
+            col1, col2 = st.columns(2)
             
-            if st.button("Delete Order"):
-                if delete_order_id:
-                    delete_saved_order(delete_order_id)
-                    st.rerun()
-                else:
-                    st.error("Please enter an Order ID to delete")
+            with col1:
+                # Delete order
+                delete_order_id = st.text_input("Enter Order ID to delete", key="delete_order_id")
+                
+                if st.button("Delete Order"):
+                    if delete_order_id:
+                        delete_saved_order(delete_order_id)
+                        st.rerun()
+                    else:
+                        st.error("Please enter an Order ID to delete")
+            
+            with col2:
+                # Edit promotion
+                edit_promo_id = st.text_input("Order ID", key="edit_promo_id", 
+                                             help="Enter Order ID to adjust promotion amount")
+                
+                # Add a button to load the order information
+                if st.button("Load Order"):
+                    if edit_promo_id:
+                        # Check if order exists
+                        order_info = sales_df[sales_df['Order_ID'] == edit_promo_id]
+                        if not order_info.empty:
+                            # Calculate total for the order
+                            order_total = order_info['Total'].sum()
+                            current_promo = order_info['Promo'].sum() if 'Promo' in order_info.columns else 0
+                            
+                            # Store in session state
+                            st.session_state.edit_order_total = order_total
+                            st.session_state.edit_order_promo = current_promo
+                            st.session_state.edit_order_loaded = True
+                            st.rerun()
+                        else:
+                            st.error(f"Order {edit_promo_id} not found")
+                    else:
+                        st.error("Please enter an Order ID")
+                
+                # Show promotion adjustment section if an order is loaded
+                if st.session_state.get('edit_order_loaded', False):
+                    order_total = st.session_state.edit_order_total
+                    current_promo = st.session_state.edit_order_promo
+                    
+                    st.write(f"Order Total: {utils.format_currency(order_total)}")
+                    st.write(f"Current Promo: {utils.format_currency(current_promo)}")
+                    
+                    new_promo = st.number_input("New Promotion Amount", 
+                                              min_value=0.0,
+                                              max_value=order_total,
+                                              value=current_promo,
+                                              step=1000.0)
+                    
+                    if st.button("Update Promotion"):
+                        try:
+                            # Get the order
+                            order_info = sales_df[sales_df['Order_ID'] == edit_promo_id]
+                            
+                            if not order_info.empty:
+                                # Calculate promo distribution based on item totals
+                                total_order_value = order_info['Total'].sum()
+                                
+                                # Create a copy of the DataFrame to avoid SettingWithCopyWarning
+                                sales_df_copy = sales_df.copy()
+                                
+                                # Update each item in the order
+                                for idx, row in order_info.iterrows():
+                                    item_promo = (row['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
+                                    item_net_total = row['Total'] - item_promo
+                                    
+                                    # Update values
+                                    sales_df_copy.loc[idx, 'Promo'] = item_promo
+                                    sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                                
+                                # Save changes
+                                sales_df_copy.to_csv("data/sales.csv", index=False)
+                                
+                                st.success(f"Updated promotion for Order {edit_promo_id}")
+                                
+                                # Reset session state
+                                st.session_state.edit_order_loaded = False
+                                st.session_state.edit_order_total = 0
+                                st.session_state.edit_order_promo = 0
+                                
+                                st.rerun()
+                            else:
+                                st.error(f"Order {edit_promo_id} not found")
+                        except Exception as e:
+                            st.error(f"Error updating promotion: {str(e)}")
         
     except FileNotFoundError:
         st.info("No sales data available yet")
