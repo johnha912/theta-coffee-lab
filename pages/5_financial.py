@@ -256,8 +256,8 @@ try:
             # If no COGS data, add it as zeros
             daily_finance['COGS'] = 0
         
-        # Calculate daily gross profit
-        daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
+        # Calculate daily gross profit using Net_Total instead of Total for actual revenue
+        daily_finance['Gross_Profit'] = daily_finance['Net_Total'] - daily_finance['COGS']
         
         # Format date to DD/MM/YY
         daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
@@ -265,18 +265,37 @@ try:
         # Line chart for revenue, COGS, gross profit
         fig1 = go.Figure()
         
+        # Show both Total (Gross Revenue) and Net_Total after promotions
         fig1.add_trace(go.Scatter(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['Total'],
             mode='lines+markers',
-            name='Revenue'
+            name='Gross Revenue',
+            line=dict(color='royalblue', dash='dash')
+        ))
+        
+        fig1.add_trace(go.Scatter(
+            x=daily_finance['Date_Formatted'],
+            y=daily_finance['Net_Total'],
+            mode='lines+markers',
+            name='Net Revenue',
+            line=dict(color='darkblue')
+        ))
+        
+        # Show Promotions as a bar chart below
+        fig1.add_trace(go.Bar(
+            x=daily_finance['Date_Formatted'],
+            y=daily_finance['Promo'],
+            name='Promotions',
+            marker=dict(color='orange')
         ))
         
         fig1.add_trace(go.Scatter(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['COGS'],
             mode='lines+markers',
-            name='COGS'
+            name='COGS',
+            line=dict(color='red')
         ))
         
         fig1.add_trace(go.Scatter(
