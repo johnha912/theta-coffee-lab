@@ -93,8 +93,8 @@ try:
         if 'Promo' not in filtered_sales.columns:
             filtered_sales['Promo'] = 0.0
         
-        # Calculate revenue using Net_Total
-        total_revenue = filtered_sales['Net_Total'].sum()
+        # Calculate revenue using Total (gross revenue before discounts)
+        total_revenue = filtered_sales['Total'].sum()
         
         # Calculate COGS
         filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
@@ -258,8 +258,9 @@ try:
             # If no COGS data, add it as zeros
             daily_finance['COGS'] = 0
         
-        # Calculate daily gross profit using Net_Total instead of Total for actual revenue
-        daily_finance['Gross_Profit'] = daily_finance['Net_Total'] - daily_finance['COGS']
+        # Calculate daily gross profit using Total for revenue but consider promotions in profit calculation
+        daily_finance['Net_Revenue'] = daily_finance['Net_Total']
+        daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
         
         # Format date to DD/MM/YY
         daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
