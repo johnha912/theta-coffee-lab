@@ -209,18 +209,24 @@ try:
         st.metric("COGS to Revenue Ratio", f"{(total_cogs / total_revenue * 100):.2f}%" if total_revenue > 0 else "0.00%")
     
     with col2:
-        # Use the corrected gross profit calculation based on Net Revenue
-        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
-        # Calculate the correct margin based on the corrected gross profit and net revenue
-        gross_profit_margin_correct = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
-        st.metric("Gross Profit Margin", f"{gross_profit_margin_correct:.2f}%")
+        # Use gross profit calculated from total revenue for consistency with standard formulas
+        # Gross Profit = Total Revenue - COGS
+        gross_profit = total_revenue - total_cogs
+        st.metric("Gross Profit", utils.format_currency(gross_profit))
+        
+        # Calculate Gross Profit Margin based on Total Revenue
+        # Gross Profit Margin = Gross Profit / Total Revenue
+        gross_profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+        st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
+        
         st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
     
     with col3:
         st.metric("Operational Costs", utils.format_currency(operational_costs))
         st.metric("Net Profit", utils.format_currency(net_profit))
-        # Calculate net margin correctly based on net revenue
-        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
+        # Calculate net margin correctly based on total revenue as per standard formula
+        # Net Profit Margin = Net Profit / Total Revenue
+        net_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
         st.metric("Net Profit Margin", f"{net_margin:.2f}%")
     
     # Financial Charts
