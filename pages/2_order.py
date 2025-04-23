@@ -458,9 +458,15 @@ try:
         st.subheader("Recent Orders (Last 10)")
         st.info("Nhấp vào ô Promo để chỉnh sửa giá trị khuyến mãi trực tiếp")
         
+        # Loại bỏ các cột không hiển thị trước khi đưa vào data_editor
+        editor_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total']].copy()
+        # Lưu cột Promo_Value và Total_Value riêng để tham chiếu sau
+        promo_values = display_df['Promo_Value'].tolist()
+        total_values = display_df['Total_Value'].tolist()
+        
         # Tạo dataframe có thể chỉnh sửa
         edited_df = st.data_editor(
-            display_df.head(10),
+            editor_df.head(10),
             column_config={
                 "Date": st.column_config.TextColumn("Date", disabled=True),
                 "Time": st.column_config.TextColumn("Time", disabled=True),
@@ -473,8 +479,6 @@ try:
                     format="%d"
                 ),
                 "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
-                "Total_Value": st.column_config.NumberColumn("Total Value", disabled=True, format="%d", visible=False),
-                "Promo_Value": st.column_config.NumberColumn("Promo Value", disabled=True, format="%d", visible=False),
             },
             hide_index=True,
             num_rows="fixed",
@@ -493,7 +497,7 @@ try:
                 old_promo = row.get("Promo_Value", 0)
                 
                 # Nếu giá trị Promo đã thay đổi
-                if new_promo != old_promo:
+                if i < len(promo_values) and new_promo != promo_values[i]:
                     changed = True
                     # Tìm tất cả các mục của đơn hàng này
                     order_items = sales_df[sales_df['Order_ID'] == order_id]
