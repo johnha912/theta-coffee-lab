@@ -504,8 +504,8 @@ try:
             changed = False
             sales_df_copy = sales_df.copy()
             
-            # Kiểm tra dữ liệu đã chỉnh sửa
-            st.write("Đã chỉnh sửa các dòng:", st.session_state["editable_orders"])
+            # Debug: Sau khi hoàn thành, ẩn thông tin debug này
+            # st.write("Đã chỉnh sửa các dòng:", st.session_state["editable_orders"])
             
             # Xử lý dữ liệu trong phần edited_rows (các hàng đã chỉnh sửa)
             if 'edited_rows' in st.session_state["editable_orders"]:
@@ -534,7 +534,7 @@ try:
                                     # Nếu giá trị thay đổi
                                     if new_promo != old_promo:
                                         changed = True
-                                        st.success(f"Thay đổi khuyến mãi cho đơn hàng {order_id} từ {old_promo} thành {new_promo}")
+                                        st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
                                         
                                         # Tìm tất cả các mục của đơn hàng này
                                         order_items = sales_df[sales_df['Order_ID'] == order_id]
@@ -549,7 +549,7 @@ try:
                                             sales_df_copy.loc[idx, 'Promo'] = item_promo
                                             sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
                     except Exception as e:
-                        st.error(f"Lỗi khi xử lý dòng đã chỉnh sửa: {str(e)}")
+                        st.error(f"Error processing edited row: {str(e)}")
             
             # Nếu có sự thay đổi, lưu lại DataFrame
             if changed:
