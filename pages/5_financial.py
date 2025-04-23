@@ -87,8 +87,12 @@ try:
         total_cogs = 0
         merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
     else:
-        # Calculate revenue
-        total_revenue = filtered_sales['Total'].sum()
+        # Calculate revenue (using Net_Total instead of Total)
+        if 'Net_Total' in filtered_sales.columns:
+            total_revenue = filtered_sales['Net_Total'].sum()
+        else:
+            # Fallback to Total if Net_Total doesn't exist (for backward compatibility)
+            total_revenue = filtered_sales['Total'].sum()
         
         # Calculate COGS
         filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
@@ -206,9 +210,21 @@ try:
     
     # Daily revenue and costs chart
     if not filtered_sales.empty:
-        daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
-            'Total': 'sum'
-        }).reset_index()
+        # Check if Net_Total column exists
+        if 'Net_Total' in filtered_sales.columns:
+            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
+                'Total': 'sum',
+                'Net_Total': 'sum',
+                'Promo': 'sum'
+            }).reset_index()
+        else:
+            # Fallback to only Total for backward compatibility
+            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
+                'Total': 'sum'
+            }).reset_index()
+            # Add placeholder columns
+            daily_finance['Net_Total'] = daily_finance['Total']
+            daily_finance['Promo'] = 0
         
         # Add COGS data - use a safer approach that works with all pandas versions
         if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:

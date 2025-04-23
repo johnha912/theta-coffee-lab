@@ -158,20 +158,27 @@ def save_order():
                 datetime.time(hour=hour, minute=minute)
             )
             
+            # Calculate promo distribution for each item proportionally
+            total_order_value = sum(item['Total'] for item in st.session_state.order_items)
+            item_promo = (item['Total'] / total_order_value * st.session_state.promo_amount) if total_order_value > 0 else 0
+            item_net_total = item['Total'] - item_promo
+            
             order_data.append({
                 'Date': order_datetime.strftime('%Y-%m-%d %H:%M'),
                 'Order_ID': order_id,
                 'Product': item['Product'],
                 'Quantity': item['Quantity'],
                 'Unit_Price': item['Unit_Price'],
-                'Total': item['Total']
+                'Total': item['Total'],
+                'Promo': item_promo,
+                'Net_Total': item_net_total
             })
         
         # Load existing sales data
         try:
             sales_df = pd.read_csv("data/sales.csv")
         except FileNotFoundError:
-            sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total'])
+            sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total', 'Promo', 'Net_Total'])
         
         # Append new order to sales
         new_sales = pd.DataFrame(order_data)
@@ -299,7 +306,25 @@ try:
         
         # Calculate order total
         order_total = sum(item['Total'] for item in st.session_state.order_items)
-        st.subheader(f"Order Total: {utils.format_currency(order_total)}")
+        
+        # Add promo input field
+        st.subheader("Order Summary")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Order Total", f"{utils.format_currency(order_total)}")
+            promo_amount = st.number_input("Promotion Amount (VND)", 
+                                          min_value=0.0, 
+                                          max_value=order_total,
+                                          value=st.session_state.promo_amount,
+                                          step=1000.0)
+            st.session_state.promo_amount = promo_amount
+        
+        with col2:
+            net_total = order_total - promo_amount
+            st.metric("Net Total", f"{utils.format_currency(net_total)}", 
+                     delta=f"-{utils.format_currency(promo_amount)}" if promo_amount > 0 else None)
+            st.info("Net Total = Order Total - Promotion Amount")
         
         # Edit and Remove Items
         with st.expander("Edit or Remove Items"):
@@ -391,16 +416,22 @@ try:
         recent_sales = sales_df[sales_df['Date'] >= recent_date]
         
         # Group by order
-        recent_orders = recent_sales.groupby(['Date', 'Order_ID'])['Total'].sum().reset_index()
+        recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
+            'Total': 'sum',
+            'Promo': 'sum',
+            'Net_Total': 'sum'
+        }).reset_index()
         recent_orders = recent_orders.sort_values('Date', ascending=False)
         
         # Format for display - Thêm cột Time riêng từ Date
         recent_orders['Time'] = recent_orders['Date'].dt.strftime('%H:%M')
         recent_orders['Date'] = recent_orders['Date'].dt.strftime('%d/%m/%y')
         recent_orders['Total'] = recent_orders['Total'].apply(utils.format_currency)
+        recent_orders['Promo'] = recent_orders['Promo'].apply(utils.format_currency)
+        recent_orders['Net_Total'] = recent_orders['Net_Total'].apply(utils.format_currency)
         
-        # Sắp xếp lại các cột để hiển thị Date, Time, Order_ID, Total
-        recent_orders = recent_orders[['Date', 'Time', 'Order_ID', 'Total']]
+        # Sắp xếp lại các cột để hiển thị Date, Time, Order_ID, Total, Promo, Net_Total
+        recent_orders = recent_orders[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total']]
         
         st.dataframe(recent_orders.head(10))
         
