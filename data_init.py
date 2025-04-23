@@ -25,7 +25,7 @@ def initialize_data_files():
     
     # Initialize sales.csv with empty dataframe
     if not os.path.exists("data/sales.csv"):
-        sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total'])
+        sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total', 'Promo', 'Net_Total'])
         sales_df.to_csv("data/sales.csv", index=False)
     
     # Initialize operational_costs.csv with empty dataframe
