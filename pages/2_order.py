@@ -472,12 +472,19 @@ try:
         # Tạo df chỉ có các cột cần thiết và chuyển đổi tất cả về định dạng đúng
         editor_data = []
         for _, row in display_df.head(10).iterrows():
+            try:
+                # Thử chuyển đổi sang int nếu có thể để hiển thị số nguyên
+                promo_value = int(row['Promo_Value']) if row['Promo_Value'].is_integer() else float(row['Promo_Value'])
+            except:
+                # Nếu không chuyển được thì sử dụng float
+                promo_value = float(row['Promo_Value'])
+                
             editor_data.append({
                 "Date": row['Date'],
                 "Time": row['Time'],
                 "Order_ID": row['Order_ID'],
                 "Total": row['Total'],
-                "Promo": float(row['Promo_Value']),  # Chuyển đổi sang float
+                "Promo": promo_value,  # Đã xử lý kiểu dữ liệu phù hợp
                 "Net_Total": row['Net_Total']
             })
         
@@ -495,8 +502,7 @@ try:
                 "Promo": st.column_config.NumberColumn(
                     "Promo (VND)",
                     help="Promotion value. Click on cell to edit.",
-                    min_value=0,
-                    format="%,d"
+                    min_value=0
                 ),
                 "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
             },
