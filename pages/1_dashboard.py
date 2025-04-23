@@ -68,12 +68,19 @@ try:
     product_recipe_df = pd.read_csv("data/product_recipe.csv")
     
     # Prepare sales data
-    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
     filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
                              (sales_df['Date'].dt.date <= end_date)]
     
+    # Add Net_Total and Promo columns if they don't exist
+    if 'Net_Total' not in filtered_sales.columns:
+        filtered_sales['Net_Total'] = filtered_sales['Total']
+    if 'Promo' not in filtered_sales.columns:
+        filtered_sales['Promo'] = 0.0
+        
     # Calculate KPIs
-    total_revenue = filtered_sales['Total'].sum()
+    # Use Net_Total for revenue calculation since it accounts for promotions
+    total_revenue = filtered_sales['Net_Total'].sum()
     total_orders = len(filtered_sales['Order_ID'].unique())
     
     # Top selling product
@@ -119,7 +126,7 @@ try:
     st.header("Performance Charts")
     
     # Daily revenue chart
-    daily_revenue = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Total'].sum().reset_index()
+    daily_revenue = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Net_Total'].sum().reset_index()
     
     # Format date to DD/MM/YY
     daily_revenue['Date_Formatted'] = daily_revenue['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
@@ -127,9 +134,9 @@ try:
     fig1 = px.line(
         daily_revenue, 
         x='Date_Formatted', 
-        y='Total',
+        y='Net_Total',
         title='Daily Revenue',
-        labels={'Date_Formatted': 'Date', 'Total': 'Revenue (VND)'}
+        labels={'Date_Formatted': 'Date', 'Net_Total': 'Revenue (VND)'}
     )
     fig1.update_layout(xaxis_title='Date', yaxis_title='Revenue (VND)')
     st.plotly_chart(fig1, use_container_width=True)

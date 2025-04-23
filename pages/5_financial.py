@@ -74,7 +74,7 @@ try:
         operational_costs_df = pd.DataFrame(columns=['Date', 'Type', 'Amount'])
         
     # Prepare sales data
-    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
     filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
                              (sales_df['Date'].dt.date <= end_date)]
     
