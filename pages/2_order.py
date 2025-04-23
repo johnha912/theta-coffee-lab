@@ -473,18 +473,18 @@ try:
         editor_data = []
         for _, row in display_df.head(10).iterrows():
             try:
-                # Thử chuyển đổi sang int nếu có thể để hiển thị số nguyên
-                promo_value = int(row['Promo_Value']) if row['Promo_Value'].is_integer() else float(row['Promo_Value'])
+                # Format promotion value with commas for thousands
+                promo_value = f"{int(row['Promo_Value']):,}" if row['Promo_Value'].is_integer() else f"{float(row['Promo_Value']):,.0f}"
             except:
-                # Nếu không chuyển được thì sử dụng float
-                promo_value = float(row['Promo_Value'])
+                # If conversion fails, use 0 formatted with comma
+                promo_value = "0"
                 
             editor_data.append({
                 "Date": row['Date'],
                 "Time": row['Time'],
                 "Order_ID": row['Order_ID'],
                 "Total": row['Total'],
-                "Promo": promo_value,  # Đã xử lý kiểu dữ liệu phù hợp
+                "Promo": promo_value,  # Formatted with comma separators
                 "Net_Total": row['Net_Total']
             })
         
@@ -499,10 +499,9 @@ try:
                 ),
                 "Order_ID": st.column_config.TextColumn("Order ID", disabled=True),
                 "Total": st.column_config.TextColumn("Total", disabled=True),
-                "Promo": st.column_config.NumberColumn(
-                    "Promo (VND)",
-                    help="Promotion value. Click on cell to edit.",
-                    min_value=0
+                "Promo": st.column_config.TextColumn(
+                    "Promo",
+                    help="Promotion value. Click on cell to edit."
                 ),
                 "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
             },
