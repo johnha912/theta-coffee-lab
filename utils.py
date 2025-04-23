@@ -23,6 +23,14 @@ def initialize_session_state():
     if 'manual_order_id' not in st.session_state:
         st.session_state.manual_order_id = ''
         
+    # Initialize promotion amount
+    if 'promo_amount' not in st.session_state:
+        st.session_state.promo_amount = 0.0
+        
+    # Initialize editable orders
+    if 'editable_orders' not in st.session_state:
+        st.session_state.editable_orders = None
+        
     # Initialize edit cost mode variables
     if 'edit_cost_mode' not in st.session_state:
         st.session_state.edit_cost_mode = False
@@ -36,6 +44,16 @@ def initialize_session_state():
         
     if 'edit_index' not in st.session_state:
         st.session_state.edit_index = -1
+        
+    # Initialize edit order variables
+    if 'edit_order_loaded' not in st.session_state:
+        st.session_state.edit_order_loaded = False
+        
+    if 'edit_order_total' not in st.session_state:
+        st.session_state.edit_order_total = 0
+        
+    if 'edit_order_promo' not in st.session_state:
+        st.session_state.edit_order_promo = 0
         
     # Initialize delete confirmation
     if 'delete_confirmation' not in st.session_state:

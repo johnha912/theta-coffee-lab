@@ -435,17 +435,84 @@ try:
         }).reset_index()
         recent_orders = recent_orders.sort_values('Date', ascending=False)
         
+        # Tạo DataFrame hiển thị với tất cả là string để dễ xử lý
+        display_df = recent_orders.copy()
+        
         # Format for display - Thêm cột Time riêng từ Date
-        recent_orders['Time'] = recent_orders['Date'].dt.strftime('%H:%M')
-        recent_orders['Date'] = recent_orders['Date'].dt.strftime('%d/%m/%y')
-        recent_orders['Total'] = recent_orders['Total'].apply(utils.format_currency)
-        recent_orders['Promo'] = recent_orders['Promo'].apply(utils.format_currency)
-        recent_orders['Net_Total'] = recent_orders['Net_Total'].apply(utils.format_currency)
+        display_df['Time'] = display_df['Date'].dt.strftime('%H:%M')
+        display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
         
-        # Sắp xếp lại các cột để hiển thị Date, Time, Order_ID, Total, Promo, Net_Total
-        recent_orders = recent_orders[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total']]
+        # Lưu lại giá trị số trước khi format để tính toán
+        display_df['Total_Value'] = display_df['Total']
+        display_df['Promo_Value'] = display_df['Promo']
         
-        st.dataframe(recent_orders.head(10))
+        # Format các giá trị tiền tệ
+        display_df['Total'] = display_df['Total'].apply(utils.format_currency)
+        display_df['Promo'] = display_df['Promo'].apply(utils.format_currency)
+        display_df['Net_Total'] = display_df['Net_Total'].apply(utils.format_currency)
+        
+        # Sắp xếp lại các cột để hiển thị 
+        display_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total', 'Total_Value', 'Promo_Value']]
+        
+        # Hiển thị bảng có thể chỉnh sửa
+        st.subheader("Recent Orders (Last 10)")
+        st.info("Nhấp vào ô Promo để chỉnh sửa giá trị khuyến mãi trực tiếp")
+        
+        # Tạo dataframe có thể chỉnh sửa
+        edited_df = st.data_editor(
+            display_df.head(10),
+            column_config={
+                "Date": st.column_config.TextColumn("Date", disabled=True),
+                "Time": st.column_config.TextColumn("Time", disabled=True),
+                "Order_ID": st.column_config.TextColumn("Order ID", disabled=True),
+                "Total": st.column_config.TextColumn("Total", disabled=True),
+                "Promo": st.column_config.NumberColumn(
+                    "Promo (VND)",
+                    help="Giá trị khuyến mãi. Nhấp vào ô để chỉnh sửa.",
+                    min_value=0,
+                    format="%d"
+                ),
+                "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
+                "Total_Value": st.column_config.NumberColumn("Total Value", disabled=True, format="%d", visible=False),
+                "Promo_Value": st.column_config.NumberColumn("Promo Value", disabled=True, format="%d", visible=False),
+            },
+            hide_index=True,
+            num_rows="fixed",
+            key="editable_orders"
+        )
+        
+        # Kiểm tra nếu có thay đổi trong giá trị Promo
+        if st.session_state.get("editable_orders", None) is not None:
+            changed = False
+            sales_df_copy = sales_df.copy()
+            
+            # Duyệt qua từng hàng trong bảng đã chỉnh sửa
+            for i, row in enumerate(st.session_state["editable_orders"]):
+                order_id = row["Order_ID"]
+                new_promo = row.get("Promo", 0)
+                old_promo = row.get("Promo_Value", 0)
+                
+                # Nếu giá trị Promo đã thay đổi
+                if new_promo != old_promo:
+                    changed = True
+                    # Tìm tất cả các mục của đơn hàng này
+                    order_items = sales_df[sales_df['Order_ID'] == order_id]
+                    total_order_value = order_items['Total'].sum()
+                    
+                    # Cập nhật từng mục trong đơn hàng
+                    for idx, item in order_items.iterrows():
+                        item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
+                        item_net_total = item['Total'] - item_promo
+                        
+                        # Cập nhật giá trị trong DataFrame
+                        sales_df_copy.loc[idx, 'Promo'] = item_promo
+                        sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+            
+            # Nếu có sự thay đổi, lưu lại DataFrame
+            if changed:
+                sales_df_copy.to_csv("data/sales.csv", index=False)
+                st.success("Giá trị khuyến mãi đã được cập nhật")
+                st.rerun()
         
         # Edit or Delete order section
         with st.expander("Edit or Delete Saved Order"):
