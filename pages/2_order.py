@@ -500,15 +500,42 @@ try:
             
             # Duyệt qua từng hàng trong bảng đã chỉnh sửa
             for i, row in enumerate(st.session_state["editable_orders"]):
-                # Nhận diện đúng kiểu dữ liệu của row
-                if isinstance(row, dict):
-                    # Nếu row là dictionary (đã chỉnh sửa)
-                    order_id = row["Order_ID"]
-                    new_promo = float(row["Promo"]) if row["Promo"] != "" else 0
-                else:
-                    # Nếu row là pandas Series hoặc giá trị khác
-                    order_id = row.iloc[2] if hasattr(row, 'iloc') else row[2]  # Cột 2 là Order_ID
-                    new_promo = float(row.iloc[4]) if hasattr(row, 'iloc') else float(row[4])  # Cột 4 là Promo
+                # Xử lý dữ liệu của từng hàng một cách an toàn
+                try:
+                    # Lấy order_id từ hàng hiện tại
+                    if isinstance(row, dict):
+                        order_id = row["Order_ID"]
+                        
+                        # Lấy giá trị Promo từ dictionary
+                        promo_str = str(row.get("Promo", "0"))
+                        # Loại bỏ các ký tự không phải số
+                        promo_str = ''.join(c for c in promo_str if c.isdigit() or c == '.')
+                        # Chuyển sang số nếu có thể, nếu không thì dùng 0
+                        new_promo = float(promo_str) if promo_str else 0
+                        
+                    elif hasattr(row, 'iloc'):
+                        # Nếu là pandas Series
+                        order_id = row.iloc[2]  # Cột 2 là Order_ID
+                        promo_val = row.iloc[4]  # Cột 4 là Promo
+                        
+                        # Chuyển đổi Promo an toàn
+                        if isinstance(promo_val, (int, float)):
+                            new_promo = float(promo_val)
+                        else:
+                            new_promo = 0
+                    else:
+                        # Giả sử là list hoặc array
+                        order_id = row[2]
+                        promo_val = row[4]
+                        
+                        # Chuyển đổi Promo an toàn
+                        if isinstance(promo_val, (int, float)):
+                            new_promo = float(promo_val)
+                        else:
+                            new_promo = 0
+                except Exception:
+                    # Bắt tất cả các lỗi, sử dụng giá trị mặc định
+                    continue  # Bỏ qua hàng này nếu có lỗi
                 
                 old_promo = promo_values[i] if i < len(promo_values) else 0
                 
