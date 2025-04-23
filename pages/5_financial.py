@@ -185,8 +185,15 @@ try:
     st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
     st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
     
-    # Calculate net profit
-    net_profit = gross_profit - operational_costs
+    # Calculate net profit - use Net_Total for actual profit calculation
+    if 'Net_Total' in filtered_sales.columns:
+        # Total revenue is using Total (gross) but for profit, we use Net_Total (after promotions)
+        net_revenue = filtered_sales['Net_Total'].sum()
+        # Calculate net profit using net revenue
+        net_profit = net_revenue - total_cogs - operational_costs
+    else:
+        # Fallback
+        net_profit = gross_profit - operational_costs
     
     # Display KPIs
     col1, col2, col3 = st.columns(3)
