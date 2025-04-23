@@ -456,7 +456,7 @@ try:
         
         # Hiển thị bảng có thể chỉnh sửa
         st.subheader("Recent Orders (Last 10)")
-        st.info("Nhấp vào ô Promo để chỉnh sửa giá trị khuyến mãi trực tiếp")
+        st.info("Click on the Promo cell to edit promotion value directly")
         
         # Loại bỏ các cột không hiển thị trước khi đưa vào data_editor
         editor_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total']].copy()
@@ -474,7 +474,7 @@ try:
                 "Total": st.column_config.TextColumn("Total", disabled=True),
                 "Promo": st.column_config.NumberColumn(
                     "Promo (VND)",
-                    help="Giá trị khuyến mãi. Nhấp vào ô để chỉnh sửa.",
+                    help="Promotion value. Click on cell to edit.",
                     min_value=0,
                     format="%d"
                 ),
@@ -493,8 +493,8 @@ try:
             # Duyệt qua từng hàng trong bảng đã chỉnh sửa
             for i, row in enumerate(st.session_state["editable_orders"]):
                 order_id = row["Order_ID"]
-                new_promo = row.get("Promo", 0)
-                old_promo = row.get("Promo_Value", 0)
+                new_promo = float(row["Promo"]) if row["Promo"] != "" else 0
+                old_promo = promo_values[i] if i < len(promo_values) else 0
                 
                 # Nếu giá trị Promo đã thay đổi
                 if i < len(promo_values) and new_promo != promo_values[i]:
@@ -515,7 +515,7 @@ try:
             # Nếu có sự thay đổi, lưu lại DataFrame
             if changed:
                 sales_df_copy.to_csv("data/sales.csv", index=False)
-                st.success("Giá trị khuyến mãi đã được cập nhật")
+                st.success("Promotion value has been updated successfully")
                 st.rerun()
         
         # Edit or Delete order section
