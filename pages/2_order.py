@@ -427,19 +427,27 @@ try:
         if 'Net_Total' not in recent_sales.columns:
             recent_sales['Net_Total'] = recent_sales['Total']
             
+        # Tạo cột thời gian chuẩn để sắp xếp
+        recent_sales['Hour'] = recent_sales['Date'].dt.hour
+        recent_sales['Minute'] = recent_sales['Date'].dt.minute
+        
         # Group by order
         recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
             'Total': 'sum',
             'Promo': 'sum',
-            'Net_Total': 'sum'
+            'Net_Total': 'sum',
+            'Hour': 'first',
+            'Minute': 'first'
         }).reset_index()
-        recent_orders = recent_orders.sort_values('Date', ascending=False)
+        
+        # Sắp xếp theo ngày và giờ giảm dần (mới nhất lên đầu)
+        recent_orders = recent_orders.sort_values(['Date', 'Hour', 'Minute'], ascending=[False, False, False])
         
         # Tạo DataFrame hiển thị với tất cả là string để dễ xử lý
         display_df = recent_orders.copy()
         
-        # Format for display - Thêm cột Time riêng từ Date
-        display_df['Time'] = display_df['Date'].dt.strftime('%H:%M')
+        # Format for display - Tạo cột Time từ Hour và Minute
+        display_df['Time'] = display_df.apply(lambda x: f"{int(x['Hour']):02d}:{int(x['Minute']):02d}", axis=1)
         display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
         
         # Lưu lại giá trị số trước khi format để tính toán
@@ -492,8 +500,16 @@ try:
             
             # Duyệt qua từng hàng trong bảng đã chỉnh sửa
             for i, row in enumerate(st.session_state["editable_orders"]):
-                order_id = row["Order_ID"]
-                new_promo = float(row["Promo"]) if row["Promo"] != "" else 0
+                # Nhận diện đúng kiểu dữ liệu của row
+                if isinstance(row, dict):
+                    # Nếu row là dictionary (đã chỉnh sửa)
+                    order_id = row["Order_ID"]
+                    new_promo = float(row["Promo"]) if row["Promo"] != "" else 0
+                else:
+                    # Nếu row là pandas Series hoặc giá trị khác
+                    order_id = row.iloc[2] if hasattr(row, 'iloc') else row[2]  # Cột 2 là Order_ID
+                    new_promo = float(row.iloc[4]) if hasattr(row, 'iloc') else float(row[4])  # Cột 4 là Promo
+                
                 old_promo = promo_values[i] if i < len(promo_values) else 0
                 
                 # Nếu giá trị Promo đã thay đổi
