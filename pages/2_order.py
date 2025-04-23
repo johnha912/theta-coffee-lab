@@ -180,6 +180,12 @@ def save_order():
         except FileNotFoundError:
             sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total', 'Promo', 'Net_Total'])
         
+        # Check and add missing columns if needed
+        if 'Promo' not in sales_df.columns:
+            sales_df['Promo'] = 0.0
+        if 'Net_Total' not in sales_df.columns:
+            sales_df['Net_Total'] = sales_df['Total']
+            
         # Append new order to sales
         new_sales = pd.DataFrame(order_data)
         sales_df = pd.concat([sales_df, new_sales], ignore_index=True)
@@ -415,6 +421,12 @@ try:
             
         recent_sales = sales_df[sales_df['Date'] >= recent_date]
         
+        # Check and add missing columns if needed
+        if 'Promo' not in recent_sales.columns:
+            recent_sales['Promo'] = 0.0
+        if 'Net_Total' not in recent_sales.columns:
+            recent_sales['Net_Total'] = recent_sales['Total']
+            
         # Group by order
         recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
             'Total': 'sum',

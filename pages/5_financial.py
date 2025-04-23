@@ -87,12 +87,14 @@ try:
         total_cogs = 0
         merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
     else:
-        # Calculate revenue (using Net_Total instead of Total)
-        if 'Net_Total' in filtered_sales.columns:
-            total_revenue = filtered_sales['Net_Total'].sum()
-        else:
-            # Fallback to Total if Net_Total doesn't exist (for backward compatibility)
-            total_revenue = filtered_sales['Total'].sum()
+        # Add Net_Total and Promo columns if they don't exist
+        if 'Net_Total' not in filtered_sales.columns:
+            filtered_sales['Net_Total'] = filtered_sales['Total']
+        if 'Promo' not in filtered_sales.columns:
+            filtered_sales['Promo'] = 0.0
+        
+        # Calculate revenue using Net_Total
+        total_revenue = filtered_sales['Net_Total'].sum()
         
         # Calculate COGS
         filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
