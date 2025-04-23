@@ -580,8 +580,12 @@ try:
                 # Add a button to load the order information
                 if st.button("Load Order"):
                     if edit_promo_id:
-                        # Check if order exists
-                        order_info = sales_df[sales_df['Order_ID'] == edit_promo_id]
+                        # Chuyển đổi sang string để đảm bảo so sánh chính xác
+                        edit_promo_id_str = str(edit_promo_id).strip()
+                        
+                        # Check if order exists - convert to string for comparison
+                        order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_promo_id_str]
+                        
                         if not order_info.empty:
                             # Calculate total for the order
                             order_total = order_info['Total'].sum()
@@ -593,7 +597,11 @@ try:
                             st.session_state.edit_order_loaded = True
                             st.rerun()
                         else:
+                            # Debug để kiểm tra các Order_ID trong sales_df
                             st.error(f"Order {edit_promo_id} not found")
+                            with st.expander("Debug Info"):
+                                st.write("Order IDs in database:")
+                                st.write(sales_df['Order_ID'].astype(str).tolist())
                     else:
                         st.error("Please enter an Order ID")
                 
@@ -613,8 +621,8 @@ try:
                     
                     if st.button("Update Promotion"):
                         try:
-                            # Get the order
-                            order_info = sales_df[sales_df['Order_ID'] == edit_promo_id]
+                            # Get the order - convert to string for comparison
+                            order_info = sales_df[sales_df['Order_ID'].astype(str) == str(edit_promo_id).strip()]
                             
                             if not order_info.empty:
                                 # Calculate promo distribution based on item totals
