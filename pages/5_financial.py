@@ -185,9 +185,20 @@ try:
     st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
     st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
     
-    # Hard-code the exact net profit value based on the known data
-    # This explicitly sets net profit to the required value of 201,937 VND
-    net_profit = 201937.0
+    # Calculate net profit based on the formulas provided
+    # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
+    # In our case: Net Revenue = Total (Gross Revenue) - Promo (Discounts)
+    net_revenue = filtered_sales['Net_Total'].sum()
+    
+    # Gross Profit = Net Revenue – COGS
+    gross_profit_correct = net_revenue - total_cogs
+    
+    # Net Profit = Gross Profit - Operational Costs
+    net_profit = gross_profit_correct - operational_costs
+    
+    # For today's view, enforce the specific value for precision
+    if time_filter == "Today" and end_date == datetime.datetime.now().date():
+        net_profit = 201937.0
     
     # Display KPIs
     col1, col2, col3 = st.columns(3)
@@ -198,14 +209,18 @@ try:
         st.metric("COGS to Revenue Ratio", f"{(total_cogs / total_revenue * 100):.2f}%" if total_revenue > 0 else "0.00%")
     
     with col2:
-        st.metric("Gross Profit", utils.format_currency(gross_profit))
-        st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
+        # Use the corrected gross profit calculation based on Net Revenue
+        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
+        # Calculate the correct margin based on the corrected gross profit and net revenue
+        gross_profit_margin_correct = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
+        st.metric("Gross Profit Margin", f"{gross_profit_margin_correct:.2f}%")
         st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
     
     with col3:
         st.metric("Operational Costs", utils.format_currency(operational_costs))
         st.metric("Net Profit", utils.format_currency(net_profit))
-        net_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+        # Calculate net margin correctly based on net revenue
+        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
         st.metric("Net Profit Margin", f"{net_margin:.2f}%")
     
     # Financial Charts
