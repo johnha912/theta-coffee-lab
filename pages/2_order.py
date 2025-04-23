@@ -486,7 +486,10 @@ try:
             editor_data,
             column_config={
                 "Date": st.column_config.TextColumn("Date", disabled=True),
-                "Time": st.column_config.TextColumn("Time", disabled=True),
+                "Time": st.column_config.TextColumn(
+                    "Time",
+                    help="Time in HH:MM format. Click to edit."
+                ),
                 "Order_ID": st.column_config.TextColumn("Order ID", disabled=True),
                 "Total": st.column_config.TextColumn("Total", disabled=True),
                 "Promo": st.column_config.NumberColumn(
@@ -502,7 +505,7 @@ try:
             on_change=None  # Không sử dụng callback mà lấy giá trị từ session_state sau khi chỉnh sửa
         )
         
-        # Kiểm tra nếu có thay đổi trong giá trị Promo
+        # Kiểm tra nếu có thay đổi trong giá trị Promo hoặc Time
         if st.session_state.get("editable_orders", None) is not None:
             changed = False
             sales_df_copy = sales_df.copy()
@@ -522,16 +525,55 @@ try:
                             original_row = editor_data[row_index]
                             order_id = original_row["Order_ID"]
                             
-                            # Lấy giá trị Promo mới từ dữ liệu đã chỉnh sửa
-                            if 'Promo' in edited_data:
-                                try:
-                                    new_promo = float(edited_data['Promo'])
-                                except (ValueError, TypeError):
-                                    new_promo = 0
-                                    
-                                # Lấy giá trị cũ từ dữ liệu gốc - chuyển sang string để so sánh chính xác
-                                old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
-                                if not old_order_data.empty:
+                            # Lấy giá trị cũ từ dữ liệu gốc - chuyển sang string để so sánh chính xác
+                            old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
+                            if not old_order_data.empty:
+                                # Xử lý chỉnh sửa Time
+                                if 'Time' in edited_data:
+                                    try:
+                                        # Kiểm tra định dạng thời gian hợp lệ (HH:MM)
+                                        new_time = edited_data['Time'].strip()
+                                        time_parts = new_time.split(':')
+                                        
+                                        if len(time_parts) == 2:
+                                            hour = int(time_parts[0])
+                                            minute = int(time_parts[1])
+                                            
+                                            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                                                old_time = original_row["Time"]
+                                                
+                                                # Nếu thời gian thay đổi
+                                                if new_time != old_time:
+                                                    changed = True
+                                                    st.success(f"Changed time for order {order_id} from {old_time} to {new_time}")
+                                                    
+                                                    # Tìm tất cả các mục của đơn hàng này
+                                                    order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                                                    
+                                                    # Cập nhật giờ và phút cho tất cả các mục trong đơn hàng
+                                                    for idx, _ in order_items.iterrows():
+                                                        # Lấy đối tượng datetime hiện tại
+                                                        current_date = pd.to_datetime(sales_df_copy.loc[idx, 'Date'])
+                                                        
+                                                        # Tạo datetime mới với giờ và phút đã cập nhật
+                                                        new_date = current_date.replace(hour=hour, minute=minute)
+                                                        
+                                                        # Cập nhật lại trường Date với giá trị mới
+                                                        sales_df_copy.loc[idx, 'Date'] = new_date
+                                            else:
+                                                st.error(f"Invalid time format: {new_time}. Hours must be 0-23, minutes must be 0-59.")
+                                        else:
+                                            st.error(f"Invalid time format: {new_time}. Please use HH:MM format.")
+                                    except ValueError:
+                                        st.error(f"Invalid time format: {edited_data['Time']}. Please use HH:MM format.")
+                                
+                                # Xử lý chỉnh sửa Promo
+                                if 'Promo' in edited_data:
+                                    try:
+                                        new_promo = float(edited_data['Promo'])
+                                    except (ValueError, TypeError):
+                                        new_promo = 0
+                                        
                                     old_promo = float(old_order_data.iloc[0]['Promo_Value'])
                                     
                                     # Nếu giá trị thay đổi
@@ -557,7 +599,7 @@ try:
             # Nếu có sự thay đổi, lưu lại DataFrame
             if changed:
                 sales_df_copy.to_csv("data/sales.csv", index=False)
-                st.success("Promotion value has been updated successfully")
+                st.success("Order has been updated successfully")
                 st.rerun()
         
         # Edit or Delete order section
