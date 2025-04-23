@@ -69,8 +69,11 @@ def delete_saved_order(order_id):
         # Load sales data
         sales_df = pd.read_csv("data/sales.csv")
         
-        # Check if order exists
-        order_items = sales_df[sales_df['Order_ID'] == order_id]
+        # Convert order_id to string for accurate comparison
+        order_id_str = str(order_id).strip()
+        
+        # Check if order exists - convert to string for comparison
+        order_items = sales_df[sales_df['Order_ID'].astype(str) == order_id_str]
         if not order_items.empty:
             # First, restore inventory based on the deleted items
             try:
@@ -104,8 +107,8 @@ def delete_saved_order(order_id):
             except Exception as e:
                 st.error(f"Error restoring inventory: {str(e)}")
             
-            # Now remove the order from sales data
-            sales_df = sales_df[sales_df['Order_ID'] != order_id]
+            # Now remove the order from sales data - using string comparison
+            sales_df = sales_df[sales_df['Order_ID'].astype(str) != order_id_str]
             
             # Save updated sales data
             sales_df.to_csv("data/sales.csv", index=False)
@@ -526,8 +529,8 @@ try:
                                 except (ValueError, TypeError):
                                     new_promo = 0
                                     
-                                # Lấy giá trị cũ từ dữ liệu gốc
-                                old_order_data = display_df[display_df['Order_ID'] == order_id]
+                                # Lấy giá trị cũ từ dữ liệu gốc - chuyển sang string để so sánh chính xác
+                                old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
                                 if not old_order_data.empty:
                                     old_promo = float(old_order_data.iloc[0]['Promo_Value'])
                                     
@@ -536,8 +539,8 @@ try:
                                         changed = True
                                         st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
                                         
-                                        # Tìm tất cả các mục của đơn hàng này
-                                        order_items = sales_df[sales_df['Order_ID'] == order_id]
+                                        # Tìm tất cả các mục của đơn hàng này - chuyển sang string để so sánh chính xác
+                                        order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
                                         total_order_value = order_items['Total'].sum()
                                         
                                         # Cập nhật từng mục trong đơn hàng
@@ -613,10 +616,11 @@ try:
                     st.write(f"Order Total: {utils.format_currency(order_total)}")
                     st.write(f"Current Promo: {utils.format_currency(current_promo)}")
                     
+                    # Ensure all numeric arguments have the same type (float)
                     new_promo = st.number_input("New Promotion Amount", 
                                               min_value=0.0,
-                                              max_value=order_total,
-                                              value=current_promo,
+                                              max_value=float(order_total),
+                                              value=float(current_promo),
                                               step=1000.0)
                     
                     if st.button("Update Promotion"):
