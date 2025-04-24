@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import uuid
 import utils
+import os
 
 # Khởi tạo session_state
 utils.initialize_session_state()
@@ -413,205 +414,221 @@ try:
     order_time_options = ["Last 7 Days", "Last 30 Days", "All Time"]
     order_time_filter = st.selectbox("Time Period", options=order_time_options, index=0, key="order_time_filter")
     
+    # Load Recent Orders section
     try:
+        # Load sales data
         sales_df = pd.read_csv("data/sales.csv")
-        sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
         
-        # Get orders based on selected time filter
-        if order_time_filter == "Last 7 Days":
-            recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
-        elif order_time_filter == "Last 30 Days":
-            recent_date = datetime.datetime.now() - datetime.timedelta(days=30)
-        else:  # All Time
-            recent_date = datetime.datetime(2020, 1, 1)
-            
-        recent_sales = sales_df[sales_df['Date'] >= recent_date]
-        
-        # Check and add missing columns if needed
-        if 'Promo' not in recent_sales.columns:
-            recent_sales['Promo'] = 0.0
-        if 'Net_Total' not in recent_sales.columns:
-            recent_sales['Net_Total'] = recent_sales['Total']
-            
-        # Tạo cột thời gian chuẩn để sắp xếp
-        recent_sales['Hour'] = recent_sales['Date'].dt.hour
-        recent_sales['Minute'] = recent_sales['Date'].dt.minute
-        
-        # Group by order
-        recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
-            'Total': 'sum',
-            'Promo': 'sum',
-            'Net_Total': 'sum',
-            'Hour': 'first',
-            'Minute': 'first'
-        }).reset_index()
-        
-        # Sắp xếp theo ngày và giờ giảm dần (mới nhất lên đầu)
-        recent_orders = recent_orders.sort_values(['Date', 'Hour', 'Minute'], ascending=[False, False, False])
-        
-        # Tạo DataFrame hiển thị với tất cả là string để dễ xử lý
-        display_df = recent_orders.copy()
-        
-        # Format for display - Tạo cột Time từ Hour và Minute
-        display_df['Time'] = display_df.apply(lambda x: f"{int(x['Hour']):02d}:{int(x['Minute']):02d}", axis=1)
-        display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
-        
-        # Lưu lại giá trị số trước khi format để tính toán
-        display_df['Total_Value'] = display_df['Total']
-        display_df['Promo_Value'] = display_df['Promo']
-        
-        # Format các giá trị tiền tệ - ẩn đi chữ VND ở Total và Net Total theo yêu cầu
-        display_df['Total'] = display_df['Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
-        display_df['Promo'] = display_df['Promo'].apply(utils.format_currency)
-        display_df['Net_Total'] = display_df['Net_Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
-        
-        # Sắp xếp lại các cột để hiển thị 
-        display_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total', 'Total_Value', 'Promo_Value']]
-        
-        # Hiển thị bảng có thể chỉnh sửa
-        st.subheader("Recent Orders (Last 10)")
-        st.info("Click on the Promo cell to edit promotion value directly")
-        
-        # Tạo df chỉ có các cột cần thiết và chuyển đổi tất cả về định dạng đúng
-        editor_data = []
-        for _, row in display_df.head(10).iterrows():
-            try:
-                # Format promotion value with commas for thousands
-                promo_value = f"{int(row['Promo_Value']):,}" if row['Promo_Value'].is_integer() else f"{float(row['Promo_Value']):,.0f}"
-            except:
-                # If conversion fails, use 0 formatted with comma
-                promo_value = "0"
+        # Check if we have any sales data
+            if sales_df.empty:
+                st.info("No sales data available yet")
+            else:
+                sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
                 
-            editor_data.append({
-                "Date": row['Date'],
-                "Time": row['Time'],
-                "Order_ID": row['Order_ID'],
-                "Total": row['Total'],
-                "Promo": promo_value,  # Formatted with comma separators
-                "Net_Total": row['Net_Total']
-            })
-        
-        # Tạo dataframe có thể chỉnh sửa với dữ liệu đã được xử lý
-        edited_df = st.data_editor(
-            editor_data,
-            column_config={
-                "Date": st.column_config.TextColumn("Date", disabled=True),
-                "Time": st.column_config.TextColumn(
-                    "Time",
-                    help="Time in HH:MM format. Click to edit."
-                ),
-                "Order_ID": st.column_config.TextColumn("Order ID", disabled=True),
-                "Total": st.column_config.TextColumn("Total", disabled=True),
-                "Promo": st.column_config.TextColumn(
-                    "Promo",
-                    help="Promotion value. Click on cell to edit."
-                ),
-                "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
-            },
-            hide_index=True,
-            key="editable_orders",
-            on_change=None  # Không sử dụng callback mà lấy giá trị từ session_state sau khi chỉnh sửa
-        )
-        
-        # Kiểm tra xem có dữ liệu chỉnh sửa hay không và xử lý an toàn
-        editable_orders = st.session_state.get("editable_orders")
-        if editable_orders is not None and isinstance(editable_orders, dict):
-            changed = False
-            sales_df_copy = sales_df.copy()
-            
-            # Debug: Sau khi hoàn thành, ẩn thông tin debug này
-            # st.write("Đã chỉnh sửa các dòng:", st.session_state["editable_orders"])
-            
-            # Xử lý dữ liệu trong phần edited_rows (các hàng đã chỉnh sửa)
-            if 'edited_rows' in editable_orders:
-                for index, edited_data in editable_orders['edited_rows'].items():
-                    try:
-                        # Lấy chỉ số hàng
-                        row_index = int(index)
+                # Get orders based on selected time filter
+                if order_time_filter == "Last 7 Days":
+                    recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
+                elif order_time_filter == "Last 30 Days":
+                    recent_date = datetime.datetime.now() - datetime.timedelta(days=30)
+                else:  # All Time
+                    recent_date = datetime.datetime(2020, 1, 1)
+                    
+                recent_sales = sales_df[sales_df['Date'] >= recent_date]
+                
+                # If no data in the selected time period
+                if recent_sales.empty:
+                    st.info(f"No orders in the selected time period: {order_time_filter}")
+                else:
+                    # Check and add missing columns if needed
+                    if 'Promo' not in recent_sales.columns:
+                        recent_sales['Promo'] = 0.0
+                    if 'Net_Total' not in recent_sales.columns:
+                        recent_sales['Net_Total'] = recent_sales['Total']
                         
-                        # Lấy dữ liệu gốc từ hàng này
-                        if row_index < len(editor_data):
-                            original_row = editor_data[row_index]
-                            order_id = original_row["Order_ID"]
-                            
-                            # Lấy giá trị cũ từ dữ liệu gốc - chuyển sang string để so sánh chính xác
-                            old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
-                            if not old_order_data.empty:
-                                # Xử lý chỉnh sửa Time
-                                if 'Time' in edited_data:
-                                    try:
-                                        # Kiểm tra định dạng thời gian hợp lệ (HH:MM)
-                                        new_time = edited_data['Time'].strip()
-                                        time_parts = new_time.split(':')
-                                        
-                                        if len(time_parts) == 2:
-                                            hour = int(time_parts[0])
-                                            minute = int(time_parts[1])
-                                            
-                                            if 0 <= hour <= 23 and 0 <= minute <= 59:
-                                                old_time = original_row["Time"]
-                                                
-                                                # Nếu thời gian thay đổi
-                                                if new_time != old_time:
-                                                    changed = True
-                                                    st.success(f"Changed time for order {order_id} from {old_time} to {new_time}")
-                                                    
-                                                    # Tìm tất cả các mục của đơn hàng này
-                                                    order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
-                                                    
-                                                    # Cập nhật giờ và phút cho tất cả các mục trong đơn hàng
-                                                    for idx, _ in order_items.iterrows():
-                                                        # Lấy đối tượng datetime hiện tại
-                                                        current_date = pd.to_datetime(sales_df_copy.loc[idx, 'Date'])
-                                                        
-                                                        # Tạo datetime mới với giờ và phút đã cập nhật
-                                                        new_date = current_date.replace(hour=hour, minute=minute)
-                                                        
-                                                        # Cập nhật lại trường Date với giá trị mới
-                                                        sales_df_copy.loc[idx, 'Date'] = new_date
-                                            else:
-                                                st.error(f"Invalid time format: {new_time}. Hours must be 0-23, minutes must be 0-59.")
-                                        else:
-                                            st.error(f"Invalid time format: {new_time}. Please use HH:MM format.")
-                                    except ValueError:
-                                        st.error(f"Invalid time format: {edited_data['Time']}. Please use HH:MM format.")
+                    # Create standard time columns for sorting
+                    recent_sales['Hour'] = recent_sales['Date'].dt.hour
+                    recent_sales['Minute'] = recent_sales['Date'].dt.minute
+                    
+                    # Group by order
+                    recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
+                        'Total': 'sum',
+                        'Promo': 'sum',
+                        'Net_Total': 'sum',
+                        'Hour': 'first',
+                        'Minute': 'first'
+                    }).reset_index()
+                    
+                    # Sort by date and time (newest first)
+                    recent_orders = recent_orders.sort_values(['Date', 'Hour', 'Minute'], ascending=[False, False, False])
+                    
+                    # Create display DataFrame with string formatting for easy handling
+                    display_df = recent_orders.copy()
+                    
+                    # Format for display - Create Time column from Hour and Minute
+                    display_df['Time'] = display_df.apply(lambda x: f"{int(x['Hour']):02d}:{int(x['Minute']):02d}", axis=1)
+                    display_df['Date'] = display_df['Date'].dt.strftime('%d/%m/%y')
+                    
+                    # Save numeric values before formatting
+                    display_df['Total_Value'] = display_df['Total']
+                    display_df['Promo_Value'] = display_df['Promo']
+                    
+                    # Format currency values - hide "VND" text in Total and Net Total as requested
+                    display_df['Total'] = display_df['Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
+                    display_df['Promo'] = display_df['Promo'].apply(utils.format_currency)
+                    display_df['Net_Total'] = display_df['Net_Total'].apply(lambda x: utils.format_currency(x, include_currency=False))
+                    
+                    # Reorder columns for display
+                    display_df = display_df[['Date', 'Time', 'Order_ID', 'Total', 'Promo', 'Net_Total', 'Total_Value', 'Promo_Value']]
+                    
+                    # Display editable table
+                    st.subheader("Recent Orders (Last 10)")
+                    st.info("Click on the Promo cell to edit promotion value directly")
+                    
+                    # Limit to 10 most recent orders
+                    display_head = display_df.head(10)
+                    
+                    # Create editor data with proper formatting
+                    editor_data = []
+                    if not display_head.empty:
+                        for _, row in display_head.iterrows():
+                            try:
+                                # Format promotion value with commas for thousands
+                                promo_value = f"{int(row['Promo_Value']):,}" if row['Promo_Value'].is_integer() else f"{float(row['Promo_Value']):,.0f}"
+                            except:
+                                # If conversion fails, use 0 formatted with comma
+                                promo_value = "0"
                                 
-                                # Xử lý chỉnh sửa Promo
-                                if 'Promo' in edited_data:
-                                    try:
-                                        # Remove commas from the input string before converting to float
-                                        cleaned_promo = edited_data['Promo'].replace(',', '') if isinstance(edited_data['Promo'], str) else edited_data['Promo']
-                                        new_promo = float(cleaned_promo)
-                                    except (ValueError, TypeError, AttributeError):
-                                        new_promo = 0
-                                        
-                                    old_promo = float(old_order_data.iloc[0]['Promo_Value'])
+                            editor_data.append({
+                                "Date": row['Date'],
+                                "Time": row['Time'],
+                                "Order_ID": str(row['Order_ID']),  # Convert to string to ensure consistency
+                                "Total": row['Total'],
+                                "Promo": promo_value,  # Formatted with comma separators
+                                "Net_Total": row['Net_Total']
+                            })
+                    
+                        # Create editable dataframe with processed data
+                        edited_df = st.data_editor(
+                            editor_data,
+                            column_config={
+                                "Date": st.column_config.TextColumn("Date", disabled=True),
+                                "Time": st.column_config.TextColumn(
+                                    "Time",
+                                    help="Time in HH:MM format. Click to edit."
+                                ),
+                                "Order_ID": st.column_config.TextColumn("Order ID", disabled=True),
+                                "Total": st.column_config.TextColumn("Total", disabled=True),
+                                "Promo": st.column_config.TextColumn(
+                                    "Promo",
+                                    help="Promotion value. Click on cell to edit."
+                                ),
+                                "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
+                            },
+                            hide_index=True,
+                            key="editable_orders",
+                            on_change=None  # Don't use callback, get values from session_state after editing
+                        )
+                        
+                        # Process edits if any
+                        editable_orders = st.session_state.get("editable_orders")
+                        if editable_orders is not None and isinstance(editable_orders, dict) and 'edited_rows' in editable_orders:
+                            changed = False
+                            sales_df_copy = sales_df.copy()
+                            
+                            # Process edited rows
+                            for index, edited_data in editable_orders['edited_rows'].items():
+                                try:
+                                    # Get row index
+                                    row_index = int(index)
                                     
-                                    # Nếu giá trị thay đổi
-                                    if new_promo != old_promo:
-                                        changed = True
-                                        st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
+                                    # Get original data for this row
+                                    if row_index < len(editor_data):
+                                        original_row = editor_data[row_index]
+                                        order_id = original_row["Order_ID"]
                                         
-                                        # Tìm tất cả các mục của đơn hàng này - chuyển sang string để so sánh chính xác
-                                        order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
-                                        total_order_value = order_items['Total'].sum()
-                                        
-                                        # Cập nhật từng mục trong đơn hàng
-                                        for idx, item in order_items.iterrows():
-                                            item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
-                                            item_net_total = item['Total'] - item_promo
+                                        # Get old values from original data - convert to string for exact comparison
+                                        old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
+                                        if not old_order_data.empty:
+                                            # Process Time edits
+                                            if 'Time' in edited_data:
+                                                try:
+                                                    # Validate time format (HH:MM)
+                                                    new_time = edited_data['Time'].strip()
+                                                    time_parts = new_time.split(':')
+                                                    
+                                                    if len(time_parts) == 2:
+                                                        hour = int(time_parts[0])
+                                                        minute = int(time_parts[1])
+                                                        
+                                                        if 0 <= hour <= 23 and 0 <= minute <= 59:
+                                                            old_time = original_row["Time"]
+                                                            
+                                                            # If time has changed
+                                                            if new_time != old_time:
+                                                                changed = True
+                                                                st.success(f"Changed time for order {order_id} from {old_time} to {new_time}")
+                                                                
+                                                                # Find all items for this order
+                                                                order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                                                                
+                                                                # Update hour and minute for all items in the order
+                                                                for idx, _ in order_items.iterrows():
+                                                                    # Get current datetime object
+                                                                    current_date = pd.to_datetime(sales_df_copy.loc[idx, 'Date'])
+                                                                    
+                                                                    # Create new datetime with updated hour and minute
+                                                                    new_date = current_date.replace(hour=hour, minute=minute)
+                                                                    
+                                                                    # Update Date field with new value
+                                                                    sales_df_copy.loc[idx, 'Date'] = new_date
+                                                        else:
+                                                            st.error(f"Invalid time format: {new_time}. Hours must be 0-23, minutes must be 0-59.")
+                                                    else:
+                                                        st.error(f"Invalid time format: {new_time}. Please use HH:MM format.")
+                                                except ValueError:
+                                                    st.error(f"Invalid time format: {edited_data['Time']}. Please use HH:MM format.")
                                             
-                                            # Cập nhật giá trị trong DataFrame
-                                            sales_df_copy.loc[idx, 'Promo'] = item_promo
-                                            sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
-                    except Exception as e:
-                        st.error(f"Error processing edited row: {str(e)}")
-            
-            # Nếu có sự thay đổi, lưu lại DataFrame
-            if changed:
-                sales_df_copy.to_csv("data/sales.csv", index=False)
-                st.success("Order has been updated successfully")
-                st.rerun()
+                                            # Process Promo edits
+                                            if 'Promo' in edited_data:
+                                                try:
+                                                    # Remove commas from the input string before converting to float
+                                                    cleaned_promo = edited_data['Promo'].replace(',', '') if isinstance(edited_data['Promo'], str) else edited_data['Promo']
+                                                    new_promo = float(cleaned_promo)
+                                                except (ValueError, TypeError, AttributeError):
+                                                    new_promo = 0
+                                                    
+                                                old_promo = float(old_order_data.iloc[0]['Promo_Value'])
+                                                
+                                                # If value has changed
+                                                if new_promo != old_promo:
+                                                    changed = True
+                                                    st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
+                                                    
+                                                    # Find all items for this order - convert to string for exact comparison
+                                                    order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                                                    total_order_value = order_items['Total'].sum()
+                                                    
+                                                    # Update each item in the order
+                                                    for idx, item in order_items.iterrows():
+                                                        item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
+                                                        item_net_total = item['Total'] - item_promo
+                                                        
+                                                        # Update values in DataFrame
+                                                        sales_df_copy.loc[idx, 'Promo'] = item_promo
+                                                        sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                                except Exception as e:
+                                    st.error(f"Error processing edited row: {str(e)}")
+                            
+                            # If there are changes, save the DataFrame
+                            if changed:
+                                sales_df_copy.to_csv("data/sales.csv", index=False)
+                                st.success("Order has been updated successfully")
+                                st.rerun()
+                    else:
+                        st.info("No recent orders to display")
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        st.info("Please check that your data files exist and are properly formatted.")
         
         # Edit or Delete order section
         with st.expander("Edit or Delete Saved Order"):
