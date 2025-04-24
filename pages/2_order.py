@@ -13,9 +13,38 @@ st.set_page_config(page_title="Order Management", page_icon="🛒", layout="wide
 st.title("Order Management")
 st.subheader("Create and manage orders")
 
-# Initialize session state for order items if not exists
+# Initialize session state for order items and order management if not exists
 if 'order_items' not in st.session_state:
     st.session_state.order_items = []
+    
+# Initialize promo amount if not exists
+if 'promo_amount' not in st.session_state:
+    st.session_state.promo_amount = 0.0
+    
+# Initialize edit mode variables
+if 'edit_mode' not in st.session_state:
+    st.session_state.edit_mode = False
+    
+if 'edit_index' not in st.session_state:
+    st.session_state.edit_index = -1
+
+# Initialize edit order variables
+if 'edit_order_loaded' not in st.session_state:
+    st.session_state.edit_order_loaded = False
+    
+if 'edit_order_total' not in st.session_state:
+    st.session_state.edit_order_total = 0
+
+if 'edit_order_promo' not in st.session_state:
+    st.session_state.edit_order_promo = 0
+
+# Initialize manual order ID if not exists
+if 'manual_order_id' not in st.session_state:
+    st.session_state.manual_order_id = ''
+
+# Initialize editable orders variable
+if 'editable_orders' not in st.session_state:
+    st.session_state.editable_orders = None
 
 def add_item_to_order():
     """Add an item to the current order"""
