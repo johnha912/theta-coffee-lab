@@ -420,43 +420,43 @@ try:
         sales_df = pd.read_csv("data/sales.csv")
         
         # Check if we have any sales data
-            if sales_df.empty:
-                st.info("No sales data available yet")
+        if sales_df.empty:
+            st.info("No sales data available yet")
+        else:
+            sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
+            
+            # Get orders based on selected time filter
+            if order_time_filter == "Last 7 Days":
+                recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
+            elif order_time_filter == "Last 30 Days":
+                recent_date = datetime.datetime.now() - datetime.timedelta(days=30)
+            else:  # All Time
+                recent_date = datetime.datetime(2020, 1, 1)
+            
+            recent_sales = sales_df[sales_df['Date'] >= recent_date]
+            
+            # If no data in the selected time period
+            if recent_sales.empty:
+                st.info(f"No orders in the selected time period: {order_time_filter}")
             else:
-                sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
+                # Check and add missing columns if needed
+                if 'Promo' not in recent_sales.columns:
+                    recent_sales['Promo'] = 0.0
+                if 'Net_Total' not in recent_sales.columns:
+                    recent_sales['Net_Total'] = recent_sales['Total']
                 
-                # Get orders based on selected time filter
-                if order_time_filter == "Last 7 Days":
-                    recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
-                elif order_time_filter == "Last 30 Days":
-                    recent_date = datetime.datetime.now() - datetime.timedelta(days=30)
-                else:  # All Time
-                    recent_date = datetime.datetime(2020, 1, 1)
-                    
-                recent_sales = sales_df[sales_df['Date'] >= recent_date]
+                # Create standard time columns for sorting
+                recent_sales['Hour'] = recent_sales['Date'].dt.hour
+                recent_sales['Minute'] = recent_sales['Date'].dt.minute
                 
-                # If no data in the selected time period
-                if recent_sales.empty:
-                    st.info(f"No orders in the selected time period: {order_time_filter}")
-                else:
-                    # Check and add missing columns if needed
-                    if 'Promo' not in recent_sales.columns:
-                        recent_sales['Promo'] = 0.0
-                    if 'Net_Total' not in recent_sales.columns:
-                        recent_sales['Net_Total'] = recent_sales['Total']
-                        
-                    # Create standard time columns for sorting
-                    recent_sales['Hour'] = recent_sales['Date'].dt.hour
-                    recent_sales['Minute'] = recent_sales['Date'].dt.minute
-                    
-                    # Group by order
-                    recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
-                        'Total': 'sum',
-                        'Promo': 'sum',
-                        'Net_Total': 'sum',
-                        'Hour': 'first',
-                        'Minute': 'first'
-                    }).reset_index()
+                # Group by order
+                recent_orders = recent_sales.groupby(['Date', 'Order_ID']).agg({
+                    'Total': 'sum',
+                    'Promo': 'sum',
+                    'Net_Total': 'sum',
+                    'Hour': 'first',
+                    'Minute': 'first'
+                }).reset_index()
                     
                     # Sort by date and time (newest first)
                     recent_orders = recent_orders.sort_values(['Date', 'Hour', 'Minute'], ascending=[False, False, False])
