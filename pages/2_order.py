@@ -513,8 +513,9 @@ try:
             on_change=None  # Không sử dụng callback mà lấy giá trị từ session_state sau khi chỉnh sửa
         )
         
-        # Kiểm tra nếu có thay đổi trong giá trị Promo hoặc Time
-        if st.session_state.get("editable_orders", None) is not None:
+        # Kiểm tra xem có dữ liệu chỉnh sửa hay không và xử lý an toàn
+        editable_orders = st.session_state.get("editable_orders")
+        if editable_orders is not None and isinstance(editable_orders, dict):
             changed = False
             sales_df_copy = sales_df.copy()
             
@@ -522,8 +523,8 @@ try:
             # st.write("Đã chỉnh sửa các dòng:", st.session_state["editable_orders"])
             
             # Xử lý dữ liệu trong phần edited_rows (các hàng đã chỉnh sửa)
-            if 'edited_rows' in st.session_state["editable_orders"]:
-                for index, edited_data in st.session_state["editable_orders"]['edited_rows'].items():
+            if 'edited_rows' in editable_orders:
+                for index, edited_data in editable_orders['edited_rows'].items():
                     try:
                         # Lấy chỉ số hàng
                         row_index = int(index)
