@@ -159,23 +159,9 @@ def save_order():
         # Get order ID (either from manual input or generate a new one)
         order_id = st.session_state.manual_order_id if st.session_state.manual_order_id else str(uuid.uuid4())[:8]
         
-        # Parse time input (format: HH:MM)
-        try:
-            time_parts = time_input.split(':')
-            if len(time_parts) != 2:
-                st.error("Time must be in format HH:MM (e.g., 14:30)")
-                return
-            
-            hour = int(time_parts[0])
-            minute = int(time_parts[1])
-            
-            if hour < 0 or hour > 23 or minute < 0 or minute > 59:
-                st.error("Invalid time. Hours must be 0-23, minutes must be 0-59")
-                return
-                
-        except ValueError:
-            st.error("Time must be in format HH:MM with valid numbers (e.g., 14:30)")
-            return
+        # Get hour and minute directly from session state to avoid parsing issues
+        hour = st.session_state.order_hour
+        minute = st.session_state.order_minute
         
         # Prepare order data for sales.csv
         order_data = []
@@ -309,6 +295,42 @@ def update_order_promo(order_id, new_promo_amount):
         st.error(f"Error updating promotion: {str(e)}")
         return False
 
+def update_order_time(order_id, new_hour, new_minute):
+    """Update time for an existing order"""
+    try:
+        # Load sales data
+        sales_df = pd.read_csv("data/sales.csv")
+        
+        # Convert order_id to string for accurate comparison
+        order_id_str = str(order_id).strip()
+        
+        # Find the order
+        order_items = sales_df[sales_df['Order_ID'].astype(str) == order_id_str]
+        
+        if not order_items.empty:
+            # Create a copy of the dataframe
+            sales_df_copy = sales_df.copy()
+            
+            # Update each item in the order
+            for idx, item in order_items.iterrows():
+                # Parse the current date
+                current_date = pd.to_datetime(item['Date'])
+                
+                # Create new datetime with updated hour and minute
+                new_date = current_date.replace(hour=new_hour, minute=new_minute)
+                
+                # Update Date field with new formatted value
+                sales_df_copy.loc[idx, 'Date'] = new_date.strftime('%Y-%m-%d %H:%M')
+            
+            # Save updated data
+            sales_df_copy.to_csv("data/sales.csv", index=False)
+            return True
+        else:
+            return False
+    except Exception as e:
+        st.error(f"Error updating order time: {str(e)}")
+        return False
+
 # Initialize session state variables if they don't exist
 if 'order_items' not in st.session_state:
     st.session_state.order_items = []
@@ -348,11 +370,36 @@ try:
         # Order date selection
         order_date = st.date_input("Order Date", datetime.datetime.now())
         
-        # Order time selection
-        current_time = datetime.datetime.now().time()
-        default_time = f"{current_time.hour:02d}:{current_time.minute:02d}"
-        time_input = st.text_input("Time (HH:MM)", value=default_time, 
-                                  help="Enter time in 24-hour format (e.g., 14:30 for 2:30 PM)")
+        # Order time selection - using separate number inputs for hour and minute to avoid jumps
+        if 'order_hour' not in st.session_state:
+            st.session_state.order_hour = datetime.datetime.now().hour
+        if 'order_minute' not in st.session_state:
+            st.session_state.order_minute = datetime.datetime.now().minute
+        
+        # Use columns for hour and minute inputs
+        time_col1, time_col2 = st.columns(2)
+        with time_col1:
+            hour_input = st.number_input("Hour (0-23)", 
+                                        min_value=0, 
+                                        max_value=23, 
+                                        value=st.session_state.order_hour,
+                                        key="order_hour_input")
+        with time_col2:
+            minute_input = st.number_input("Minute (0-59)", 
+                                          min_value=0, 
+                                          max_value=59, 
+                                          value=st.session_state.order_minute,
+                                          key="order_minute_input")
+        
+        # Update session state
+        st.session_state.order_hour = hour_input
+        st.session_state.order_minute = minute_input
+        
+        # Construct time string for use in save_order
+        time_input = f"{hour_input:02d}:{minute_input:02d}"
+        
+        # Show current time selection
+        st.info(f"Selected time: {time_input}")
         
         # Product selection
         product_name = st.selectbox("Select Product", options=products_df['Name'].tolist())
@@ -568,7 +615,7 @@ try:
                 
                 # Edit or Delete Saved Orders
                 with st.expander("Edit or Delete Saved Order"):
-                    tab1, tab2 = st.tabs(["Delete Order", "Edit Promotion"])
+                    tab1, tab2, tab3 = st.tabs(["Delete Order", "Edit Promotion", "Edit Time"])
                     
                     with tab1:
                         # Delete order
@@ -581,7 +628,7 @@ try:
                     
                     with tab2:
                         # Edit promo amount for an existing order
-                        edit_promo_id = st.text_input("Order ID", help="Enter Order ID to adjust promotion amount")
+                        edit_promo_id = st.text_input("Order ID", key="edit_promo_id", help="Enter Order ID to adjust promotion amount")
                         
                         # Add a button to load the order information
                         if st.button("Load Order", key="load_order_btn"):
@@ -632,6 +679,82 @@ try:
                                     st.rerun()
                                 else:
                                     st.error(f"Failed to update promotion for Order {st.session_state.loaded_order_id}")
+                    
+                    with tab3:
+                        # Initialize session state for time editing
+                        if 'loaded_time_order_id' not in st.session_state:
+                            st.session_state.loaded_time_order_id = ''
+                        if 'loaded_time_hour' not in st.session_state:
+                            st.session_state.loaded_time_hour = 0
+                        if 'loaded_time_minute' not in st.session_state:
+                            st.session_state.loaded_time_minute = 0
+                        
+                        # Edit time for an existing order
+                        edit_time_id = st.text_input("Order ID", key="edit_time_id", help="Enter Order ID to adjust time")
+                        
+                        # Add a button to load the order information
+                        if st.button("Load Order", key="load_time_order_btn"):
+                            if edit_time_id:
+                                # Convert to string for accurate comparison
+                                edit_time_id_str = str(edit_time_id).strip()
+                                
+                                # Check if order exists
+                                order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_time_id_str]
+                                
+                                if not order_info.empty:
+                                    # Get first date from order (all items in same order have same date)
+                                    first_date = order_info['Date'].iloc[0]
+                                    
+                                    # Extract hour and minute
+                                    current_hour = first_date.hour
+                                    current_minute = first_date.minute
+                                    
+                                    # Store in session state
+                                    st.session_state.loaded_time_order_id = edit_time_id
+                                    st.session_state.loaded_time_hour = current_hour
+                                    st.session_state.loaded_time_minute = current_minute
+                                    
+                                    st.success(f"Loaded Order {edit_time_id}")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Order {edit_time_id} not found")
+                        
+                        # Display and edit time if order is loaded
+                        if st.session_state.loaded_time_order_id:
+                            # Get current time values from session state
+                            current_hour = st.session_state.loaded_time_hour
+                            current_minute = st.session_state.loaded_time_minute
+                            
+                            # Format current time for display
+                            current_time = f"{current_hour:02d}:{current_minute:02d}"
+                            st.info(f"Current Time: {current_time}")
+                            
+                            # Use number_input for hour and minute for more precise control
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                new_hour = st.number_input("Hour (0-23)", 
+                                                        min_value=0, 
+                                                        max_value=23, 
+                                                        value=current_hour,
+                                                        key="edit_hour")
+                            with col2:
+                                new_minute = st.number_input("Minute (0-59)", 
+                                                          min_value=0, 
+                                                          max_value=59, 
+                                                          value=current_minute,
+                                                          key="edit_minute")
+                            
+                            # Update button
+                            if st.button("Update Time", key="update_time_btn"):
+                                if update_order_time(st.session_state.loaded_time_order_id, new_hour, new_minute):
+                                    st.success(f"Updated time for Order {st.session_state.loaded_time_order_id} to {new_hour:02d}:{new_minute:02d}")
+                                    # Reset state
+                                    st.session_state.loaded_time_order_id = ''
+                                    st.session_state.loaded_time_hour = 0
+                                    st.session_state.loaded_time_minute = 0
+                                    st.rerun()
+                                else:
+                                    st.error(f"Failed to update time for Order {st.session_state.loaded_time_order_id}")
     except FileNotFoundError:
         st.info("No sales data found. Please create and save orders first.")
     except Exception as e:
