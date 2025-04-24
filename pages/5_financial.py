@@ -188,49 +188,60 @@ try:
     st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
     st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
     
-    # Calculate net profit based on the formulas provided
+    # Calculate financial metrics based on the formulas provided
+    
+    # 1. Doanh thu & Lợi nhuận
+    # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
+    gross_revenue = filtered_sales['Total'].sum()
+    
     # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
-    # In our case: Net Revenue = Total (Gross Revenue) - Promo (Discounts)
+    # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
     net_revenue = filtered_sales['Net_Total'].sum()
     
-    # Gross Profit = Net Revenue – COGS
+    # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
     gross_profit_correct = net_revenue - total_cogs
     
-    # Net Profit = Gross Profit - Operational Costs
-    net_profit = gross_profit_correct - operational_costs
+    # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
+    # In our system, we combine all operational costs together
+    operating_profit = gross_profit_correct - operational_costs
     
-    # For today's view, enforce the specific value for precision
-    if time_filter == "Today" and end_date == datetime.datetime.now().date():
-        net_profit = 201937.0
+    # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
+    # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
+    net_profit = operating_profit
     
     # Display KPIs
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Total Revenue", utils.format_currency(total_revenue))
-        st.metric("Total COGS", utils.format_currency(total_cogs))
-        st.metric("COGS to Revenue Ratio", f"{(total_cogs / total_revenue * 100):.2f}%" if total_revenue > 0 else "0.00%")
+        # Display Revenue KPIs
+        st.metric("Gross Revenue", utils.format_currency(gross_revenue))
+        st.metric("Net Revenue", utils.format_currency(net_revenue))
+        # Calculate revenue reduction due to promotions
+        promo_percentage = ((gross_revenue - net_revenue) / gross_revenue * 100) if gross_revenue > 0 else 0
+        st.metric("Promotion Impact", f"{promo_percentage:.2f}%")
     
     with col2:
-        # Use gross profit calculated from total revenue for consistency with standard formulas
-        # Gross Profit = Total Revenue - COGS
-        gross_profit = total_revenue - total_cogs
-        st.metric("Gross Profit", utils.format_currency(gross_profit))
+        # Display Profit KPIs
+        st.metric("Total COGS", utils.format_currency(total_cogs))
+        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
         
-        # Calculate Gross Profit Margin based on Total Revenue
-        # Gross Profit Margin = Gross Profit / Total Revenue
-        gross_profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+        # Calculate Gross Profit Margin correctly based on Net Revenue
+        # Gross Profit Margin = Gross Profit / Net Revenue
+        gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
         st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
-        
-        st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
     
     with col3:
+        # Display profitability metrics
         st.metric("Operational Costs", utils.format_currency(operational_costs))
         st.metric("Net Profit", utils.format_currency(net_profit))
-        # Calculate net margin correctly based on total revenue as per standard formula
-        # Net Profit Margin = Net Profit / Total Revenue
-        net_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+        
+        # Calculate Net Profit Margin correctly based on Net Revenue as per standard formula
+        # Net Profit Margin = Net Profit / Net Revenue
+        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
         st.metric("Net Profit Margin", f"{net_margin:.2f}%")
+        
+        # Add most profitable product at the bottom of the third column
+        st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
     
     # Financial Charts
     st.header("Financial Performance Visualization")
@@ -283,9 +294,19 @@ try:
             # If no COGS data, add it as zeros
             daily_finance['COGS'] = 0
         
-        # Calculate daily gross profit using Total for revenue but consider promotions in profit calculation
+        # Calculate daily financial metrics properly
         daily_finance['Net_Revenue'] = daily_finance['Net_Total']
-        daily_finance['Gross_Profit'] = daily_finance['Total'] - daily_finance['COGS']
+        
+        # Gross Profit = Net Revenue - COGS (using the correct formula from accounting principles)
+        daily_finance['Gross_Profit'] = daily_finance['Net_Revenue'] - daily_finance['COGS']
+        
+        # Also calculate daily operating profit (would need operational costs data by day but we don't have that)
+        # So we'll just make an estimate by distributing operational costs equally across the days
+        if len(daily_finance) > 0 and operational_costs > 0:
+            daily_op_cost = operational_costs / len(daily_finance)
+            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit'] - daily_op_cost
+        else:
+            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit']
         
         # Format date to DD/MM/YY
         daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
