@@ -38,6 +38,9 @@ st.subheader("Overview of Cafe Performance")
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
+# Ensure default_time_filter exists and is valid
+if 'default_time_filter' not in st.session_state or st.session_state.default_time_filter not in time_options:
+    st.session_state.default_time_filter = "Today"
 time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
 
 # Date range for custom filter

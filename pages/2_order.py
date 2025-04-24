@@ -4,6 +4,9 @@ import datetime
 import uuid
 import utils
 
+# Khởi tạo session_state
+utils.initialize_session_state()
+
 st.set_page_config(page_title="Order Management", page_icon="🛒", layout="wide")
 
 st.title("Order Management")
