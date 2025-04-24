@@ -43,7 +43,7 @@ col1, col2, col3, col4 = st.columns(4)
 try:
     # Load sales data
     sales_df = pd.read_csv("data/sales.csv")
-    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
     
     # Filter for today's data
     today = pd.Timestamp.now().date()

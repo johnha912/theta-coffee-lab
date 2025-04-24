@@ -561,9 +561,9 @@ try:
                     )
                     
                     # Process edits if any
-                    if 'editable_orders' in st.session_state:
-                        editable_orders = st.session_state["editable_orders"]
-                        if editable_orders is not None and isinstance(editable_orders, dict) and 'edited_rows' in editable_orders:
+                    if 'editable_orders' in st.session_state and st.session_state.editable_orders is not None:
+                        editable_orders = st.session_state.editable_orders
+                        if isinstance(editable_orders, dict) and 'edited_rows' in editable_orders:
                             changed = False
                             sales_df_copy = sales_df.copy()
                             
