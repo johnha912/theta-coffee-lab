@@ -20,6 +20,8 @@ if 'default_time_filter' not in st.session_state:
     st.session_state.default_time_filter = "Today"
 if 'username' not in st.session_state:
     st.session_state.username = "Admin"
+if 'alert_threshold' not in st.session_state:
+    st.session_state.alert_threshold = 5.0  # Ngưỡng cảnh báo tồn kho thấp mặc định
 
 # Initialize data files if they don't exist
 initialize_data_files()
