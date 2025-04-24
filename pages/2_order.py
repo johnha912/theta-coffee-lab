@@ -42,9 +42,13 @@ if 'edit_order_promo' not in st.session_state:
 if 'manual_order_id' not in st.session_state:
     st.session_state.manual_order_id = ''
 
-# Initialize editable orders variable
-if 'editable_orders' not in st.session_state:
-    st.session_state.editable_orders = None
+# Initialize edit_promo_id if not exists
+if 'edit_promo_id' not in st.session_state:
+    st.session_state.edit_promo_id = ''
+
+# Initialize delete_order_id if not exists
+if 'delete_order_id' not in st.session_state:
+    st.session_state.delete_order_id = ''
 
 def add_item_to_order():
     """Add an item to the current order"""
@@ -410,9 +414,8 @@ try:
                 
                 # Get product price
                 edit_price = float(products_df[products_df['Name'] == edit_product]['Price'].values[0])
-                
-                # Show calculated total
                 edit_total = edit_price * edit_quantity
+                
                 st.info(f"New Total: {utils.format_currency(edit_total)}")
                 
                 # Submit button
@@ -554,214 +557,209 @@ try:
                             "Net_Total": st.column_config.TextColumn("Net Total", disabled=True),
                         },
                         hide_index=True,
-                        key="editable_orders",
-                        on_change=None  # Don't use callback, get values from session_state after editing
+                        key="editable_orders"
                     )
                     
                     # Process edits if any
-                    editable_orders = st.session_state.get("editable_orders")
-                    if editable_orders is not None and isinstance(editable_orders, dict) and 'edited_rows' in editable_orders:
-                        changed = False
-                        sales_df_copy = sales_df.copy()
-                        
-                        # Process edited rows
-                        for index, edited_data in editable_orders['edited_rows'].items():
-                            try:
-                                # Get row index
-                                row_index = int(index)
-                                
-                                # Get original data for this row
-                                if row_index < len(editor_data):
-                                    original_row = editor_data[row_index]
-                                    order_id = original_row["Order_ID"]
+                    if 'editable_orders' in st.session_state:
+                        editable_orders = st.session_state["editable_orders"]
+                        if editable_orders is not None and isinstance(editable_orders, dict) and 'edited_rows' in editable_orders:
+                            changed = False
+                            sales_df_copy = sales_df.copy()
+                            
+                            # Process edited rows
+                            for index, edited_data in editable_orders['edited_rows'].items():
+                                try:
+                                    # Get row index
+                                    row_index = int(index)
                                     
-                                    # Get old values from original data - convert to string for exact comparison
-                                    old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
-                                    if not old_order_data.empty:
-                                        # Process Time edits
-                                        if 'Time' in edited_data:
-                                            try:
-                                                # Validate time format (HH:MM)
-                                                new_time = edited_data['Time'].strip()
-                                                time_parts = new_time.split(':')
-                                                
-                                                if len(time_parts) == 2:
-                                                    hour = int(time_parts[0])
-                                                    minute = int(time_parts[1])
-                                                    
-                                                    if 0 <= hour <= 23 and 0 <= minute <= 59:
-                                                        old_time = original_row["Time"]
-                                                        
-                                                        # If time has changed
-                                                        if new_time != old_time:
-                                                            changed = True
-                                                            st.success(f"Changed time for order {order_id} from {old_time} to {new_time}")
-                                                            
-                                                            # Find all items for this order
-                                                            order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
-                                                            
-                                                            # Update hour and minute for all items in the order
-                                                            for idx, _ in order_items.iterrows():
-                                                                # Get current datetime object
-                                                                current_date = pd.to_datetime(sales_df_copy.loc[idx, 'Date'])
-                                                                
-                                                                # Create new datetime with updated hour and minute
-                                                                new_date = current_date.replace(hour=hour, minute=minute)
-                                                                
-                                                                # Update Date field with new value
-                                                                sales_df_copy.loc[idx, 'Date'] = new_date
-                                                    else:
-                                                        st.error(f"Invalid time format: {new_time}. Hours must be 0-23, minutes must be 0-59.")
-                                                else:
-                                                    st.error(f"Invalid time format: {new_time}. Please use HH:MM format.")
-                                            except ValueError:
-                                                st.error(f"Invalid time format: {edited_data['Time']}. Please use HH:MM format.")
+                                    # Get original data for this row
+                                    if row_index < len(editor_data):
+                                        original_row = editor_data[row_index]
+                                        order_id = original_row["Order_ID"]
                                         
-                                        # Process Promo edits
-                                        if 'Promo' in edited_data:
-                                            try:
-                                                # Remove commas from the input string before converting to float
-                                                cleaned_promo = edited_data['Promo'].replace(',', '') if isinstance(edited_data['Promo'], str) else edited_data['Promo']
-                                                new_promo = float(cleaned_promo)
-                                            except (ValueError, TypeError, AttributeError):
-                                                new_promo = 0
-                                                
-                                            old_promo = float(old_order_data.iloc[0]['Promo_Value'])
-                                            
-                                            # If value has changed
-                                            if new_promo != old_promo:
-                                                changed = True
-                                                st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
-                                                
-                                                # Find all items for this order - convert to string for exact comparison
-                                                order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
-                                                total_order_value = order_items['Total'].sum()
-                                                
-                                                # Update each item in the order
-                                                for idx, item in order_items.iterrows():
-                                                    item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
-                                                    item_net_total = item['Total'] - item_promo
+                                        # Get old values from original data - convert to string for exact comparison
+                                        old_order_data = display_df[display_df['Order_ID'].astype(str) == str(order_id)]
+                                        if not old_order_data.empty:
+                                            # Process Time edits
+                                            if 'Time' in edited_data:
+                                                try:
+                                                    # Validate time format (HH:MM)
+                                                    new_time = edited_data['Time'].strip()
+                                                    time_parts = new_time.split(':')
                                                     
-                                                    # Update values in DataFrame
-                                                    sales_df_copy.loc[idx, 'Promo'] = item_promo
-                                                    sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
-                            except Exception as e:
-                                st.error(f"Error processing edited row: {str(e)}")
-                        
-                        # If there are changes, save the DataFrame
-                        if changed:
-                            sales_df_copy.to_csv("data/sales.csv", index=False)
-                            st.success("Order has been updated successfully")
-                            st.rerun()
+                                                    if len(time_parts) == 2:
+                                                        hour = int(time_parts[0])
+                                                        minute = int(time_parts[1])
+                                                        
+                                                        if 0 <= hour <= 23 and 0 <= minute <= 59:
+                                                            old_time = original_row["Time"]
+                                                            
+                                                            # If time has changed
+                                                            if new_time != old_time:
+                                                                changed = True
+                                                                st.success(f"Changed time for order {order_id} from {old_time} to {new_time}")
+                                                                
+                                                                # Find all items for this order
+                                                                order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                                                                
+                                                                # Update hour and minute for all items in the order
+                                                                for idx, _ in order_items.iterrows():
+                                                                    # Get current datetime object
+                                                                    current_date = pd.to_datetime(sales_df_copy.loc[idx, 'Date'])
+                                                                    
+                                                                    # Create new datetime with updated hour and minute
+                                                                    new_date = current_date.replace(hour=hour, minute=minute)
+                                                                    
+                                                                    # Update Date field with new value
+                                                                    sales_df_copy.loc[idx, 'Date'] = new_date
+                                                        else:
+                                                            st.error(f"Invalid time format: {new_time}. Hours must be 0-23, minutes must be 0-59.")
+                                                    else:
+                                                        st.error(f"Invalid time format: {new_time}. Please use HH:MM format.")
+                                                except ValueError:
+                                                    st.error(f"Invalid time format: {edited_data['Time']}. Please use HH:MM format.")
+                                            
+                                            # Process Promo edits
+                                            if 'Promo' in edited_data:
+                                                try:
+                                                    # Remove commas from the input string before converting to float
+                                                    cleaned_promo = edited_data['Promo'].replace(',', '') if isinstance(edited_data['Promo'], str) else edited_data['Promo']
+                                                    new_promo = float(cleaned_promo)
+                                                except (ValueError, TypeError, AttributeError):
+                                                    new_promo = 0
+                                                    
+                                                old_promo = float(old_order_data.iloc[0]['Promo_Value'])
+                                                
+                                                # If value has changed
+                                                if new_promo != old_promo:
+                                                    changed = True
+                                                    st.success(f"Changed promotion for order {order_id} from {utils.format_currency(old_promo)} to {utils.format_currency(new_promo)}")
+                                                    
+                                                    # Find all items for this order - convert to string for exact comparison
+                                                    order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                                                    total_order_value = order_items['Total'].sum()
+                                                    
+                                                    # Update each item in the order
+                                                    for idx, item in order_items.iterrows():
+                                                        item_promo = (item['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
+                                                        item_net_total = item['Total'] - item_promo
+                                                        
+                                                        # Update values in DataFrame
+                                                        sales_df_copy.loc[idx, 'Promo'] = item_promo
+                                                        sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                                except Exception as e:
+                                    st.error(f"Error processing edited row: {str(e)}")
+                            
+                            # If there are changes, save the DataFrame
+                            if changed:
+                                sales_df_copy.to_csv("data/sales.csv", index=False)
+                                st.success("Order has been updated successfully")
+                                st.rerun()
                 else:
                     st.info("No recent orders to display")
+                
+                # Edit or Delete Saved Order
+                with st.expander("Edit or Delete Saved Order"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Delete order
+                        delete_order_id = st.text_input("Enter Order ID to delete", key="delete_order_id")
+                        
+                        if st.button("Delete Order"):
+                            if delete_order_id:
+                                delete_saved_order(delete_order_id)
+                                st.rerun()
+                    
+                    with col2:
+                        # Edit promo amount for an existing order
+                        edit_promo_id = st.text_input("Order ID", key="edit_promo_id", 
+                                                     help="Enter Order ID to adjust promotion amount")
+                        
+                        # Add a button to load the order information
+                        if st.button("Load Order"):
+                            if edit_promo_id:
+                                # Convert to string for accurate comparison
+                                edit_promo_id_str = str(edit_promo_id).strip()
+                                
+                                # Check if order exists - convert to string for comparison
+                                order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_promo_id_str]
+                                
+                                if not order_info.empty:
+                                    # Calculate total for the order
+                                    order_total = order_info['Total'].sum()
+                                    current_promo = order_info['Promo'].sum() if 'Promo' in order_info.columns else 0
+                                    
+                                    # Store in session state
+                                    st.session_state.edit_order_total = order_total
+                                    st.session_state.edit_order_promo = current_promo
+                                    st.session_state.edit_order_loaded = True
+                                    st.success(f"Loaded Order {edit_promo_id}")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Order {edit_promo_id} not found")
+                                    with st.expander("Debug Info"):
+                                        st.write("Available Order IDs:")
+                                        st.write(sales_df['Order_ID'].astype(str).unique())
+                        
+                        # Display and edit order if it's loaded
+                        if st.session_state.edit_order_loaded:
+                            order_total = st.session_state.edit_order_total
+                            current_promo = st.session_state.edit_order_promo
+                            
+                            st.metric("Order Total", f"{utils.format_currency(order_total)}")
+                            
+                            new_promo = st.number_input(
+                                "New Promotion Amount",
+                                min_value=0.0,
+                                max_value=float(order_total),
+                                value=float(current_promo),
+                                step=1000.0
+                            )
+                            
+                            if st.button("Update Promotion"):
+                                try:
+                                    # Find this order in the sales data
+                                    order_info = sales_df[sales_df['Order_ID'].astype(str) == str(edit_promo_id).strip()]
+                                    
+                                    if not order_info.empty:
+                                        # Calculate total for this order
+                                        order_total = order_info['Total'].sum()
+                                        
+                                        # Create a copy of the dataframe
+                                        sales_df_copy = sales_df.copy()
+                                        
+                                        # Update each item in the order
+                                        for idx, item in order_info.iterrows():
+                                            # Distribute promo amount proportionally
+                                            item_promo = (item['Total'] / order_total * new_promo) if order_total > 0 else 0
+                                            item_net_total = item['Total'] - item_promo
+                                            
+                                            # Update values
+                                            sales_df_copy.loc[idx, 'Promo'] = item_promo
+                                            sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
+                                        
+                                        # Save updated data
+                                        sales_df_copy.to_csv("data/sales.csv", index=False)
+                                        st.success(f"Updated promotion for Order {edit_promo_id}")
+                                        
+                                        # Reset state
+                                        st.session_state.edit_order_loaded = False
+                                        st.session_state.edit_order_total = 0
+                                        st.session_state.edit_order_promo = 0
+                                        st.rerun()
+                                    else:
+                                        st.error(f"Order {edit_promo_id} not found")
+                                except Exception as e:
+                                    st.error(f"Error updating order: {str(e)}")
+    except FileNotFoundError:
+        st.info("No sales data found. Please create and save orders first.")
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
         st.info("Please check that your data files exist and are properly formatted.")
-        
-        # Edit or Delete order section
-        with st.expander("Edit or Delete Saved Order"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Delete order
-                delete_order_id = st.text_input("Enter Order ID to delete", key="delete_order_id")
-                
-                if st.button("Delete Order"):
-                    if delete_order_id:
-                        delete_saved_order(delete_order_id)
-                        st.rerun()
-                    else:
-                        st.error("Please enter an Order ID to delete")
-            
-            with col2:
-                # Edit promotion
-                edit_promo_id = st.text_input("Order ID", key="edit_promo_id", 
-                                             help="Enter Order ID to adjust promotion amount")
-                
-                # Add a button to load the order information
-                if st.button("Load Order"):
-                    if edit_promo_id:
-                        # Chuyển đổi sang string để đảm bảo so sánh chính xác
-                        edit_promo_id_str = str(edit_promo_id).strip()
-                        
-                        # Check if order exists - convert to string for comparison
-                        order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_promo_id_str]
-                        
-                        if not order_info.empty:
-                            # Calculate total for the order
-                            order_total = order_info['Total'].sum()
-                            current_promo = order_info['Promo'].sum() if 'Promo' in order_info.columns else 0
-                            
-                            # Store in session state
-                            st.session_state.edit_order_total = order_total
-                            st.session_state.edit_order_promo = current_promo
-                            st.session_state.edit_order_loaded = True
-                            st.rerun()
-                        else:
-                            # Debug để kiểm tra các Order_ID trong sales_df
-                            st.error(f"Order {edit_promo_id} not found")
-                            with st.expander("Debug Info"):
-                                st.write("Order IDs in database:")
-                                st.write(sales_df['Order_ID'].astype(str).tolist())
-                    else:
-                        st.error("Please enter an Order ID")
-                
-                # Show promotion adjustment section if an order is loaded
-                if st.session_state.get('edit_order_loaded', False):
-                    order_total = st.session_state.edit_order_total
-                    current_promo = st.session_state.edit_order_promo
-                    
-                    st.write(f"Order Total: {utils.format_currency(order_total)}")
-                    st.write(f"Current Promo: {utils.format_currency(current_promo)}")
-                    
-                    # Ensure all numeric arguments have the same type (float)
-                    new_promo = st.number_input("New Promotion Amount", 
-                                              min_value=0.0,
-                                              max_value=float(order_total),
-                                              value=float(current_promo),
-                                              step=1000.0)
-                    
-                    if st.button("Update Promotion"):
-                        try:
-                            # Get the order - convert to string for comparison
-                            order_info = sales_df[sales_df['Order_ID'].astype(str) == str(edit_promo_id).strip()]
-                            
-                            if not order_info.empty:
-                                # Calculate promo distribution based on item totals
-                                total_order_value = order_info['Total'].sum()
-                                
-                                # Create a copy of the DataFrame to avoid SettingWithCopyWarning
-                                sales_df_copy = sales_df.copy()
-                                
-                                # Update each item in the order
-                                for idx, row in order_info.iterrows():
-                                    item_promo = (row['Total'] / total_order_value * new_promo) if total_order_value > 0 else 0
-                                    item_net_total = row['Total'] - item_promo
-                                    
-                                    # Update values
-                                    sales_df_copy.loc[idx, 'Promo'] = item_promo
-                                    sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
-                                
-                                # Save changes
-                                sales_df_copy.to_csv("data/sales.csv", index=False)
-                                
-                                st.success(f"Updated promotion for Order {edit_promo_id}")
-                                
-                                # Reset session state
-                                st.session_state.edit_order_loaded = False
-                                st.session_state.edit_order_total = 0
-                                st.session_state.edit_order_promo = 0
-                                
-                                st.rerun()
-                            else:
-                                st.error(f"Order {edit_promo_id} not found")
-                        except Exception as e:
-                            st.error(f"Error updating promotion: {str(e)}")
-        
-    except FileNotFoundError:
-        st.info("No sales data available yet")
-    
+except FileNotFoundError:
+    st.error("Product data not found. Please make sure data/products.csv exists.")
 except Exception as e:
-    st.error(f"Error loading data: {str(e)}")
-    st.write("Please check that your data files exist and are properly formatted.")
+    st.error(f"Error: {str(e)}")
+    st.info("Please check that your data files exist and are properly formatted.")
