@@ -331,6 +331,42 @@ def update_order_time(order_id, new_hour, new_minute):
         st.error(f"Error updating order time: {str(e)}")
         return False
 
+def update_order_id(order_id, new_order_id):
+    """Update Order_ID for an existing order"""
+    try:
+        # Load sales data
+        sales_df = pd.read_csv("data/sales.csv")
+        
+        # Convert order_id to string for accurate comparison
+        order_id_str = str(order_id).strip()
+        new_order_id_str = str(new_order_id).strip()
+        
+        # Check if the new Order_ID already exists (to avoid duplicates)
+        if new_order_id_str != order_id_str and (sales_df['Order_ID'].astype(str) == new_order_id_str).any():
+            st.error(f"Order ID {new_order_id} already exists. Please use a different ID.")
+            return False
+        
+        # Find the order
+        order_items = sales_df[sales_df['Order_ID'].astype(str) == order_id_str]
+        
+        if not order_items.empty:
+            # Create a copy of the dataframe
+            sales_df_copy = sales_df.copy()
+            
+            # Update each item in the order
+            for idx, _ in order_items.iterrows():
+                # Update the Order_ID
+                sales_df_copy.loc[idx, 'Order_ID'] = new_order_id_str
+            
+            # Save updated data
+            sales_df_copy.to_csv("data/sales.csv", index=False)
+            return True
+        else:
+            return False
+    except Exception as e:
+        st.error(f"Error updating order ID: {str(e)}")
+        return False
+
 # Initialize session state variables if they don't exist
 if 'order_items' not in st.session_state:
     st.session_state.order_items = []
@@ -355,6 +391,18 @@ if 'loaded_order_total' not in st.session_state:
     
 if 'loaded_order_promo' not in st.session_state:
     st.session_state.loaded_order_promo = 0.0
+    
+if 'loaded_time_order_id' not in st.session_state:
+    st.session_state.loaded_time_order_id = ''
+    
+if 'loaded_time_hour' not in st.session_state:
+    st.session_state.loaded_time_hour = 0
+    
+if 'loaded_time_minute' not in st.session_state:
+    st.session_state.loaded_time_minute = 0
+    
+if 'loaded_orderid_order' not in st.session_state:
+    st.session_state.loaded_orderid_order = ''
 
 # Main code
 try:
@@ -615,7 +663,7 @@ try:
                 
                 # Edit or Delete Saved Orders
                 with st.expander("Edit or Delete Saved Order"):
-                    tab1, tab2, tab3 = st.tabs(["Delete Order", "Edit Promotion", "Edit Time"])
+                    tab1, tab2, tab3, tab4 = st.tabs(["Delete Order", "Edit Promotion", "Edit Time", "Edit Order ID"])
                     
                     with tab1:
                         # Delete order
@@ -681,13 +729,7 @@ try:
                                     st.error(f"Failed to update promotion for Order {st.session_state.loaded_order_id}")
                     
                     with tab3:
-                        # Initialize session state for time editing
-                        if 'loaded_time_order_id' not in st.session_state:
-                            st.session_state.loaded_time_order_id = ''
-                        if 'loaded_time_hour' not in st.session_state:
-                            st.session_state.loaded_time_hour = 0
-                        if 'loaded_time_minute' not in st.session_state:
-                            st.session_state.loaded_time_minute = 0
+                        # No need to initialize session variables here since we did it at the top of the file
                         
                         # Edit time for an existing order
                         edit_time_id = st.text_input("Order ID", key="edit_time_id", help="Enter Order ID to adjust time")
@@ -755,6 +797,59 @@ try:
                                     st.rerun()
                                 else:
                                     st.error(f"Failed to update time for Order {st.session_state.loaded_time_order_id}")
+                    
+                    with tab4:
+                        # No need to initialize session variables here since we did it at the top of the file
+                        
+                        # Edit Order ID for an existing order
+                        edit_orderid_id = st.text_input("Current Order ID", key="edit_orderid_id", help="Enter existing Order ID to change")
+                        
+                        # Add a button to load the order information
+                        if st.button("Load Order", key="load_orderid_btn"):
+                            if edit_orderid_id:
+                                # Convert to string for accurate comparison
+                                edit_orderid_str = str(edit_orderid_id).strip()
+                                
+                                # Check if order exists
+                                order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_orderid_str]
+                                
+                                if not order_info.empty:
+                                    # Store in session state
+                                    st.session_state.loaded_orderid_order = edit_orderid_id
+                                    
+                                    # Display success and order details
+                                    order_details = f"Order contains {len(order_info)} items, total: {utils.format_currency(order_info['Total'].sum())}"
+                                    st.success(f"Loaded Order {edit_orderid_id}. {order_details}")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Order {edit_orderid_id} not found")
+                        
+                        # Display and edit Order ID if order is loaded
+                        if st.session_state.loaded_orderid_order:
+                            # Get current Order ID value from session state
+                            current_orderid = st.session_state.loaded_orderid_order
+                            
+                            st.info(f"Current Order ID: {current_orderid}")
+                            
+                            # Input field for new Order ID
+                            new_orderid = st.text_input(
+                                "New Order ID",
+                                value="",
+                                help="Enter the new Order ID for this order",
+                                key="new_orderid_input"
+                            )
+                            
+                            # Update button
+                            if st.button("Update Order ID", key="update_orderid_btn"):
+                                if new_orderid and new_orderid.strip():
+                                    if update_order_id(current_orderid, new_orderid):
+                                        st.success(f"Updated Order ID from {current_orderid} to {new_orderid}")
+                                        # Reset state
+                                        st.session_state.loaded_orderid_order = ''
+                                        st.rerun()
+                                    # Error message is already shown in the update_order_id function
+                                else:
+                                    st.error("New Order ID cannot be empty")
     except FileNotFoundError:
         st.info("No sales data found. Please create and save orders first.")
     except Exception as e:
