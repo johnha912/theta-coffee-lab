@@ -113,7 +113,23 @@ def geocode_address(address):
         if not address.strip():
             return None, None
         
-        # First, check if this is a Google Plus Code (format: XXXX+XX)
+        # Check if this is a raw latitude,longitude format (e.g., "10.79151055938174, 106.69176363190014")
+        if ',' in address and all(c in address for c in ['.', '0']):
+            try:
+                # Split by comma and attempt to parse as lat,lon
+                parts = [p.strip() for p in address.split(',')]
+                if len(parts) == 2:
+                    # Try to convert both parts to float
+                    lat, lon = float(parts[0]), float(parts[1])
+                    
+                    # Validate reasonable lat/lon ranges
+                    if -90 <= lat <= 90 and -180 <= lon <= 180:
+                        return lat, lon
+            except (ValueError, TypeError):
+                # If parsing fails, continue with other methods
+                pass
+                
+        # Next, check if this is a Google Plus Code (format: XXXX+XX)
         if '+' in address:
             # Try to parse as a Plus Code
             lat, lon = parse_plus_code(address)

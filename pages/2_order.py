@@ -547,10 +547,18 @@ try:
         st.session_state.manual_order_id = manual_order_id
     
     with col2:
-        location = st.text_input("Delivery Location", value=st.session_state.order_location,
-                              help="Enter Google Plus Code (e.g., 'QMMW+9Q District 3, Ho Chi Minh City') for precise mapping")
-        # Save to session state
-        st.session_state.order_location = location
+        # Add info about location formats
+        with st.container():
+            location = st.text_input("Delivery Location", value=st.session_state.order_location,
+                                  help="Enter Google Plus Code (e.g., 'QMMW+9Q District 3') or coordinates (e.g., '10.7915, 106.6917')")
+            # Save to session state
+            st.session_state.order_location = location
+            
+            if not location:
+                # Show format examples
+                st.caption("Examples:")
+                st.caption("• Google Plus Code: QMMW+9Q District 3")
+                st.caption("• Coordinates: 10.7915, 106.6917")
     
     # Display current order
     st.header("Current Order")
@@ -979,14 +987,16 @@ try:
                             
                             st.info(f"Current Location: {current_location if current_location else 'No location set'}")
                             
-                            # Add explanation about Google Plus Codes
-                            st.info("ℹ️ For accurate mapping, use Google Plus Codes (e.g., 'QMMW+9Q District 3, Ho Chi Minh City')")
+                            # Add explanation about location formats
+                            st.info("ℹ️ You can use either format:")
+                            st.markdown("• Google Plus Codes: `QMMW+9Q District 3, Ho Chi Minh City`")
+                            st.markdown("• Direct coordinates: `10.7915, 106.6917`")
                             
                             # Input field for new location
                             new_location = st.text_input(
                                 "New Location",
                                 value=current_location,
-                                help="Enter Google Plus Code for precise location mapping",
+                                help="Enter Google Plus Code or coordinates (latitude, longitude)",
                                 key="new_location_input"
                             )
                             
