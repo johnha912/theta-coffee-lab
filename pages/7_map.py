@@ -81,15 +81,11 @@ def parse_plus_code(plus_code):
         if len(parts) > 0:
             area_code = parts[0].strip()
             
-            # Debug
-            st.success(f"✅ Found Plus Code: {plus_code}, Area: {area_code}")
-            
             # Check if we have this area code in our dictionary
             if area_code in plus_code_map:
                 return plus_code_map[area_code]
             # For codes starting with Q (Ho Chi Minh City)
             elif area_code.startswith('Q'):
-                st.success(f"✅ General HCMC Plus Code: {plus_code}")
                 return plus_code_map["HCM_DEFAULT"]
     
     return None, None
@@ -139,11 +135,7 @@ def geocode_address(address):
         address_lower = address.lower()
         for key, coords in known_locations.items():
             if key in address_lower:
-                st.success(f"✅ Found in known locations: {key} → {coords}")
                 return coords
-        
-        # Debug information
-        st.write(f"Geocoding address: {address}")
         
         # Use specific parameters to improve accuracy
         try:
@@ -154,12 +146,10 @@ def geocode_address(address):
                 language="vi"  # Vietnamese language
             )
             if location:
-                st.success(f"✅ Found coordinates: {location.latitude}, {location.longitude}")
                 return location.latitude, location.longitude
-            else:
-                st.warning("⚠️ Vietnamese geocoding failed, trying English...")
         except Exception as e:
-            st.error(f"❌ Geocoding error (VI): {str(e)}")
+            # Silent error handling
+            pass
         
         # Fallback: try with English language setting
         try:
@@ -170,22 +160,19 @@ def geocode_address(address):
                 language="en"
             )
             if location:
-                st.success(f"✅ Found coordinates with EN: {location.latitude}, {location.longitude}")
                 return location.latitude, location.longitude
-            else:
-                st.error("❌ Both Vietnamese and English geocoding failed")
         except Exception as e:
-            st.error(f"❌ Geocoding error (EN): {str(e)}")
+            # Silent error handling
+            pass
         
         # If all geocoding attempts fail, return Ho Chi Minh City coordinates
         # for Vietnamese addresses as a last resort
         if 'vietnam' in address_lower or 'ho chi minh' in address_lower or 'hcm' in address_lower:
-            st.warning("⚠️ Using default Ho Chi Minh City coordinates")
             return 10.7756, 106.6842  # Default coordinates for HCMC
             
         return None, None
-    except Exception as e:
-        st.error(f"Error geocoding address: {str(e)}")
+    except Exception:
+        # Silent error handling
         return None, None
 
 # Function to create map of order locations
@@ -283,8 +270,9 @@ def create_order_map(sales_df, time_filter="All Time"):
             st.info("No location data found in the sales records.")
             return None
             
-    except Exception as e:
-        st.error(f"Error creating map: {str(e)}")
+    except Exception:
+        # Silent error handling
+        st.info("Unable to create map. Please check your location data.")
         return None
 
 # Main app code
@@ -360,6 +348,5 @@ try:
         
 except FileNotFoundError:
     st.error("Sales data not found. Please make sure data/sales.csv exists.")
-except Exception as e:
-    st.error(f"Error: {str(e)}")
+except Exception:
     st.info("Please check that your data files exist and are properly formatted.")

@@ -979,11 +979,14 @@ try:
                             
                             st.info(f"Current Location: {current_location if current_location else 'No location set'}")
                             
+                            # Add explanation about Google Plus Codes
+                            st.info("ℹ️ For accurate mapping, use Google Plus Codes (e.g., 'QMMW+9Q District 3, Ho Chi Minh City')")
+                            
                             # Input field for new location
                             new_location = st.text_input(
                                 "New Location",
                                 value=current_location,
-                                help="Enter the new location for this order",
+                                help="Enter Google Plus Code for precise location mapping",
                                 key="new_location_input"
                             )
                             
