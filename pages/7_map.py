@@ -69,6 +69,8 @@ def create_order_map(sales_df, time_filter="All Time"):
     try:
         # Apply time filter
         start_date, _ = utils.get_date_range(time_filter)
+        # Convert start_date to datetime64 for consistent comparison
+        start_date = pd.to_datetime(start_date)
         filtered_df = sales_df[sales_df['Date'] >= start_date]
         
         # Group by Order_ID and get unique locations
@@ -178,6 +180,8 @@ try:
         
         # Apply time filter
         start_date, _ = utils.get_date_range(time_filter)
+        # Convert start_date to datetime64 for consistent comparison
+        start_date = pd.to_datetime(start_date)
         filtered_df = sales_df[sales_df['Date'] >= start_date]
         
         if 'Location' in filtered_df.columns:
