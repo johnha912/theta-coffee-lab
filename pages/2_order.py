@@ -370,6 +370,41 @@ def update_order_id(order_id, new_order_id):
         st.error(f"Error updating order ID: {str(e)}")
         return False
 
+def update_order_location(order_id, new_location):
+    """Update location for an existing order"""
+    try:
+        # Load sales data
+        sales_df = pd.read_csv("data/sales.csv")
+        
+        # Convert order_id to string for accurate comparison
+        order_id_str = str(order_id).strip()
+        
+        # Find the order
+        order_items = sales_df[sales_df['Order_ID'].astype(str) == order_id_str]
+        
+        if not order_items.empty:
+            # Create a copy of the dataframe
+            sales_df_copy = sales_df.copy()
+            
+            # Check if the Location column exists
+            if 'Location' not in sales_df_copy.columns:
+                sales_df_copy['Location'] = ''
+            
+            # Get the first item of the order (since we only store location on first item)
+            first_item_idx = order_items.index[0]
+            
+            # Update the Location
+            sales_df_copy.loc[first_item_idx, 'Location'] = new_location
+            
+            # Save updated data
+            sales_df_copy.to_csv("data/sales.csv", index=False)
+            return True
+        else:
+            return False
+    except Exception as e:
+        st.error(f"Error updating order location: {str(e)}")
+        return False
+
 # Initialize session state variables if they don't exist
 if 'order_items' not in st.session_state:
     st.session_state.order_items = []
@@ -672,8 +707,26 @@ try:
                 
                 # Show all recent orders based on time filter
                 
+                # Add Location column if it exists
+                if 'Location' in sales_df.columns:
+                    # Get location for each order
+                    display_df['Location'] = ''
+                    for order_id in display_df['Order_ID'].unique():
+                        # Find all rows for this order
+                        order_items = sales_df[sales_df['Order_ID'].astype(str) == str(order_id)]
+                        # Get location from first item 
+                        if not order_items.empty and 'Location' in order_items.columns:
+                            location = order_items.iloc[0].get('Location', '')
+                            # Set location for all rows of this order
+                            display_df.loc[display_df['Order_ID'] == order_id, 'Location'] = location
+                
                 # Select columns for display
                 display_cols = ['Date', 'Time', 'Order_ID', 'Total_Display', 'Promo_Display', 'Net_Total_Display']
+                
+                # Add Location column if it exists
+                if 'Location' in display_df.columns:
+                    display_cols.append('Location')
+                
                 renamed_cols = {'Total_Display': 'Total', 'Promo_Display': 'Promo', 'Net_Total_Display': 'Net Total'}
                 
                 # Create display DataFrame with selected columns and renamed headers
@@ -871,6 +924,60 @@ try:
                                     # Error message is already shown in the update_order_id function
                                 else:
                                     st.error("New Order ID cannot be empty")
+                                    
+                    with tab5:
+                        # No need to initialize session variables here since we did it at the top of the file
+                        
+                        # Edit Location for an existing order
+                        edit_location_id = st.text_input("Order ID", key="edit_location_id", help="Enter Order ID to update location")
+                        
+                        # Add a button to load the order information
+                        if st.button("Load Order", key="load_location_btn"):
+                            if edit_location_id:
+                                # Convert to string for accurate comparison
+                                edit_location_id_str = str(edit_location_id).strip()
+                                
+                                # Check if order exists
+                                order_info = sales_df[sales_df['Order_ID'].astype(str) == edit_location_id_str]
+                                
+                                if not order_info.empty:
+                                    # Get current location from first item (since only first item has location)
+                                    first_item = order_info.iloc[0]
+                                    current_location = first_item.get('Location', '') if 'Location' in order_info.columns else ''
+                                    
+                                    # Store in session state
+                                    st.session_state.loaded_location_order_id = edit_location_id
+                                    st.session_state.loaded_location = current_location
+                                    
+                                    st.success(f"Loaded Order {edit_location_id}")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Order {edit_location_id} not found")
+                        
+                        # Display and edit location if order is loaded
+                        if st.session_state.loaded_location_order_id:
+                            # Get current location value from session state
+                            current_location = st.session_state.loaded_location
+                            
+                            st.info(f"Current Location: {current_location if current_location else 'No location set'}")
+                            
+                            # Input field for new location
+                            new_location = st.text_input(
+                                "New Location",
+                                value=current_location,
+                                help="Enter the new location for this order",
+                                key="new_location_input"
+                            )
+                            
+                            # Update button
+                            if st.button("Update Location", key="update_location_btn"):
+                                if update_order_location(st.session_state.loaded_location_order_id, new_location):
+                                    st.success(f"Updated location for Order {st.session_state.loaded_location_order_id}")
+                                    # Reset state
+                                    st.session_state.loaded_location_order_id = ''
+                                    st.session_state.loaded_location = ''
+                                    st.rerun()
+                                # Error message is already shown in the update_order_location function
     except FileNotFoundError:
         st.info("No sales data found. Please create and save orders first.")
     except Exception as e:

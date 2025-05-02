@@ -104,6 +104,12 @@ def get_date_range(time_filter):
         start_date = end_date - timedelta(days=6)
     elif time_filter == "Last 30 Days":
         start_date = end_date - timedelta(days=29)
+    elif time_filter == "Last 90 Days":
+        start_date = end_date - timedelta(days=89)
+    elif time_filter == "Last 6 Months":
+        start_date = end_date - timedelta(days=180)
+    elif time_filter == "Last Year":
+        start_date = end_date - timedelta(days=365)
     elif time_filter == "All Time":
         start_date = datetime(2020, 1, 1).date()
     else:  # Custom - handled separately in the app
