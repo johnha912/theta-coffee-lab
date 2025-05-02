@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.io as pio
 import datetime
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Nominatim, Photon
 import utils
 
 # Initialize session state
@@ -42,7 +42,12 @@ st.subheader("Visualize order locations on a map")
 @st.cache_resource
 def get_geocoder():
     """Get a geocoder instance"""
-    return Nominatim(user_agent="theta_coffee_lab_app")
+    try:
+        # Try Photon first (better with international addresses)
+        return Photon(user_agent="theta_coffee_lab_app")
+    except:
+        # Fall back to Nominatim
+        return Nominatim(user_agent="theta_coffee_lab_app")
 
 geocoder = get_geocoder()
 
@@ -73,10 +78,17 @@ def geocode_address(address):
         # Format: {partial_address: (latitude, longitude)}
         known_locations = {
             # Ho Chi Minh City locations
-            "tran cao van": (10.7752, 106.6901),  # Trần Cao Vân
-            "district 3": (10.7756, 106.6842),    # Quận 3
-            "ward 6": (10.7718, 106.6880),        # Phường 6
-            "41 tran cao van": (10.7752, 106.6901), # 41 Trần Cao Vân
+            "tran cao van street": (10.7752, 106.6901),  # Trần Cao Vân
+            "tran cao van": (10.7752, 106.6901),         # Trần Cao Vân
+            "district 3": (10.7756, 106.6842),           # Quận 3
+            "ward 6": (10.7718, 106.6880),               # Phường 6
+            "41 tran cao van": (10.7752, 106.6901),      # 41 Trần Cao Vân
+            "hcmc": (10.7756, 106.6842),                 # Ho Chi Minh City
+            "ho chi minh city": (10.7756, 106.6842),     # Ho Chi Minh City
+            "700000": (10.7756, 106.6842),               # HCMC postal code
+            "vietnam": (16.0544, 108.2022),              # Default for Vietnam
+            # Exact match for the address in the data
+            "41 tran cao van street, ward 6, district 3, hcmc, vietnam 700000, ho chi minh city": (10.7752, 106.6901)
         }
         
         # Check for known locations first (case insensitive)
