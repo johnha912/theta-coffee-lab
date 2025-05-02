@@ -1,5 +1,5 @@
 Date,Order_ID,Product,Quantity,Unit_Price,Total,Promo,Net_Total,Location
-2025-04-23 12:37:00,46861789,Iced Cafe Matcha Latte,1,60000.0,60000.0,15000.0,45000.0,"41 Trần Cao Vân, Phường 6, Quận 3, TP.HCM, Vietnam"
+2025-04-23 12:37:00,46861789,Iced Cafe Matcha Latte,1,60000.0,60000.0,15000.0,45000.0,"41 Tran Cao Van Street, Ward 6, District 3, HCMC, Vietnam 700000, Ho Chi Minh City"
 2025-04-23 13:49:00,46868349,Iced Vietnamese Milk Coffee,2,30000.0,60000.0,26250.0,33750.0,
 2025-04-23 14:30:00,46872113,Iced Vietnamese Milk Coffee,1,30000.0,30000.0,13125.0,16875.0,
 2025-04-23 14:30:00,46872113,Iced Caramel Macchiato,1,52000.0,52000.0,22750.0,29250.0,

@@ -69,36 +69,72 @@ def geocode_address(address):
         if not address.strip():
             return None, None
         
+        # Dictionary of known locations for common Vietnamese addresses
+        # Format: {partial_address: (latitude, longitude)}
+        known_locations = {
+            # Ho Chi Minh City locations
+            "tran cao van": (10.7752, 106.6901),  # Trần Cao Vân
+            "district 3": (10.7756, 106.6842),    # Quận 3
+            "ward 6": (10.7718, 106.6880),        # Phường 6
+            "41 tran cao van": (10.7752, 106.6901), # 41 Trần Cao Vân
+        }
+        
+        # Check for known locations first (case insensitive)
+        address_lower = address.lower()
+        for key, coords in known_locations.items():
+            if key in address_lower:
+                st.success(f"✅ Found in known locations: {key} → {coords}")
+                return coords
+        
         # For Vietnamese addresses, add country code if not present
-        if not address.lower().endswith('vietnam') and not address.lower().endswith('việt nam'):
-            if 'hcm' in address.lower() or 'ho chi minh' in address.lower() or 'tphcm' in address.lower():
+        if not address_lower.endswith('vietnam') and not address_lower.endswith('việt nam'):
+            if 'hcm' in address_lower or 'ho chi minh' in address_lower or 'tphcm' in address_lower:
                 # Ensure Ho Chi Minh City is properly formatted for geocoding
-                if not any(term in address.lower() for term in ['ho chi minh city', 'hồ chí minh', 'thành phố hồ chí minh']):
+                if not any(term in address_lower for term in ['ho chi minh city', 'hồ chí minh', 'thành phố hồ chí minh']):
                     address = address + ', Ho Chi Minh City'
             # Add Vietnam to the address
             address = address + ', Vietnam'
+            
+        # Debug information
+        st.write(f"Geocoding address: {address}")
         
         # Use specific parameters to improve accuracy
-        location = geocoder.geocode(
-            address,
-            exactly_one=True,
-            addressdetails=True,
-            language="vi"  # Vietnamese language
-        )
-        
-        if location:
-            return location.latitude, location.longitude
+        try:
+            location = geocoder.geocode(
+                address,
+                exactly_one=True,
+                addressdetails=True,
+                language="vi"  # Vietnamese language
+            )
+            if location:
+                st.success(f"✅ Found coordinates: {location.latitude}, {location.longitude}")
+                return location.latitude, location.longitude
+            else:
+                st.warning("⚠️ Vietnamese geocoding failed, trying English...")
+        except Exception as e:
+            st.error(f"❌ Geocoding error (VI): {str(e)}")
         
         # Fallback: try with English language setting
-        location = geocoder.geocode(
-            address,
-            exactly_one=True,
-            addressdetails=True,
-            language="en"
-        )
+        try:
+            location = geocoder.geocode(
+                address,
+                exactly_one=True,
+                addressdetails=True,
+                language="en"
+            )
+            if location:
+                st.success(f"✅ Found coordinates with EN: {location.latitude}, {location.longitude}")
+                return location.latitude, location.longitude
+            else:
+                st.error("❌ Both Vietnamese and English geocoding failed")
+        except Exception as e:
+            st.error(f"❌ Geocoding error (EN): {str(e)}")
         
-        if location:
-            return location.latitude, location.longitude
+        # If all geocoding attempts fail, return Ho Chi Minh City coordinates
+        # for Vietnamese addresses as a last resort
+        if 'vietnam' in address_lower or 'ho chi minh' in address_lower or 'hcm' in address_lower or 'tphcm' in address_lower:
+            st.warning("⚠️ Using default Ho Chi Minh City coordinates")
+            return 10.7756, 106.6842  # Default coordinates for HCMC
             
         return None, None
     except Exception as e:
@@ -215,7 +251,7 @@ try:
         
         # Add time filter options
         time_options = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"]
-        time_filter = st.selectbox("Time Period", options=time_options, index=0)
+        time_filter = st.selectbox("Time Period", options=time_options, index=5)  # Set default to "All Time"
         
         # Create and display map
         map_fig = create_order_map(sales_df, time_filter)
