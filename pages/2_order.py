@@ -185,7 +185,8 @@ def save_order():
                 'Unit_Price': item['Unit_Price'],
                 'Total': item['Total'],
                 'Promo': item_promo,
-                'Net_Total': item_net_total
+                'Net_Total': item_net_total,
+                'Location': st.session_state.order_location if len(order_data) == 0 else ''  # Only add location to first item
             })
         
         # Load existing sales data
@@ -199,6 +200,8 @@ def save_order():
             sales_df['Promo'] = 0.0
         if 'Net_Total' not in sales_df.columns:
             sales_df['Net_Total'] = sales_df['Total']
+        if 'Location' not in sales_df.columns:
+            sales_df['Location'] = ''
             
         # Append new order to sales
         new_sales = pd.DataFrame(order_data)
@@ -404,6 +407,15 @@ if 'loaded_time_minute' not in st.session_state:
 if 'loaded_orderid_order' not in st.session_state:
     st.session_state.loaded_orderid_order = ''
 
+if 'order_location' not in st.session_state:
+    st.session_state.order_location = ''
+
+if 'loaded_location_order_id' not in st.session_state:
+    st.session_state.loaded_location_order_id = ''
+
+if 'loaded_location' not in st.session_state:
+    st.session_state.loaded_location = ''
+
 # Main code
 try:
     # Load product data
@@ -471,12 +483,21 @@ try:
         st.button("Add to Order", on_click=add_item_to_order, key="add_to_order_btn")
     
     # Manual Order ID input
-    st.header("Order ID")
-    manual_order_id = st.text_input("Enter Order ID (optional)", value=st.session_state.manual_order_id,
-                                   help="If left empty, a random ID will be generated automatically")
+    st.header("Order Details")
     
-    # Save to session state
-    st.session_state.manual_order_id = manual_order_id
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        manual_order_id = st.text_input("Enter Order ID (optional)", value=st.session_state.manual_order_id,
+                                      help="If left empty, a random ID will be generated automatically")
+        # Save to session state
+        st.session_state.manual_order_id = manual_order_id
+    
+    with col2:
+        location = st.text_input("Delivery Location", value=st.session_state.order_location,
+                              help="Enter customer address or location for this order (for map display)")
+        # Save to session state
+        st.session_state.order_location = location
     
     # Display current order
     st.header("Current Order")
@@ -663,7 +684,7 @@ try:
                 
                 # Edit or Delete Saved Orders
                 with st.expander("Edit or Delete Saved Order"):
-                    tab1, tab2, tab3, tab4 = st.tabs(["Delete Order", "Edit Promotion", "Edit Time", "Edit Order ID"])
+                    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Delete Order", "Edit Promotion", "Edit Time", "Edit Order ID", "Edit Location"])
                     
                     with tab1:
                         # Delete order
