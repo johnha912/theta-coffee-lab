@@ -114,7 +114,7 @@ def geocode_address(address):
             return None, None
         
         # Check if this is a raw latitude,longitude format (e.g., "10.79151055938174, 106.69176363190014")
-        if ',' in address and all(c in address for c in ['.', '0']):
+        if ',' in address and '.' in address:
             try:
                 # Split by comma and attempt to parse as lat,lon
                 parts = [p.strip() for p in address.split(',')]
@@ -124,6 +124,7 @@ def geocode_address(address):
                     
                     # Validate reasonable lat/lon ranges
                     if -90 <= lat <= 90 and -180 <= lon <= 180:
+                        # Đã tìm thấy tọa độ hợp lệ
                         return lat, lon
             except (ValueError, TypeError):
                 # If parsing fails, continue with other methods
@@ -293,6 +294,49 @@ def create_order_map(sales_df, time_filter="All Time"):
 
 # Main app code
 try:
+    # Checkbox để hiển thị debug thông tin
+    show_debug = st.sidebar.checkbox("Show Debug Information", value=False)
+    
+    if show_debug:
+        st.sidebar.info("Debug mode enabled - showing additional information")
+        
+        # Override geocode_address để hiển thị debug info
+        original_geocode_address = geocode_address
+        
+        def debug_geocode_address(address):
+            """Wrapper around geocode_address to show debug info"""
+            st.sidebar.markdown(f"### Geocoding: `{address}`")
+            
+            # Check if this looks like lat, lng format
+            if ',' in address and '.' in address:
+                try:
+                    parts = [p.strip() for p in address.split(',')]
+                    if len(parts) == 2:
+                        # Try to convert to floats
+                        try:
+                            lat, lon = float(parts[0]), float(parts[1])
+                            if -90 <= lat <= 90 and -180 <= lon <= 180:
+                                st.sidebar.success(f"✅ Valid coordinates: {lat}, {lon}")
+                            else:
+                                st.sidebar.warning(f"⚠️ Coordinates out of range: {lat}, {lon}")
+                        except:
+                            st.sidebar.error("❌ Not valid coordinates format")
+                except:
+                    pass
+            
+            # Call original function
+            lat, lon = original_geocode_address(address)
+            
+            if lat is not None and lon is not None:
+                st.sidebar.success(f"✅ Final coordinates: {lat}, {lon}")
+            else:
+                st.sidebar.error("❌ Could not get coordinates")
+                
+            return lat, lon
+        
+        # Override with debug version
+        geocode_address = debug_geocode_address
+    
     # Load sales data
     sales_df = pd.read_csv("data/sales.csv")
     
