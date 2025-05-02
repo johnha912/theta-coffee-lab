@@ -411,8 +411,10 @@ def update_order_location(order_id, new_location):
             # Success message with location hint
             if new_location:
                 st.success(f"Location updated to: {new_location}")
-                if not new_location.lower().endswith('vietnam') and not new_location.lower().endswith('việt nam'):
-                    st.info("💡 Tip: For more accurate geocoding, include detailed address with city name and country (Vietnam)")
+                if '+' in new_location:
+                    st.info("📍 Google Plus Code detected! This will be accurately plotted on the map.")
+                elif not new_location.lower().endswith('vietnam') and not new_location.lower().endswith('việt nam'):
+                    st.info("💡 Tip: You can use Google Plus Codes (e.g., 'QMMW+9Q District 3, Ho Chi Minh City') for precise location mapping.")
             return True
         else:
             st.error(f"Order {order_id} not found")
@@ -546,7 +548,7 @@ try:
     
     with col2:
         location = st.text_input("Delivery Location", value=st.session_state.order_location,
-                              help="Enter customer address or location for this order (for map display)")
+                              help="Enter Google Plus Code (e.g., 'QMMW+9Q District 3, Ho Chi Minh City') for precise mapping")
         # Save to session state
         st.session_state.order_location = location
     

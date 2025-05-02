@@ -36,7 +36,7 @@ pio.templates['custom_ggplot2'] = custom_ggplot2_template
 
 # Add page title
 st.title("Customer Map")
-st.subheader("Visualize order locations on a map")
+st.subheader("Visualize order locations using Google Plus Codes")
 
 # Initialize geocoder
 @st.cache_resource
@@ -51,10 +51,53 @@ def get_geocoder():
 
 geocoder = get_geocoder()
 
+# Function to parse Google Plus Codes
+def parse_plus_code(plus_code):
+    """
+    Parse a Google Plus Code and return approximate coordinates
+    
+    The function handles Plus Codes in format like: "QMMW+9Q District 3, Ho Chi Minh City, Vietnam"
+    """
+    # Dictionary of known Plus Codes for Ho Chi Minh City
+    # Format: {plus_code_prefix: (latitude, longitude)}
+    plus_code_map = {
+        # District 1
+        "QMPX": (10.7758, 106.7029),  # District 1 central area
+        
+        # District 3
+        "QMMW": (10.7757, 106.6795),  # District 3 area
+        
+        # Binh Thanh
+        "QPR7": (10.8106, 106.7176),  # Binh Thanh district
+        
+        # Default for Ho Chi Minh City if no specific code matches
+        "HCM_DEFAULT": (10.7756, 106.6842)
+    }
+    
+    # Extract the first 4 characters from the Plus Code (area code)
+    if plus_code and isinstance(plus_code, str):
+        # Extract the area code (first 4 characters)
+        parts = plus_code.split('+')
+        if len(parts) > 0:
+            area_code = parts[0].strip()
+            
+            # Debug
+            st.success(f"✅ Found Plus Code: {plus_code}, Area: {area_code}")
+            
+            # Check if we have this area code in our dictionary
+            if area_code in plus_code_map:
+                return plus_code_map[area_code]
+            # For codes starting with Q (Ho Chi Minh City)
+            elif area_code.startswith('Q'):
+                st.success(f"✅ General HCMC Plus Code: {plus_code}")
+                return plus_code_map["HCM_DEFAULT"]
+    
+    return None, None
+
 # Function to geocode addresses - cached to reduce API calls
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def geocode_address(address):
-    """Convert address to coordinates using geocoder"""
+    """Convert address to coordinates using Google Plus Codes or geocoder"""
     if not address:
         return None, None
     
@@ -74,21 +117,22 @@ def geocode_address(address):
         if not address.strip():
             return None, None
         
+        # First, check if this is a Google Plus Code (format: XXXX+XX)
+        if '+' in address:
+            # Try to parse as a Plus Code
+            lat, lon = parse_plus_code(address)
+            if lat is not None and lon is not None:
+                return lat, lon
+        
         # Dictionary of known locations for common Vietnamese addresses
         # Format: {partial_address: (latitude, longitude)}
         known_locations = {
             # Ho Chi Minh City locations
-            "tran cao van street": (10.7752, 106.6901),  # Trần Cao Vân
-            "tran cao van": (10.7752, 106.6901),         # Trần Cao Vân
             "district 3": (10.7756, 106.6842),           # Quận 3
-            "ward 6": (10.7718, 106.6880),               # Phường 6
-            "41 tran cao van": (10.7752, 106.6901),      # 41 Trần Cao Vân
-            "hcmc": (10.7756, 106.6842),                 # Ho Chi Minh City
+            "district 1": (10.7758, 106.7029),           # Quận 1
+            "binh thanh": (10.8106, 106.7176),           # Bình Thạnh
             "ho chi minh city": (10.7756, 106.6842),     # Ho Chi Minh City
-            "700000": (10.7756, 106.6842),               # HCMC postal code
             "vietnam": (16.0544, 108.2022),              # Default for Vietnam
-            # Exact match for the address in the data
-            "41 tran cao van street, ward 6, district 3, hcmc, vietnam 700000, ho chi minh city": (10.7752, 106.6901)
         }
         
         # Check for known locations first (case insensitive)
@@ -98,15 +142,6 @@ def geocode_address(address):
                 st.success(f"✅ Found in known locations: {key} → {coords}")
                 return coords
         
-        # For Vietnamese addresses, add country code if not present
-        if not address_lower.endswith('vietnam') and not address_lower.endswith('việt nam'):
-            if 'hcm' in address_lower or 'ho chi minh' in address_lower or 'tphcm' in address_lower:
-                # Ensure Ho Chi Minh City is properly formatted for geocoding
-                if not any(term in address_lower for term in ['ho chi minh city', 'hồ chí minh', 'thành phố hồ chí minh']):
-                    address = address + ', Ho Chi Minh City'
-            # Add Vietnam to the address
-            address = address + ', Vietnam'
-            
         # Debug information
         st.write(f"Geocoding address: {address}")
         
@@ -144,7 +179,7 @@ def geocode_address(address):
         
         # If all geocoding attempts fail, return Ho Chi Minh City coordinates
         # for Vietnamese addresses as a last resort
-        if 'vietnam' in address_lower or 'ho chi minh' in address_lower or 'hcm' in address_lower or 'tphcm' in address_lower:
+        if 'vietnam' in address_lower or 'ho chi minh' in address_lower or 'hcm' in address_lower:
             st.warning("⚠️ Using default Ho Chi Minh City coordinates")
             return 10.7756, 106.6842  # Default coordinates for HCMC
             
