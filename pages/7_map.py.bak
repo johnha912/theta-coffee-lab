@@ -127,11 +127,7 @@ def create_order_map(sales_df, time_filter="All Time"):
                 first_item = group.iloc[0]
                 location = first_item.get('Location', '')
                 
-                # Make sure location is a valid string, not float or NaN
-                if isinstance(location, float):
-                    location = str(location) if not pd.isna(location) else ""
-                
-                if location and location.strip() and location.lower() != "nan":  # Only include valid locations
+                if location:  # Only include orders with locations
                     # Geocode the location
                     lat, lon = geocode_address(location)
                     
@@ -240,11 +236,7 @@ try:
                 first_item = group.iloc[0]
                 location = first_item.get('Location', '')
                 
-                # Make sure location is a valid string, not float or NaN
-                if isinstance(location, float):
-                    location = str(location) if not pd.isna(location) else ""
-                
-                if location and location.strip() and location.lower() != "nan":  # Only include valid locations
+                if location:  # Only include orders with locations
                     date = first_item['Date']
                     total = group['Total'].sum()
                     
