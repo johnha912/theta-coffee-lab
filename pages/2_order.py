@@ -390,6 +390,15 @@ def update_order_location(order_id, new_location):
             if 'Location' not in sales_df_copy.columns:
                 sales_df_copy['Location'] = ''
             
+            # Format Vietnamese addresses correctly
+            if new_location:
+                # For Vietnamese addresses, add country code if not present
+                if not new_location.lower().endswith('vietnam') and not new_location.lower().endswith('việt nam'):
+                    if 'hcm' in new_location.lower() or 'ho chi minh' in new_location.lower() or 'tphcm' in new_location.lower():
+                        # Ensure Ho Chi Minh City is properly formatted for geocoding
+                        if not any(term in new_location.lower() for term in ['ho chi minh city', 'hồ chí minh', 'thành phố hồ chí minh']):
+                            new_location = new_location + ', Ho Chi Minh City'
+            
             # Get the first item of the order (since we only store location on first item)
             first_item_idx = order_items.index[0]
             
@@ -398,8 +407,15 @@ def update_order_location(order_id, new_location):
             
             # Save updated data
             sales_df_copy.to_csv("data/sales.csv", index=False)
+            
+            # Success message with location hint
+            if new_location:
+                st.success(f"Location updated to: {new_location}")
+                if not new_location.lower().endswith('vietnam') and not new_location.lower().endswith('việt nam'):
+                    st.info("💡 Tip: For more accurate geocoding, include detailed address with city name and country (Vietnam)")
             return True
         else:
+            st.error(f"Order {order_id} not found")
             return False
     except Exception as e:
         st.error(f"Error updating order location: {str(e)}")

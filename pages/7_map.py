@@ -54,9 +54,37 @@ def geocode_address(address):
         return None, None
     
     try:
-        location = geocoder.geocode(address)
+        # For Vietnamese addresses, add country code if not present
+        if not address.lower().endswith('vietnam') and not address.lower().endswith('việt nam'):
+            if 'hcm' in address.lower() or 'ho chi minh' in address.lower() or 'tphcm' in address.lower():
+                # Ensure Ho Chi Minh City is properly formatted for geocoding
+                if not any(term in address.lower() for term in ['ho chi minh city', 'hồ chí minh', 'thành phố hồ chí minh']):
+                    address = address + ', Ho Chi Minh City'
+            # Add Vietnam to the address
+            address = address + ', Vietnam'
+        
+        # Use specific parameters to improve accuracy
+        location = geocoder.geocode(
+            address,
+            exactly_one=True,
+            addressdetails=True,
+            language="vi"  # Vietnamese language
+        )
+        
         if location:
             return location.latitude, location.longitude
+        
+        # Fallback: try with English language setting
+        location = geocoder.geocode(
+            address,
+            exactly_one=True,
+            addressdetails=True,
+            language="en"
+        )
+        
+        if location:
+            return location.latitude, location.longitude
+            
         return None, None
     except Exception as e:
         st.error(f"Error geocoding address: {str(e)}")
