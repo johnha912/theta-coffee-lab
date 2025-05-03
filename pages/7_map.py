@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 import plotly.io as pio
 import datetime
 from geopy.geocoders import Nominatim, Photon
@@ -193,62 +192,9 @@ def geocode_address(address):
         # Silent error handling
         return None, None
 
-# Function to determine district from coordinates
-def get_district_from_coords(lat, lon):
-    """Determine district in HCMC based on coordinates"""
-    # Dictionary of district coordinates approximation
-    districts = {
-        "District 1": (10.7757, 106.7004, 1.5),  # lat, lon, radius in km
-        "District 3": (10.7800, 106.6830, 1.5),
-        "District 5": (10.7539, 106.6633, 1.5),
-        "District 10": (10.7731, 106.6708, 1.5),
-        "Binh Thanh": (10.8100, 106.7140, 2.0),
-        "District 4": (10.7590, 106.7040, 1.5),
-        "Phu Nhuan": (10.7995, 106.6839, 1.5),
-        "Go Vap": (10.8419, 106.6656, 2.0),
-        "Tan Binh": (10.8013, 106.6522, 2.0),
-        "District 7": (10.7382, 106.7215, 2.0),
-        "District 2 (Thu Duc)": (10.7901, 106.7559, 2.5),
-        "District 9 (Thu Duc)": (10.8264, 106.8294, 3.0),
-        "District 8": (10.7339, 106.6273, 2.0),
-        "District 11": (10.7629, 106.6430, 1.5),
-        "District 12": (10.8654, 106.6546, 3.0),
-        "District 6": (10.7480, 106.6352, 1.5),
-        "Tan Phu": (10.7874, 106.6283, 2.0),
-        "Binh Tan": (10.7658, 106.6031, 2.5),
-        "Cu Chi": (10.9711, 106.5164, 5.0),
-        "Hoc Mon": (10.8861, 106.5944, 3.0),
-        "Nha Be": (10.6686, 106.7143, 3.0),
-        "Can Gio": (10.4123, 106.9567, 5.0),
-    }
-    
-    # Calculate distance to each district center
-    closest_district = "Other"
-    min_distance = float('inf')
-    
-    for district, (dlat, dlon, radius) in districts.items():
-        # Simple Euclidean distance (approximation)
-        distance = ((lat - dlat) ** 2 + (lon - dlon) ** 2) ** 0.5 * 111  # 1 degree ≈ 111 km
-        
-        if distance < min_distance:
-            min_distance = distance
-            closest_district = district
-    
-    # Check if within radius
-    if min_distance <= districts.get(closest_district, (0, 0, 0))[2]:
-        return closest_district
-    else:
-        return "Other"
-
 # Function to create map of order locations
-def create_order_map(sales_df, time_filter="All Time", map_type="scatter"):
-    """Create map visualization of order locations
-    
-    Args:
-        sales_df: DataFrame containing sales data
-        time_filter: Filter for time period
-        map_type: Either 'scatter' or 'choropleth'
-    """
+def create_order_map(sales_df, time_filter="All Time"):
+    """Create map visualization of order locations"""
     
     try:
         # Apply time filter
@@ -281,18 +227,13 @@ def create_order_map(sales_df, time_filter="All Time", map_type="scatter"):
                         promo = group['Promo'].sum() if 'Promo' in group.columns else 0
                         net_total = group['Net_Total'].sum() if 'Net_Total' in group.columns else total
                         
-                        # Determine district based on coordinates
-                        district = get_district_from_coords(lat, lon)
-                        
                         orders_with_location.append({
                             'Order_ID': order_id,
                             'Location': location,
                             'Date': first_item['Date'],
                             'Total': total,
-                            'Net_Total': net_total,
                             'Latitude': lat,
-                            'Longitude': lon,
-                            'District': district
+                            'Longitude': lon
                         })
             
             if orders_with_location:
@@ -313,94 +254,30 @@ def create_order_map(sales_df, time_filter="All Time", map_type="scatter"):
                     axis=1
                 )
                 
-                if map_type == 'scatter':
-                    # Create scatter map with Plotly
-                    fig = px.scatter_map(
-                        map_df, 
-                        lat="Latitude", 
-                        lon="Longitude", 
-                        size="Size",
-                        color="Total",
-                        color_continuous_scale=px.colors.sequential.Viridis,
-                        hover_name="Order_ID",
-                        hover_data=["Date_Display", "Total_Display", "Location", "District"],
-                        zoom=11,
-                        height=600,
-                        template="custom_ggplot2",
-                        mapbox_style="open-street-map"
-                    )
-                    
-                    # Update layout
-                    fig.update_layout(
-                        margin={"r":0,"t":0,"l":0,"b":0},
-                        coloraxis_colorbar=dict(
-                            title="Total (VND)",
-                            tickformat=",",
-                        )
-                    )
+                # Create map with Plotly
+                fig = px.scatter_mapbox(
+                    map_df, 
+                    lat="Latitude", 
+                    lon="Longitude", 
+                    size="Size",
+                    color="Total",
+                    color_continuous_scale=px.colors.sequential.Viridis,
+                    hover_name="Order_ID",
+                    hover_data=["Date_Display", "Total_Display", "Location"],
+                    zoom=12,
+                    height=600,
+                    template="custom_ggplot2"
+                )
                 
-                elif map_type == 'choropleth':
-                    # Group by district and calculate metrics
-                    district_data = map_df.groupby('District').agg({
-                        'Order_ID': 'count',
-                        'Total': 'sum',
-                        'Net_Total': 'sum',
-                        'Latitude': 'mean',
-                        'Longitude': 'mean'
-                    }).reset_index()
-                    
-                    # Rename columns for clarity
-                    district_data.rename(columns={
-                        'Order_ID': 'Order_Count',
-                        'Total': 'Total_Revenue',
-                        'Net_Total': 'Net_Revenue'
-                    }, inplace=True)
-                    
-                    # Format for display
-                    district_data['Total_Display'] = district_data['Total_Revenue'].apply(utils.format_currency)
-                    district_data['Net_Display'] = district_data['Net_Revenue'].apply(utils.format_currency)
-                    
-                    # Create choropleth map
-                    fig = px.choropleth_mapbox(
-                        district_data,
-                        geojson=None,  # We don't have GeoJSON for districts
-                        locations='District',
-                        color='Total_Revenue',
-                        color_continuous_scale=px.colors.sequential.Viridis,
-                        mapbox_style="open-street-map",
-                        zoom=11,
-                        center={"lat": 10.7756, "lon": 106.6842},  # Center on HCMC
-                        opacity=0.5,
-                        hover_name='District',
-                        hover_data=['Order_Count', 'Total_Display', 'Net_Display'],
-                        height=600,
-                        labels={'Total_Revenue': 'Total Revenue (VND)'}
+                # Update layout to use open street map
+                fig.update_layout(
+                    mapbox_style="open-street-map",
+                    margin={"r":0,"t":0,"l":0,"b":0},
+                    coloraxis_colorbar=dict(
+                        title="Total (VND)",
+                        tickformat=",",
                     )
-                    
-                    # Add markers for each district center with label
-                    for idx, row in district_data.iterrows():
-                        fig.add_trace(
-                            go.Scattermapbox(
-                                lat=[row['Latitude']],
-                                lon=[row['Longitude']],
-                                mode='markers+text',
-                                marker=dict(size=10, color='red'),
-                                text=[row['District']],
-                                textposition='top center',
-                                name=row['District'],
-                                showlegend=False,
-                                hoverinfo='none'
-                            )
-                        )
-                    
-                    # Update layout
-                    fig.update_layout(
-                        margin={"r":0,"t":0,"l":0,"b":0},
-                        coloraxis_colorbar=dict(
-                            title="Total Revenue (VND)",
-                            tickformat=",",
-                        )
-                    )
+                )
                 
                 return fig
             else:
@@ -409,10 +286,8 @@ def create_order_map(sales_df, time_filter="All Time", map_type="scatter"):
         else:
             st.info("No location data found in the sales records.")
             return None
-        
-    except Exception as e:
-        if show_debug:
-            st.error(f"Error creating map: {str(e)}")
+            
+    except Exception:
         # Silent error handling
         st.info("Unable to create map. Please check your location data.")
         return None
@@ -469,28 +344,12 @@ try:
         # Convert Date column to datetime
         sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
         
-        # Create two columns for filters
-        col1, col2 = st.columns(2)
-        
-        # Add time filter options in first column
-        with col1:
-            time_options = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"]
-            time_filter = st.selectbox("Time Period", options=time_options, index=5)  # Set default to "All Time"
-        
-        # Add map type selection in second column
-        with col2:
-            map_type = st.selectbox(
-                "Map Type", 
-                options=["Scatter Map", "Choropleth Map"], 
-                index=0,
-                help="Scatter Map shows individual orders. Choropleth Map shows data grouped by district."
-            )
-            
-            # Convert user-friendly text to internal values
-            map_type_value = "scatter" if map_type == "Scatter Map" else "choropleth"
+        # Add time filter options
+        time_options = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"]
+        time_filter = st.selectbox("Time Period", options=time_options, index=5)  # Set default to "All Time"
         
         # Create and display map
-        map_fig = create_order_map(sales_df, time_filter, map_type_value)
+        map_fig = create_order_map(sales_df, time_filter)
         if map_fig:
             st.plotly_chart(map_fig, use_container_width=True)
             
