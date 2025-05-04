@@ -373,9 +373,12 @@ try:
     if not products_df.empty:
         st.header("Product Analysis")
         
+        # Sort products by profit (from smallest to largest)
+        sorted_products_df = products_df.sort_values('Profit', ascending=True)
+        
         # Profit margin comparison
         fig1 = px.bar(
-            products_df,
+            sorted_products_df,
             x='Name',
             y='Profit',
             color='Name',
@@ -384,9 +387,16 @@ try:
         )
         st.plotly_chart(fig1, use_container_width=True)
         
+        # For the price breakdown, we need to sort by total (COGS + Profit)
+        # Create a copy and add a total column
+        breakdown_df = products_df.copy()
+        breakdown_df['Total'] = breakdown_df['COGS'] + breakdown_df['Profit']
+        # Sort by the total amount (from smallest to largest)
+        breakdown_df = breakdown_df.sort_values('Total', ascending=True)
+        
         # Price breakdown
         fig2 = px.bar(
-            products_df,
+            breakdown_df,
             x='Name',
             y=['COGS', 'Profit'],
             title='Price Breakdown (COGS vs Profit)',
