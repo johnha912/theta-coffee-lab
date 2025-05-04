@@ -65,8 +65,7 @@ font = "sans serif"
     with open('.streamlit/config.toml', 'w') as file:
         file.write(config_content)
     
-    st.success(f"Theme changed to {new_theme.capitalize()} Mode! Restarting app...")
-    st.rerun()  # Rerun to apply theme changes
+    st.success(f"Theme changed to {new_theme.capitalize()} Mode! Refresh your browser to see the changes.")
 
 # Save settings function
 def save_settings():
