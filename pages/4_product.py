@@ -139,8 +139,7 @@ def save_product():
         st.session_state.product_name = ""
         st.session_state.selling_price = 25000.0
         
-        # Force rerun to show updated data
-        st.rerun()
+        # Remove rerun in callback - Streamlit will automatically rerun after callback
         
     except Exception as e:
         st.error(f"Error saving product: {str(e)}")
@@ -216,8 +215,7 @@ def delete_product(product_name):
             st.session_state.selling_price = 25000.0
             st.session_state.selected_ingredients = []
         
-        # Force rerun to show updated data
-        st.rerun()
+        # Remove rerun in callback - Streamlit will automatically rerun after callback
         
     except Exception as e:
         st.error(f"Error deleting product: {str(e)}")
