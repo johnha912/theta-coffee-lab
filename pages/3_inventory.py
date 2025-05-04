@@ -470,6 +470,9 @@ try:
                     unit_data = inventory_df[inventory_df['Unit_Group'] == unit].copy()
                     
                     if not unit_data.empty:
+                        # Sort the data from smallest to largest quantity
+                        unit_data = unit_data.sort_values('Quantity')
+                        
                         # Bar chart for this unit group
                         fig = px.bar(
                             unit_data,
