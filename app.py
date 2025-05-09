@@ -62,8 +62,32 @@ try:
     # Load inventory data
     inventory_df = pd.read_csv("data/inventory.csv")
     
-    # Check for low inventory
-    low_inventory_count = len(inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold])
+    # Check for low inventory using intelligent thresholds
+    # Define thresholds by unit type
+    thresholds = {
+        'ml': 300.0,  # For liquid ingredients (more than 3 coffee drinks)
+        'g': 100.0,   # For dry ingredients
+        'pcs': st.session_state.alert_threshold  # Use general threshold for pieces
+    }
+    
+    # Count low inventory items using smart thresholds
+    low_inventory_count = 0
+    for idx, row in inventory_df.iterrows():
+        unit_type = row['Unit'].lower()
+        # Convert units to base units
+        if unit_type == 'l':
+            unit_type = 'ml'
+            threshold = thresholds['ml'] * 1000  # Convert to ml
+        elif unit_type == 'kg':
+            unit_type = 'g'
+            threshold = thresholds['g'] * 1000  # Convert to g
+        else:
+            # Handle standard units
+            threshold = thresholds.get(unit_type, st.session_state.alert_threshold)
+        
+        # Check if below threshold
+        if row['Quantity'] <= threshold:
+            low_inventory_count += 1
     
     with col3:
         st.metric("Low Inventory Items", f"{low_inventory_count}")

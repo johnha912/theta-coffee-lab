@@ -174,15 +174,51 @@ try:
         st.plotly_chart(fig3, use_container_width=True)
     
     with col2:
-        # Low inventory alert
+        # Intelligent inventory alerts
         st.subheader("Inventory Alerts")
-        low_inventory = inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold]
         
-        if not low_inventory.empty:
-            st.warning(f"{len(low_inventory)} items below threshold!")
-            st.dataframe(low_inventory[['Name', 'Quantity', 'Unit']])
+        # Define thresholds by unit type
+        thresholds = {
+            'ml': 300.0,  # For liquid ingredients (more than 3 coffee drinks)
+            'g': 100.0,   # For dry ingredients
+            'pcs': st.session_state.alert_threshold  # Use general threshold for pieces
+        }
+        
+        # Track low inventory items
+        low_inventory_items = []
+        
+        # Check each inventory item against its appropriate threshold
+        for idx, row in inventory_df.iterrows():
+            unit_type = row['Unit'].lower()
+            # Convert units to base units
+            if unit_type == 'l':
+                unit_type = 'ml'
+                threshold = thresholds['ml'] * 1000  # Convert to ml
+            elif unit_type == 'kg':
+                unit_type = 'g'
+                threshold = thresholds['g'] * 1000  # Convert to g
+            else:
+                # Handle standard units
+                threshold = thresholds.get(unit_type, st.session_state.alert_threshold)
+            
+            # Check if below threshold
+            if row['Quantity'] <= threshold:
+                low_inventory_items.append({
+                    'Name': row['Name'],
+                    'Quantity': row['Quantity'],
+                    'Unit': row['Unit'],
+                    'Threshold': threshold
+                })
+        
+        # Display low inventory alerts
+        if low_inventory_items:
+            st.warning(f"{len(low_inventory_items)} items below recommended threshold!")
+            
+            # Create DataFrame for display
+            display_data = pd.DataFrame(low_inventory_items)[['Name', 'Quantity', 'Unit']]
+            st.dataframe(display_data)
         else:
-            st.success("All inventory items are above threshold levels")
+            st.success("All inventory items are at healthy levels.")
 
 except Exception as e:
     st.error(f"Error loading dashboard data: {str(e)}")
