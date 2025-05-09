@@ -486,15 +486,50 @@ try:
                     else:
                         st.info(f"No inventory items with unit type: {unit}")
         
-        # Low inventory alerts
-        low_inventory = inventory_df[inventory_df['Quantity'] <= st.session_state.alert_threshold]
+        # Intelligent low inventory alerts with category-based thresholds
+        st.header("Inventory Alerts")
         
-        if not low_inventory.empty:
-            st.header("Low Inventory Alerts")
-            st.warning(f"{len(low_inventory)} items below threshold!")
+        # Define thresholds by unit type
+        thresholds = {
+            'ml': 300.0,  # For liquid ingredients (more than 3 coffee drinks)
+            'g': 100.0,   # For dry ingredients
+            'pcs': st.session_state.alert_threshold  # Use general threshold for pieces
+        }
+        
+        # Track low inventory items
+        low_inventory_items = []
+        
+        # Check each inventory item against its appropriate threshold
+        for idx, row in inventory_df.iterrows():
+            unit_type = row['Unit'].lower()
+            # Convert units to base units
+            if unit_type == 'l':
+                unit_type = 'ml'
+                threshold = thresholds['ml'] * 1000  # Convert to ml
+            elif unit_type == 'kg':
+                unit_type = 'g'
+                threshold = thresholds['g'] * 1000  # Convert to g
+            else:
+                # Handle standard units
+                threshold = thresholds.get(unit_type, st.session_state.alert_threshold)
             
-            for _, row in low_inventory.iterrows():
-                st.info(f"{row['Name']}: {row['Quantity']} {row['Unit']} remaining (threshold: {st.session_state.alert_threshold})")
+            # Check if below threshold
+            if row['Quantity'] <= threshold:
+                low_inventory_items.append({
+                    'Name': row['Name'],
+                    'Quantity': row['Quantity'],
+                    'Unit': row['Unit'],
+                    'Threshold': threshold
+                })
+        
+        # Display low inventory alerts
+        if low_inventory_items:
+            st.warning(f"{len(low_inventory_items)} items below recommended threshold!")
+            
+            for item in low_inventory_items:
+                st.info(f"{item['Name']}: {item['Quantity']} {item['Unit']} remaining (threshold: {item['Threshold']} {item['Unit']})")
+        else:
+            st.success("All inventory items are at healthy levels.")
     else:
         st.info("No inventory data available. Please add items.")
     
