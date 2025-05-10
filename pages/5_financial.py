@@ -232,8 +232,8 @@ st.markdown('# Financial Dashboard')
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
 
-# Create columns with equal width for date filter
-col1, col2 = st.columns([1, 1])
+# Create single column for filter
+col1 = st.container()
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
@@ -242,6 +242,7 @@ if 'default_time_filter' not in st.session_state or st.session_state.default_tim
     st.session_state.default_time_filter = "Today"
 
 with col1:
+    # Use full width for the select box
     time_filter = st.selectbox("Select Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
 
 # Date range for custom filter
@@ -263,10 +264,14 @@ else:
     elif time_filter == "All Time":
         # Set to a very old date for "All Time"
         start_date = datetime.datetime(2020, 1, 1).date()
-        
-    # Display the date range for non-custom filters
-    with col2:
-        st.info(f"Date Range: {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}")
+    
+    # Display the date range in a separate container below the dropdown with full width
+    st.markdown(
+        f"""<div style="background-color: #1f4e79; padding: 12px; border-radius: 4px; margin-top: 10px; text-align: center;">
+            <span style="color: #fff;">Date Range: {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}</span>
+        </div>""", 
+        unsafe_allow_html=True
+    )
 
 st.markdown('</div>', unsafe_allow_html=True)
 
