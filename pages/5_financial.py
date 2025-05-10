@@ -232,7 +232,8 @@ st.markdown('# Financial Dashboard')
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([2,2,1])
+# Create columns with equal width for date filter
+col1, col2 = st.columns([1, 1])
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
@@ -245,9 +246,10 @@ with col1:
 
 # Date range for custom filter
 if time_filter == "Custom":
-    with col2:
+    date_cols = st.columns([1, 1])
+    with date_cols[0]:
         start_date = st.date_input("Start Date", datetime.datetime.now() - datetime.timedelta(days=7))
-    with col3:
+    with date_cols[1]:
         end_date = st.date_input("End Date", datetime.datetime.now())
 else:
     # Set date range based on selection
@@ -408,13 +410,14 @@ try:
         
         # Main header - Revenue display
         with st.container():
-            revenue_col1, revenue_col2 = st.columns([3, 1])
+            # Use width ratio closer to visual in screenshot
+            revenue_col1, revenue_col2 = st.columns([2, 1])
             
             with revenue_col1:
-                # Big revenue display similar to the sample dashboard
+                # Big revenue display with consistent height
                 trend_indicator = "+" if net_revenue > 0 else ""
                 st.markdown(f"""
-                <div style="margin-bottom: 25px; padding: 15px; background-color: #121212; border-radius: 6px;">
+                <div style="margin-bottom: 25px; padding: 18px; background-color: #121212; border-radius: 6px; height: 130px;">
                     <div class="period-label">CURRENT PERIOD REVENUE</div>
                     <div class="big-metric">{utils.format_currency(net_revenue, include_currency=False)}</div>
                     <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
@@ -422,12 +425,12 @@ try:
                 """, unsafe_allow_html=True)
             
             with revenue_col2:
-                # Sales count with matching style to revenue
+                # Sales count with matching height
                 sales_count = len(filtered_sales) if not filtered_sales.empty else 0
                 st.markdown(f"""
-                <div style="margin-bottom: 25px; padding: 15px; background-color: #2C2C2C; border-radius: 6px; height: 100%;">
+                <div style="margin-bottom: 25px; padding: 18px; background-color: #2C2C2C; border-radius: 6px; height: 130px;">
                     <div class="period-label">TOTAL ORDERS</div>
-                    <div class="big-metric" style="font-size: 2rem;">{sales_count}</div>
+                    <div class="big-metric" style="font-size: 2rem; margin-top: 10px;">{sales_count}</div>
                 </div>
                 """, unsafe_allow_html=True)
         
