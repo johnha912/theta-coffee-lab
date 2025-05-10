@@ -193,7 +193,7 @@ def geocode_address(address):
         return None, None
 
 # Function to create map of order locations
-def create_order_map(sales_df, time_filter="All Time"):
+def create_order_map(sales_df, time_filter="All Time", color_scale="Reds"):
     """Create map visualization of order locations"""
     
     try:
@@ -266,7 +266,7 @@ def create_order_map(sales_df, time_filter="All Time"):
                     lon="Longitude", 
                     size="Size",
                     color="Total",
-                    color_continuous_scale=px.colors.sequential.Blues,  # Sử dụng thang màu Blues từ nhẹ đến đậm
+                    color_continuous_scale=getattr(px.colors.sequential, color_scale),  # Sử dụng thang màu đã chọn
                     range_color=[map_df['Total'].min(), map_df['Total'].max()],  # Đảm bảo thang màu từ nhỏ nhất đến lớn nhất
                     hover_name="Order_ID",
                     hover_data=["Date_Display", "Total_Display", "Location"],
@@ -357,8 +357,23 @@ try:
         time_options = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"]
         time_filter = st.selectbox("Time Period", options=time_options, index=5)  # Set default to "All Time"
         
+        # Chọn dải màu
+        color_options = {
+            "Reds": "Đỏ - Tương phản nhất với bản đồ",
+            "OrRd": "Cam đỏ - Nổi bật",
+            "YlOrRd": "Vàng-Cam-Đỏ - Rực rỡ",
+            "Purples": "Tím - Khác biệt với bản đồ",
+            "RdPu": "Đỏ-Tím - Đậm nét"
+        }
+        selected_color = st.sidebar.selectbox(
+            "Chọn dải màu cho bản đồ", 
+            options=list(color_options.keys()),
+            format_func=lambda x: color_options[x],
+            index=0
+        )
+        
         # Create and display map
-        map_fig = create_order_map(sales_df, time_filter)
+        map_fig = create_order_map(sales_df, time_filter, selected_color)
         if map_fig:
             st.plotly_chart(map_fig, use_container_width=True)
             
