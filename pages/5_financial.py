@@ -45,12 +45,13 @@ custom_css = """
     }
     
     .metric-card {
-        background-color: #1A1A1A;
+        background-color: #2C2C2C;
         border-radius: 6px;
         padding: 16px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         margin-bottom: 16px;
         border-left: 3px solid #444;
+        height: 100%;
     }
     
     .metric-title {
@@ -119,7 +120,7 @@ custom_css = """
     }
     
     .chart-container {
-        background-color: #1A1A1A;
+        background-color: #2C2C2C;
         border-radius: 6px;
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -228,8 +229,8 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # Dashboard Title
 st.markdown('# Financial Dashboard')
 
-# Date filter container with modern UI
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+# Date filter container with modern UI and consistent dark color
+st.markdown('<div class="chart-container" style="background-color: #2C2C2C;">', unsafe_allow_html=True)
 st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
 
 # Create single column for filter
@@ -267,7 +268,7 @@ else:
     
     # Display the date range in a separate container below the dropdown with full width
     st.markdown(
-        f"""<div style="background-color: #1f4e79; padding: 12px; border-radius: 4px; margin-top: 10px; text-align: center;">
+        f"""<div style="background-color: #2C2C2C; padding: 12px; border-radius: 4px; margin-top: 10px; text-align: center;">
             <span style="color: #fff;">Date Range: {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}</span>
         </div>""", 
         unsafe_allow_html=True
@@ -422,7 +423,7 @@ try:
                 # Big revenue display with consistent height
                 trend_indicator = "+" if net_revenue > 0 else ""
                 st.markdown(f"""
-                <div style="margin-bottom: 25px; padding: 18px; background-color: #121212; border-radius: 6px; height: 130px;">
+                <div style="margin-bottom: 25px; padding: 18px; background-color: #2C2C2C; border-radius: 6px; height: 130px;">
                     <div class="period-label">CURRENT PERIOD REVENUE</div>
                     <div class="big-metric">{utils.format_currency(net_revenue, include_currency=False)}</div>
                     <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
