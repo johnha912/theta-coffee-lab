@@ -6,6 +6,7 @@ import plotly.io as pio
 import datetime
 import utils
 import numpy as np
+import os
 
 # Khởi tạo session_state
 utils.initialize_session_state()
@@ -274,22 +275,81 @@ with st.container():
             )
 
     try:
-        # Load data
-        sales_df = pd.read_csv("data/sales.csv")
-        products_df = pd.read_csv("data/products.csv")
-        product_recipe_df = pd.read_csv("data/product_recipe.csv")
+        # Create error message for debugging
+        error_msg = ""
+        
+        # Check if data files exist
+        files_to_check = {
+            "data/sales.csv": "sales.csv",
+            "data/products.csv": "products.csv",
+            "data/product_recipe.csv": "product_recipe.csv"
+        }
+        
+        missing_files = []
+        for file_path, file_name in files_to_check.items():
+            if not os.path.exists(file_path):
+                missing_files.append(file_name)
+        
+        if missing_files:
+            error_msg = f"Missing required data files: {', '.join(missing_files)}"
+            st.error(error_msg)
+            st.info("If this is your first time running the app, make sure all required data files exist in the 'data' directory.")
+            st.stop()
+        
+        # Load data with error handling
+        try:
+            sales_df = pd.read_csv("data/sales.csv")
+            error_msg += "Sales data loaded. "
+        except Exception as e:
+            st.error(f"Error loading sales.csv: {str(e)}")
+            st.stop()
+            
+        try:
+            products_df = pd.read_csv("data/products.csv")
+            error_msg += "Products data loaded. "
+        except Exception as e:
+            st.error(f"Error loading products.csv: {str(e)}")
+            st.stop()
+            
+        try:
+            product_recipe_df = pd.read_csv("data/product_recipe.csv")
+            error_msg += "Recipe data loaded. "
+        except Exception as e:
+            st.error(f"Error loading product_recipe.csv: {str(e)}")
+            st.stop()
         
         # Load operational costs if available
         try:
             operational_costs_df = pd.read_csv("data/operational_costs.csv")
             operational_costs_df['Date'] = pd.to_datetime(operational_costs_df['Date'])
-        except FileNotFoundError:
+            error_msg += "Operational costs loaded. "
+        except Exception:
+            # If operational costs file doesn't exist or has errors, create empty DataFrame
             operational_costs_df = pd.DataFrame(columns=['Date', 'Type', 'Amount'])
+            error_msg += "Created empty operational costs. "
+            
+        # Validate and fix column names in products_df
+        required_cols = ['Product', 'COGS']
+        for col in required_cols:
+            if col not in products_df.columns:
+                # Check if there's a 'Name' column that should be 'Product'
+                if col == 'Product' and 'Name' in products_df.columns:
+                    products_df['Product'] = products_df['Name']
+                    error_msg += "Renamed 'Name' to 'Product' in products data. "
+                else:
+                    products_df[col] = 0
+                    error_msg += f"Added missing column '{col}' to products data. "
             
         # Prepare sales data
-        sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
-        filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
-                                 (sales_df['Date'].dt.date <= end_date)]
+        try:
+            sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
+            filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
+                                    (sales_df['Date'].dt.date <= end_date)]
+            error_msg += "Sales data filtered by date. "
+        except Exception as e:
+            st.error(f"Error processing dates in sales data: {str(e)}")
+            filtered_sales = pd.DataFrame(columns=sales_df.columns)
+            error_msg += "Created empty filtered sales data due to date error. "
         
         # Financial summary section
         summary_container = st.container()
