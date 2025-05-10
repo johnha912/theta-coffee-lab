@@ -198,10 +198,13 @@ def create_order_map(sales_df, time_filter="All Time"):
     
     try:
         # Apply time filter
-        start_date, _ = utils.get_date_range(time_filter)
-        # Convert start_date to datetime64 for consistent comparison
+        start_date, end_date = utils.get_date_range(time_filter)
+        # Convert dates to datetime64 for consistent comparison
         start_date = pd.to_datetime(start_date)
-        filtered_df = sales_df[sales_df['Date'] >= start_date]
+        end_date = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+        
+        # Filter within the date range
+        filtered_df = sales_df[(sales_df['Date'] >= start_date) & (sales_df['Date'] <= end_date)]
         
         # Group by Order_ID and get unique locations
         if 'Location' in filtered_df.columns:
@@ -363,10 +366,13 @@ try:
         st.subheader("Order Locations")
         
         # Apply time filter
-        start_date, _ = utils.get_date_range(time_filter)
-        # Convert start_date to datetime64 for consistent comparison
+        start_date, end_date = utils.get_date_range(time_filter)
+        # Convert dates to datetime64 for consistent comparison
         start_date = pd.to_datetime(start_date)
-        filtered_df = sales_df[sales_df['Date'] >= start_date]
+        end_date = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+        
+        # Filter within the date range
+        filtered_df = sales_df[(sales_df['Date'] >= start_date) & (sales_df['Date'] <= end_date)]
         
         if 'Location' in filtered_df.columns:
             # Get unique orders with locations
