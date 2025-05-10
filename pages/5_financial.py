@@ -229,6 +229,9 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # Dashboard Title
 st.markdown('# Financial Dashboard')
 
+# Main dashboard container with dark theme
+st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
+
 # Date filter container with modern UI and consistent dark color
 st.markdown('<div class="chart-container" style="background-color: #2C2C2C;">', unsafe_allow_html=True)
 st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
@@ -502,10 +505,8 @@ try:
         # Revenue and cost breakdown
         st.markdown('<div class="section-header">REVENUE & COST BREAKDOWN</div>', unsafe_allow_html=True)
         
-        # Create a container for the charts to ensure even spacing
-        with st.container():
-            # Create a grid for the charts with equal width
-            chart_col1, chart_col2 = st.columns([1, 1])
+        # Create a container for the charts to ensure even spacing and use it directly
+        chart_col1, chart_col2 = st.columns([1, 1])
         
         # Revenue breakdown chart
         with chart_col1:
@@ -769,8 +770,7 @@ try:
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Third row for financial charts
-        with st.container():
-            income_expense_col1, income_expense_col2 = st.columns([1, 1])
+        income_expense_col1, income_expense_col2 = st.columns([1, 1])
         
         # Profit split donut chart (similar to Excel template)
         with income_expense_col1:
@@ -911,8 +911,7 @@ try:
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Financial Ratios Row
-        with st.container():
-            ratio_col1, ratio_col2 = st.columns([1, 1])
+        ratio_col1, ratio_col2 = st.columns([1, 1])
         
         # Quick Ratio (similar to Excel template)
         with ratio_col1:
