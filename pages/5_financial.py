@@ -5,254 +5,50 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import datetime
 import utils
-import numpy as np
 
 # Khởi tạo session_state
 utils.initialize_session_state()
 
-# Set dark theme for modern financial dashboard appearance
-pio.templates.default = 'plotly_dark'
+# Set default template to ggplot2
+pio.templates.default = 'ggplot2'
 
-# Create a custom dark theme
-custom_dark_template = pio.templates['plotly_dark']
-custom_dark_template.layout.update(
-    paper_bgcolor='#1E1E1E',  # Dark background
-    plot_bgcolor='#1E1E1E',   # Dark plot area
-    font=dict(color='#FFFFFF'),
+# Tạo template ggplot2 custom với nền xám và lưới
+custom_ggplot2_template = pio.templates['ggplot2']
+custom_ggplot2_template.layout.update(
+    paper_bgcolor='#F0F0F0',  # Màu nền paper
+    plot_bgcolor='#F0F0F0',   # Màu nền plot
     xaxis=dict(
         showgrid=True,
-        gridcolor='rgba(255, 255, 255, 0.1)',
-        gridwidth=0.5
+        gridcolor='white',
+        gridwidth=1.5
     ),
     yaxis=dict(
         showgrid=True,
-        gridcolor='rgba(255, 255, 255, 0.1)',
-        gridwidth=0.5
+        gridcolor='white',
+        gridwidth=1.5
     )
 )
-pio.templates['custom_dark'] = custom_dark_template
-pio.templates.default = 'custom_dark'
+pio.templates['custom_ggplot2'] = custom_ggplot2_template
+pio.templates.default = 'custom_ggplot2'
 
-# Custom CSS for the financial dashboard based on the dark theme inspiration
-custom_css = """
-<style>
-    .dashboard-title {
-        text-align: center;
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
-        color: white;
-    }
-    
-    .metric-card {
-        background-color: #1A1A1A;
-        border-radius: 6px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        margin-bottom: 16px;
-        border-left: 3px solid #444;
-    }
-    
-    .metric-title {
-        font-size: 0.8rem;
-        font-weight: 400;
-        margin-bottom: 5px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    .metric-positive {
-        color: #72f879;
-    }
-    
-    .metric-negative {
-        color: #ff5757;
-    }
-    
-    .metric-trend {
-        font-size: 0.8rem;
-        display: flex;
-        align-items: center;
-    }
-    
-    .profit-card {
-        padding: 18px;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    
-    .profit-positive {
-        background-color: rgba(114, 248, 121, 0.05);
-        border-left: 3px solid #72f879;
-    }
-    
-    .profit-negative {
-        background-color: rgba(255, 87, 87, 0.05);
-        border-left: 3px solid #ff5757;
-    }
-    
-    .profit-status {
-        font-size: 1.4rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    
-    .profit-amount {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    .profit-percent {
-        font-size: 1rem;
-        margin-bottom: 10px;
-        opacity: 0.8;
-    }
-    
-    .chart-container {
-        background-color: #1A1A1A;
-        border-radius: 6px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        margin-bottom: 20px;
-    }
-    
-    .chart-title {
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 15px;
-        color: #CCC;
-        text-align: left;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .dashboard-divider {
-        margin: 24px 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .main-dashboard {
-        padding: 20px;
-        background-color: #121212;
-        border-radius: 6px;
-    }
-    
-    .period-label {
-        color: #888;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-    
-    .period-value {
-        font-size: 1.1rem;
-        margin-bottom: 10px;
-    }
-    
-    .section-header {
-        font-size: 1rem;
-        color: #CCC;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-left: 3px solid #666;
-        padding-left: 10px;
-        margin: 30px 0 15px 0;
-    }
-    
-    /* Custom styling for Streamlit components */
-    div[data-testid="stSelectbox"] > div > div {
-        background-color: #333;
-        border: none;
-        color: white;
-    }
-    
-    div[data-testid="stDateInput"] > div > div {
-        background-color: #333;
-        border: none;
-        color: white;
-    }
-    
-    .big-metric {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: white;
-    }
-    
-    .big-metric-trend-up {
-        color: #72f879;
-        font-size: 0.9rem;
-        margin-left: 10px;
-    }
-    
-    .big-metric-trend-down {
-        color: #ff5757;
-        font-size: 0.9rem;
-        margin-left: 10px;
-    }
-    
-    .table-container {
-        background-color: #1A1A1A;
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 20px;
-    }
-    
-    .table-header {
-        color: #888;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #333;
-    }
-</style>
-"""
+st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
 
-st.set_page_config(page_title="Financial Dashboard", page_icon="📊", layout="wide")
-
-# Apply custom CSS
-st.markdown(custom_css, unsafe_allow_html=True)
-
-# Dashboard Title
-st.markdown('<div class="dashboard-title">Theta Coffee Lab Financial Dashboard</div>', unsafe_allow_html=True)
-
-# Create placeholder for financial summary
-summary_placeholder = st.empty()
-
-# Main dashboard container
-st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
-
-# Date filter container with modern UI
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns([2,2,1])
+st.title("Financial Report")
+st.subheader("Financial KPIs and Analysis")
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
 # Ensure default_time_filter exists and is valid
 if 'default_time_filter' not in st.session_state or st.session_state.default_time_filter not in time_options:
     st.session_state.default_time_filter = "Today"
-
-with col1:
-    time_filter = st.selectbox("Select Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
+time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
 
 # Date range for custom filter
 if time_filter == "Custom":
-    with col2:
+    col1, col2 = st.columns(2)
+    with col1:
         start_date = st.date_input("Start Date", datetime.datetime.now() - datetime.timedelta(days=7))
-    with col3:
+    with col2:
         end_date = st.date_input("End Date", datetime.datetime.now())
 else:
     # Set date range based on selection
@@ -266,12 +62,6 @@ else:
     elif time_filter == "All Time":
         # Set to a very old date for "All Time"
         start_date = datetime.datetime(2020, 1, 1).date()
-        
-    # Display the date range for non-custom filters
-    with col2:
-        st.info(f"Date Range: {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}")
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 try:
     # Load data
@@ -291,529 +81,194 @@ try:
     filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
                              (sales_df['Date'].dt.date <= end_date)]
     
-    # Financial analysis container
-    with st.container():
-        # Calculate financial metrics
-        # Check if filtered_sales is empty
-        if filtered_sales.empty:
-            total_revenue = 0
-            total_cogs = 0
-            merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
+    # Financial KPIs
+    st.header("Financial Key Performance Indicators")
+    
+    # Check if filtered_sales is empty
+    if filtered_sales.empty:
+        total_revenue = 0
+        total_cogs = 0
+        merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
+    else:
+        # Add Net_Total and Promo columns if they don't exist
+        if 'Net_Total' not in filtered_sales.columns:
+            filtered_sales['Net_Total'] = filtered_sales['Total']
+        if 'Promo' not in filtered_sales.columns:
+            filtered_sales['Promo'] = 0.0
+        
+        # Calculate revenue using Total (gross revenue before discounts)
+        total_revenue = filtered_sales['Total'].sum()
+        
+        # Calculate COGS
+        filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+        merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name', how='left')
+        
+        # Check if COGS column exists in products_df
+        if 'COGS' in merged_sales.columns:
+            total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
         else:
-            # Add Net_Total and Promo columns if they don't exist
-            if 'Net_Total' not in filtered_sales.columns:
-                filtered_sales['Net_Total'] = filtered_sales['Total']
-            if 'Promo' not in filtered_sales.columns:
-                filtered_sales['Promo'] = 0.0
-            
-            # Calculate revenue using Total (gross revenue before discounts)
-            total_revenue = filtered_sales['Total'].sum()
-            
-            # Calculate COGS
-            filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
-            merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name', how='left')
-            
-            # Check if COGS column exists in products_df
-            if 'COGS' in merged_sales.columns:
-                total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
-            else:
-                total_cogs = 0
+            total_cogs = 0
+    
+    # Calculate gross profit
+    gross_profit = total_revenue - total_cogs
+    
+    # Calculate gross profit margin
+    gross_profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    # Most profitable product
+    def calc_profit(group):
+        # Only calculate if all required columns exist
+        if all(col in group.columns for col in ['Price', 'COGS', 'Order_Quantity']):
+            # Make sure all values are numeric
+            try:
+                return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
+            except:
+                return 0
+        return 0
         
-        # Make a fake cost entry for testing if no costs exist
-        if operational_costs_df.empty:
-            today = datetime.datetime.now()
-            test_cost = pd.DataFrame([{
-                'Date': today,
-                'Type': 'Rent',
-                'Amount': 5000000  # 5 million VND
-            }])
-            operational_costs_df = pd.concat([operational_costs_df, test_cost], ignore_index=True)
-            
-            # Save the test data
-            test_cost_to_save = pd.DataFrame([{
-                'Date': today.strftime('%Y-%m-%d'),
-                'Type': 'Rent',
-                'Amount': 5000000
-            }])
-            test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
-        
-        # Calculate operational costs in the period
-        filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
-                                           (operational_costs_df['Date'].dt.date <= end_date)]
-        
-        # Make sure Amount column is numeric
-        operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
-        filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
-        
-        # Calculate sum of filtered costs
-        operational_costs = filtered_costs['Amount'].sum()
-        
-        # Calculate financial metrics based on the formulas provided
-        # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
-        gross_revenue = filtered_sales['Total'].sum() if not filtered_sales.empty else 0
-        
-        # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
-        # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
-        net_revenue = filtered_sales['Net_Total'].sum() if not filtered_sales.empty else 0
-        
-        # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
-        gross_profit = net_revenue - total_cogs
-        
-        # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
-        # In our system, we combine all operational costs together
-        operating_profit = gross_profit - operational_costs
-        
-        # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
-        # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
-        net_profit = operating_profit
-        
-        # Calculate margins
-        gross_profit_margin = (gross_profit / net_revenue * 100) if net_revenue > 0 else 0
-        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
-        
-        # Calculate revenue reduction due to promotions
-        promo_total = gross_revenue - net_revenue
-        promo_percentage = (promo_total / gross_revenue * 100) if gross_revenue > 0 else 0
-        
-        # Most profitable product calculation
-        product_profit_list = []
-        
-        # Check if necessary columns are present for profit calculation
-        required_cols = ['Product', 'Price', 'COGS', 'Order_Quantity']
-        if all(col in merged_sales.columns for col in required_cols) and not merged_sales.empty:
-            # Process each product individually
-            for product in merged_sales['Product'].unique():
-                if pd.notna(product):  # Skip NaN product names
-                    product_data = merged_sales[merged_sales['Product'] == product]
-                    try:
-                        profit = ((product_data['Price'] - product_data['COGS']) * product_data['Order_Quantity']).sum()
-                        product_profit_list.append({'Product': product, 'Profit': profit})
-                    except:
-                        continue
-        
-        # Convert to DataFrame (empty if no products)
-        product_profit = pd.DataFrame(product_profit_list)
-        
-        # Safely get the most profitable product
-        if not product_profit.empty and 'Profit' in product_profit.columns and product_profit['Profit'].notnull().any():
-            max_idx = product_profit['Profit'].idxmax()
-            if max_idx is not None:
-                most_profitable = product_profit.loc[max_idx]
-            else:
-                most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
+    # Fix groupby warning by handling product profit calculation differently
+    product_profit_list = []
+    
+    # Check if necessary columns are present
+    required_cols = ['Product', 'Price', 'COGS', 'Order_Quantity']
+    if all(col in merged_sales.columns for col in required_cols) and not merged_sales.empty:
+        # Process each product individually
+        for product in merged_sales['Product'].unique():
+            if pd.notna(product):  # Skip NaN product names
+                product_data = merged_sales[merged_sales['Product'] == product]
+                profit = calc_profit(product_data)
+                product_profit_list.append({'Product': product, 'Profit': profit})
+    
+    # Convert to DataFrame (empty if no products)
+    product_profit = pd.DataFrame(product_profit_list)
+    
+    # Safely get the most profitable product with multiple checks
+    if not product_profit.empty and 'Profit' in product_profit.columns and product_profit['Profit'].notnull().any():
+        # Only proceed if we have valid profit data
+        max_idx = product_profit['Profit'].idxmax()
+        if max_idx is not None:
+            most_profitable = product_profit.loc[max_idx]
         else:
             most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
-        
-        # Determine financial status
-        financial_status = "PROFITABLE" if net_profit > 0 else "LOSS MAKING"
-        status_color = "#2ECC71" if net_profit > 0 else "#E74C3C"  # Green or Red
-        
-        # Create a compact summary for the top of the page
-        compact_summary_html = f"""
-        <div style="
-            background-color: {f'rgba(46, 204, 113, 0.1)' if net_profit > 0 else 'rgba(231, 76, 60, 0.1)'}; 
-            padding: 15px; 
-            border-radius: 10px; 
-            text-align: center;
-            border: 2px solid {status_color};
-            margin: 0 0 20px 0;">
-            <h3 style="margin: 0; color: {status_color}; font-weight: bold;">
-                BUSINESS STATUS: {financial_status} | Net Profit: {utils.format_currency(abs(net_profit))} 
-                {'PROFIT' if net_profit > 0 else 'LOSS'} ({abs(net_margin):.1f}%)
-            </h3>
-        </div>
-        """
-        
-        # Display compact summary at the top of the page
-        summary_placeholder.markdown(compact_summary_html, unsafe_allow_html=True)
-        
-        # Main header - Revenue display
-        revenue_col1, revenue_col2 = st.columns([3, 1])
-        
-        with revenue_col1:
-            # Big revenue display similar to the sample dashboard
-            trend_indicator = "+" if net_revenue > 0 else ""
-            st.markdown(f"""
-            <div style="margin-bottom: 25px;">
-                <div class="period-label">Current Period Revenue</div>
-                <div class="big-metric">$ {utils.format_currency(net_revenue, include_currency=False)}</div>
-                <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with revenue_col2:
-            # Sales count
-            sales_count = len(filtered_sales) if not filtered_sales.empty else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">TOTAL ORDERS</div>
-                <div class="metric-value">{sales_count}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Financial metrics in a grid layout similar to the sample
-        st.markdown('<div class="section-header">FINANCIAL METRICS</div>', unsafe_allow_html=True)
-        
-        # Create KPI cards in a grid with darker colors and modern layout
-        col1, col2, col3, col4 = st.columns(4)
-        
-        # Revenue KPI
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">REVENUE</div>
-                <div class="metric-value">{utils.format_currency(net_revenue)}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">YTD: {utils.format_currency(net_revenue)}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # COGS KPI
-        with col2:
-            cogs_percent = (total_cogs / net_revenue * 100) if net_revenue > 0 else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">COGS</div>
-                <div class="metric-value">{utils.format_currency(total_cogs)}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">{cogs_percent:.1f}% of revenue</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Gross Profit KPI
-        with col3:
-            gross_profit_class = "metric-positive" if gross_profit > 0 else "metric-negative"
-            profit_indicator = "+" if gross_profit > 0 else ""
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">GROSS PROFIT</div>
-                <div class="metric-value {gross_profit_class}">{utils.format_currency(gross_profit)}</div>
-                <div class="metric-trend {gross_profit_class}">
-                    {profit_indicator}{gross_profit_margin:.1f}% margin
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Net Profit KPI
-        with col4:
-            net_profit_class = "metric-positive" if net_profit > 0 else "metric-negative"
-            net_indicator = "+" if net_profit > 0 else ""
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">NET PROFIT</div>
-                <div class="metric-value {net_profit_class}">{utils.format_currency(net_profit)}</div>
-                <div class="metric-trend {net_profit_class}">
-                    {net_indicator}{net_margin:.1f}% margin
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Second row of KPIs
-        col1, col2, col3, col4 = st.columns(4)
-        
-        # Expenses KPI
-        with col1:
-            expense_percent = (operational_costs / net_revenue * 100) if net_revenue > 0 else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">EXPENSES</div>
-                <div class="metric-value">{utils.format_currency(operational_costs)}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">{expense_percent:.1f}% of revenue</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Promotions KPI
-        with col2:
-            total_promo = filtered_sales['Promo'].sum() if 'Promo' in filtered_sales.columns else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">PROMOTIONS</div>
-                <div class="metric-value">{utils.format_currency(total_promo)}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">{promo_percentage:.1f}% of gross revenue</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Average Order Value
-        with col3:
-            avg_order = net_revenue / sales_count if sales_count > 0 else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">AVG ORDER VALUE</div>
-                <div class="metric-value">{utils.format_currency(avg_order)}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">Per transaction</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Most Profitable Product
-        with col4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">TOP PRODUCT</div>
-                <div class="metric-value" style="font-size: 1.2rem;">{most_profitable['Product']}</div>
-                <div class="metric-trend">
-                    <span style="opacity: 0.6">Profit: {utils.format_currency(most_profitable['Profit'])}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Profit status card with modern styling
-        profit_card_class = "profit-positive" if net_profit > 0 else "profit-negative"
-        profit_color = "#72f879" if net_profit > 0 else "#ff5757"
-        
-        st.markdown(f"""
-        <div class="profit-card {profit_card_class}">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="profit-status" style="color: {profit_color};">BUSINESS STATUS: {financial_status}</div>
-                    <div class="profit-percent" style="color: {profit_color};">Net Profit Margin: {abs(net_margin):.2f}%</div>
-                </div>
-                <div class="profit-amount" style="color: {profit_color};">{utils.format_currency(abs(net_profit))}</div>
-            </div>
-            <div style="margin-top: 10px; font-weight: bold; opacity: 0.9; color: {profit_color};">
-                {'Business is profitable in this period.' if net_profit > 0 else 'Business is operating at a loss. Attention needed.'}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-                
-        # Divider
-        st.markdown('<div class="dashboard-divider"></div>', unsafe_allow_html=True)
+    else:
+        most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
     
-        # Financial Statement Waterfall Chart
-        st.markdown('<div class="section-header">FINANCIAL STATEMENT</div>', unsafe_allow_html=True)
+    # Make a fake cost entry for testing if no costs exist
+    if operational_costs_df.empty:
+        today = datetime.datetime.now()
+        test_cost = pd.DataFrame([{
+            'Date': today,
+            'Type': 'Rent',
+            'Amount': 5000000  # 5 million VND
+        }])
+        operational_costs_df = pd.concat([operational_costs_df, test_cost], ignore_index=True)
         
-        # Create waterfall chart similar to Excel template
-        waterfall_col1, waterfall_col2 = st.columns([3, 1])
+        # Save the test data
+        test_cost_to_save = pd.DataFrame([{
+            'Date': today.strftime('%Y-%m-%d'),
+            'Type': 'Rent',
+            'Amount': 5000000
+        }])
+        test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
         
-        with waterfall_col1:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">PROFIT WATERFALL</div>', unsafe_allow_html=True)
-            
-            # Create waterfall chart data
-            waterfall_items = [
-                {"name": "Total Income", "value": gross_revenue, "type": "total"},
-                {"name": "Cost of Goods", "value": -total_cogs, "type": "negative"},
-                {"name": "Gross Profit", "value": gross_profit, "type": "positive"},
-                {"name": "Operating Expenses", "value": -operational_costs, "type": "negative"},
-                {"name": "Net Profit", "value": net_profit, "type": "total"}
-            ]
-            
-            # Create waterfall chart
-            fig_waterfall = go.Figure()
-            
-            # Add waterfall bars
-            for i, item in enumerate(waterfall_items):
-                color = "#1ABC9C" if item["type"] == "positive" else ("#E74C3C" if item["type"] == "negative" else "#34495E")
-                show_value = abs(item["value"]) if i > 0 and i < len(waterfall_items) - 1 else item["value"]
-                
-                fig_waterfall.add_trace(go.Bar(
-                    name=item["name"],
-                    y=[item["name"]],
-                    x=[show_value],
-                    orientation='h',
-                    marker=dict(color=color),
-                    text=utils.format_currency(abs(item["value"])),
-                    textposition="outside",
-                    textfont=dict(size=14, color="white"),
-                    hoverinfo="text",
-                    hovertext=f"{item['name']}: {utils.format_currency(abs(item['value']))}"
-                ))
-            
-            # Style the chart
-            fig_waterfall.update_layout(
-                showlegend=False,
-                height=300,
-                margin=dict(l=20, r=150, t=10, b=10),
-                xaxis=dict(
-                    title='Amount (VND)',
-                    showgrid=False,
-                    zeroline=False,
-                    showticklabels=False
-                ),
-                yaxis=dict(
-                    title='',
-                    autorange="reversed"
-                ),
-                barmode='relative',
-                plot_bgcolor='#1A1A1A',
-                paper_bgcolor='#1A1A1A',
-                font=dict(color='white')
-            )
-            
-            st.plotly_chart(fig_waterfall, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Profit Margin Gauge Chart
-        with waterfall_col2:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">NET PROFIT MARGIN %</div>', unsafe_allow_html=True)
-            
-            # Create donut chart for profit margin
-            fig_margin = go.Figure()
-            
-            # Create colors based on profit margin
-            margin_color = "#1ABC9C" if net_margin > 0 else "#E74C3C"
-            
-            # Create donut chart
-            fig_margin.add_trace(go.Pie(
-                values=[net_margin if net_margin > 0 else 0, 100 - net_margin if net_margin > 0 else 100],
-                labels=["", ""],
-                hole=0.85,
-                marker=dict(colors=[margin_color, '#2C3E50']),
-                hoverinfo="none",
-                textinfo="none",
-                showlegend=False
-            ))
-            
-            # Add text in the middle
-            fig_margin.add_annotation(
-                text=f"{abs(net_margin):.1f}%",
-                x=0.5, y=0.5,
-                font=dict(size=36, color=margin_color),
-                showarrow=False
-            )
-            
-            # Add YTD or comparison
-            fig_margin.add_annotation(
-                text=f"{'+' if net_margin > 0 else ''}{net_margin:.1f}%",
-                x=0.5, y=0.4,
-                font=dict(size=14, color=margin_color),
-                showarrow=False
-            )
-            
-            # Style the chart
-            fig_margin.update_layout(
-                margin=dict(l=0, r=0, t=0, b=0),
-                height=260,
-                plot_bgcolor='#1A1A1A',
-                paper_bgcolor='#1A1A1A'
-            )
-            
-            st.plotly_chart(fig_margin, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        # Additional KPI metrics inspired by the Excel template
-        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
-        
-        # Income KPI
-        with kpi_col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">INCOME</div>
-                <div class="metric-value">{utils.format_currency(net_revenue)}</div>
-                <div class="metric-trend">
-                    <span class="metric-positive">+6.6%</span> vs. previous period
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Expenses KPI
-        with kpi_col2:
-            total_expenses = total_cogs + operational_costs
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">EXPENSES</div>
-                <div class="metric-value">{utils.format_currency(total_expenses)}</div>
-                <div class="metric-trend">
-                    <span class="metric-negative">+1.9%</span> vs. previous period
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Income Budget KPI with gauge
-        with kpi_col3:
-            # Assuming target is 20% higher than current for demo purposes
-            income_target = net_revenue * 1.2
-            income_budget_pct = min(100, (net_revenue / income_target) * 100) if income_target > 0 else 0
-            
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">% OF INCOME BUDGET</div>
-                <div style="position: relative; height: 60px; margin: 10px 0;">
-                    <div style="position: absolute; width: 100%; height: 10px; background-color: #333; border-radius: 5px; top: 25px;"></div>
-                    <div style="position: absolute; width: {income_budget_pct}%; height: 10px; background-color: #1ABC9C; border-radius: 5px; top: 25px;"></div>
-                    <div style="position: absolute; width: 20px; height: 20px; background-color: #1ABC9C; border-radius: 50%; top: 20px; left: calc({income_budget_pct}% - 10px);"></div>
-                    <div style="position: absolute; width: 100%; text-align: center; top: 40px; font-size: 24px; font-weight: bold; color: #1ABC9C;">{income_budget_pct:.0f}%</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Second row of KPIs
-        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
-        
-        # Net Profit KPI
-        with kpi_col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">NET PROFIT</div>
-                <div class="metric-value {net_profit_class}">{utils.format_currency(net_profit)}</div>
-                <div class="metric-trend">
-                    <span class="{net_profit_class}">+5.9%</span> vs. previous period
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Cash Equivalent KPI (this would be approximated since we don't track cash)
-        with kpi_col2:
-            # For demo purposes only - in real implementation, cash would be tracked properly
-            cash_equivalent = net_profit * 4  # Just a demo multiplier
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">CASH EQUIVALENT</div>
-                <div class="metric-value">{utils.format_currency(cash_equivalent)}</div>
-                <div class="metric-trend">
-                    <span class="metric-negative">-5.0%</span> vs. previous period
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        # Expenses Budget KPI with gauge
-        with kpi_col3:
-            # Assuming target is 20% lower than current for demo purposes
-            expense_target = total_expenses * 1.2
-            expense_budget_pct = min(100, (total_expenses / expense_target) * 100) if expense_target > 0 else 0
-            
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">% OF EXPENSES BUDGET</div>
-                <div style="position: relative; height: 60px; margin: 10px 0;">
-                    <div style="position: absolute; width: 100%; height: 10px; background-color: #333; border-radius: 5px; top: 25px;"></div>
-                    <div style="position: absolute; width: {expense_budget_pct}%; height: 10px; background-color: #E74C3C; border-radius: 5px; top: 25px;"></div>
-                    <div style="position: absolute; width: 20px; height: 20px; background-color: #E74C3C; border-radius: 50%; top: 20px; left: calc({expense_budget_pct}% - 10px);"></div>
-                    <div style="position: absolute; width: 100%; text-align: center; top: 40px; font-size: 24px; font-weight: bold; color: #E74C3C;">{expense_budget_pct:.0f}%</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        st.success("Added test operational cost of 5,000,000 VND for demonstration")
     
-    # Financial Charts & Visualizations section
-    st.markdown('<div class="section-header">FINANCIAL PERFORMANCE VISUALIZATION</div>', unsafe_allow_html=True)
+    # Calculate operational costs in the period
+    filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
+                                       (operational_costs_df['Date'].dt.date <= end_date)]
     
-    # Income and Expenses Chart (similar to Excel template)
-    income_expense_col1, income_expense_col2 = st.columns(2)
+    # Make sure Amount column is numeric
+    operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
+    filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
     
-    with income_expense_col1:
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">INCOME AND EXPENSES</div>', unsafe_allow_html=True)
+    # Calculate sum of filtered costs
+    operational_costs = filtered_costs['Amount'].sum()
+    
+    # Debug information 
+    st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
+    st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
+    
+    # Calculate financial metrics based on the formulas provided
+    
+    # 1. Doanh thu & Lợi nhuận
+    # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
+    gross_revenue = filtered_sales['Total'].sum()
+    
+    # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
+    # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
+    net_revenue = filtered_sales['Net_Total'].sum()
+    
+    # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
+    gross_profit_correct = net_revenue - total_cogs
+    
+    # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
+    # In our system, we combine all operational costs together
+    operating_profit = gross_profit_correct - operational_costs
+    
+    # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
+    # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
+    net_profit = operating_profit
+    
+    # Display KPIs
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Display Revenue KPIs
+        st.metric("Gross Revenue", utils.format_currency(gross_revenue))
+        st.metric("Net Revenue", utils.format_currency(net_revenue))
+        # Calculate revenue reduction due to promotions
+        promo_percentage = ((gross_revenue - net_revenue) / gross_revenue * 100) if gross_revenue > 0 else 0
+        st.metric("Promotion Impact", f"{promo_percentage:.2f}%")
+    
+    with col2:
+        # Display Profit KPIs
+        st.metric("Total COGS", utils.format_currency(total_cogs))
+        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
         
-        if not filtered_sales.empty and 'Date' in filtered_sales.columns:
-            # Prepare data for income and expenses chart
+        # Calculate Gross Profit Margin correctly based on Net Revenue
+        # Gross Profit Margin = Gross Profit / Net Revenue
+        gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
+        st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
+    
+    with col3:
+        # Display profitability metrics
+        st.metric("Operational Costs", utils.format_currency(operational_costs))
+        st.metric("Net Profit", utils.format_currency(net_profit))
+        
+        # Calculate Net Profit Margin correctly based on Net Revenue as per standard formula
+        # Net Profit Margin = Net Profit / Net Revenue
+        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
+        st.metric("Net Profit Margin", f"{net_margin:.2f}%")
+        
+        # Add most profitable product at the bottom of the third column
+        st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
+    
+    # Financial Charts
+    st.header("Financial Performance Visualization")
+    
+    # Daily revenue and costs chart
+    if not filtered_sales.empty:
+        # Check if Net_Total column exists
+        if 'Net_Total' in filtered_sales.columns:
             daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
-                'Net_Total': 'sum'
+                'Total': 'sum',
+                'Net_Total': 'sum',
+                'Promo': 'sum'
             }).reset_index()
+        else:
+            # Fallback to only Total for backward compatibility
+            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
+                'Total': 'sum'
+            }).reset_index()
+            # Add placeholder columns
+            daily_finance['Net_Total'] = daily_finance['Total']
+            daily_finance['Promo'] = 0
+        
+        # Add COGS data - use a safer approach that works with all pandas versions
+        if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:
+            merged_sales_with_date = merged_sales.copy()
             
-            # Format date to DD/MM/YY
-            daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
-            
-            # Add COGS data if available
-            if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns and 'Date' in merged_sales.columns:
-                merged_sales_with_date = merged_sales.copy()
+            if 'Date' in merged_sales_with_date.columns:
                 merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
                 
                 # Calculate COGS per row
@@ -833,303 +288,35 @@ try:
                     how='left'
                 ).fillna(0)
             else:
+                # If no Date column, simply add a COGS column with zeros
                 daily_finance['COGS'] = 0
-            
-            # Calculate expenses per day - distribute operational costs across days
-            if len(daily_finance) > 0:
-                daily_op_cost = operational_costs / len(daily_finance) if operational_costs > 0 else 0
-                daily_finance['Operational_Costs'] = daily_op_cost
-                daily_finance['Total_Costs'] = daily_finance['COGS'] + daily_finance['Operational_Costs']
-            else:
-                daily_finance['Operational_Costs'] = 0
-                daily_finance['Total_Costs'] = daily_finance['COGS']
-                
-            # Create the income and expenses chart with bars and line
-            fig_income_expenses = go.Figure()
-            
-            # Add revenue bars
-            fig_income_expenses.add_trace(go.Bar(
-                x=daily_finance['Date_Formatted'],
-                y=daily_finance['Net_Total'],
-                name='Income',
-                marker=dict(color='#1ABC9C')
-            ))
-            
-            # Add expense bars
-            fig_income_expenses.add_trace(go.Bar(
-                x=daily_finance['Date_Formatted'],
-                y=daily_finance['Total_Costs'],
-                name='Expenses',
-                marker=dict(color='#E74C3C')
-            ))
-            
-            # Style the chart
-            fig_income_expenses.update_layout(
-                barmode='group',
-                bargap=0.2,
-                bargroupgap=0.1,
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="center",
-                    x=0.5
-                ),
-                margin=dict(l=10, r=10, t=10, b=10),
-                yaxis=dict(
-                    title='Amount (VND)',
-                    tickformat=',d',
-                    gridcolor='rgba(255, 255, 255, 0.1)'
-                ),
-                xaxis=dict(
-                    tickangle=-45,
-                    gridcolor='rgba(255, 255, 255, 0.1)'
-                ),
-                plot_bgcolor='#1A1A1A',
-                paper_bgcolor='#1A1A1A',
-                font=dict(color='white')
-            )
-            
-            # Add value labels on the bars
-            for i, y in enumerate(daily_finance['Net_Total']):
-                if y > 0:
-                    fig_income_expenses.add_annotation(
-                        x=daily_finance['Date_Formatted'][i],
-                        y=y,
-                        text=f"{y/1000:.0f}k",
-                        showarrow=False,
-                        yshift=10,
-                        font=dict(size=10, color="white")
-                    )
-            
-            # Display the chart
-            st.plotly_chart(fig_income_expenses, use_container_width=True)
         else:
-            st.info("No sales data available for the selected period")
-            
-        st.markdown('</div>', unsafe_allow_html=True)
+            # If no COGS data, add it as zeros
+            daily_finance['COGS'] = 0
         
-        # Accounts Receivable / Payable (similar to template)
-        with income_expense_col2:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">DAILY REVENUE BREAKDOWN</div>', unsafe_allow_html=True)
-            
-            if not filtered_sales.empty and 'Date' in filtered_sales.columns:
-                # Calculate daily revenue by product
-                product_daily = filtered_sales.groupby(['Date', 'Product'])['Net_Total'].sum().reset_index()
-                
-                # Format date
-                product_daily['Date_Formatted'] = product_daily['Date'].dt.strftime('%d/%m/%y')
-                
-                # Get unique dates and products
-                dates = product_daily['Date_Formatted'].unique()
-                products = product_daily['Product'].unique()
-                
-                # Create a colorful stacked bar chart
-                fig_product_revenue = go.Figure()
-                
-                # Get a colorful palette
-                colors = px.colors.qualitative.Bold
-                
-                # Add bars for each product
-                for i, product in enumerate(products):
-                    product_data = product_daily[product_daily['Product'] == product]
-                    
-                    fig_product_revenue.add_trace(go.Bar(
-                        x=product_data['Date_Formatted'],
-                        y=product_data['Net_Total'],
-                        name=product,
-                        marker=dict(color=colors[i % len(colors)]),
-                        hovertemplate='%{y:,.0f} VND<br>%{x}'
-                    ))
-                
-                # Style the chart
-                fig_product_revenue.update_layout(
-                    barmode='stack',
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        xanchor="center",
-                        x=0.5
-                    ),
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    yaxis=dict(
-                        title='Revenue (VND)',
-                        tickformat=',d',
-                        gridcolor='rgba(255, 255, 255, 0.1)'
-                    ),
-                    xaxis=dict(
-                        tickangle=-45,
-                        gridcolor='rgba(255, 255, 255, 0.1)'
-                    ),
-                    plot_bgcolor='#1A1A1A',
-                    paper_bgcolor='#1A1A1A',
-                    font=dict(color='white')
-                )
-                
-                st.plotly_chart(fig_product_revenue, use_container_width=True)
-            else:
-                st.info("No sales data available for the selected period")
-                
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Calculate daily financial metrics properly
+        daily_finance['Net_Revenue'] = daily_finance['Net_Total']
         
-        # Financial Ratios Row
-        ratio_col1, ratio_col2 = st.columns(2)
+        # Gross Profit = Net Revenue - COGS (using the correct formula from accounting principles)
+        daily_finance['Gross_Profit'] = daily_finance['Net_Revenue'] - daily_finance['COGS']
         
-        # Quick Ratio (similar to Excel template)
-        with ratio_col1:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">PROFIT MARGIN ANALYSIS</div>', unsafe_allow_html=True)
-            
-            if not filtered_sales.empty:
-                # Calculate profit margins for all products
-                product_margins = []
-                
-                for product in merged_sales['Product'].unique():
-                    if pd.notna(product):
-                        product_data = merged_sales[merged_sales['Product'] == product]
-                        
-                        if 'Price' in product_data.columns and 'COGS' in product_data.columns:
-                            try:
-                                # Get product price and COGS
-                                product_price = product_data['Price'].iloc[0] if not product_data.empty else 0
-                                product_cogs = product_data['COGS'].iloc[0] if not product_data.empty else 0
-                                product_quantity = product_data['Order_Quantity'].sum() if not product_data.empty else 0
-                                
-                                # Calculate margin
-                                if product_price > 0:
-                                    margin_pct = ((product_price - product_cogs) / product_price) * 100
-                                    product_margins.append({
-                                        'Product': product,
-                                        'Margin': margin_pct,
-                                        'Revenue': product_price * product_quantity,
-                                        'Quantity': product_quantity
-                                    })
-                            except:
-                                continue
-                
-                # Create DataFrame and sort by margin
-                if product_margins:
-                    margin_df = pd.DataFrame(product_margins)
-                    margin_df = margin_df.sort_values('Margin', ascending=False)
-                    
-                    # Create horizontal bar chart for margins
-                    fig_margins = go.Figure()
-                    
-                    # Add bars
-                    fig_margins.add_trace(go.Bar(
-                        y=margin_df['Product'],
-                        x=margin_df['Margin'],
-                        orientation='h',
-                        marker=dict(
-                            color=margin_df['Margin'],
-                            colorscale='Viridis',
-                            colorbar=dict(title='Margin %')
-                        ),
-                        hovertemplate='%{x:.1f}%<br>Revenue: ' + margin_df['Revenue'].apply(lambda x: utils.format_currency(x)).to_list() + '<br>Units: %{customdata}',
-                        customdata=margin_df['Quantity']
-                    ))
-                    
-                    # Add text labels
-                    fig_margins.update_traces(
-                        texttemplate='%{x:.1f}%',
-                        textposition='outside'
-                    )
-                    
-                    # Style the chart
-                    fig_margins.update_layout(
-                        margin=dict(l=10, r=120, t=10, b=10),
-                        xaxis=dict(
-                            title='Profit Margin %',
-                            gridcolor='rgba(255, 255, 255, 0.1)'
-                        ),
-                        yaxis=dict(
-                            title='',
-                            gridcolor='rgba(255, 255, 255, 0.1)'
-                        ),
-                        plot_bgcolor='#1A1A1A',
-                        paper_bgcolor='#1A1A1A',
-                        font=dict(color='white')
-                    )
-                    
-                    st.plotly_chart(fig_margins, use_container_width=True)
-                else:
-                    st.info("No margin data available")
-            else:
-                st.info("No sales data available for the selected period")
-                
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Also calculate daily operating profit (would need operational costs data by day but we don't have that)
+        # So we'll just make an estimate by distributing operational costs equally across the days
+        if len(daily_finance) > 0 and operational_costs > 0:
+            daily_op_cost = operational_costs / len(daily_finance)
+            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit'] - daily_op_cost
+        else:
+            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit']
         
-        # Current Ratio (similar to Excel template)
-        with ratio_col2:
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">SALES TREND ANALYSIS</div>', unsafe_allow_html=True)
-            
-            if not filtered_sales.empty and 'Date' in filtered_sales.columns:
-                # Calculate sales trends by day
-                daily_sales = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Net_Total'].sum().reset_index()
-                daily_sales['Date_Formatted'] = daily_sales['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
-                
-                # Calculate 3-day moving average if enough data
-                if len(daily_sales) >= 3:
-                    daily_sales['MA3'] = daily_sales['Net_Total'].rolling(window=3).mean()
-                
-                # Create sales trend chart
-                fig_sales_trend = go.Figure()
-                
-                # Add daily sales scatter
-                fig_sales_trend.add_trace(go.Scatter(
-                    x=daily_sales['Date_Formatted'],
-                    y=daily_sales['Net_Total'],
-                    mode='lines+markers',
-                    name='Daily Revenue',
-                    line=dict(color='#3498DB'),
-                    hovertemplate='%{y:,.0f} VND<br>%{x}'
-                ))
-                
-                # Add moving average if available
-                if len(daily_sales) >= 3:
-                    fig_sales_trend.add_trace(go.Scatter(
-                        x=daily_sales['Date_Formatted'],
-                        y=daily_sales['MA3'],
-                        mode='lines',
-                        name='3-Day Moving Avg',
-                        line=dict(color='#E74C3C', width=3, dash='dot'),
-                        hovertemplate='%{y:,.0f} VND<br>%{x}'
-                    ))
-                
-                # Style the chart
-                fig_sales_trend.update_layout(
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        xanchor="center",
-                        x=0.5
-                    ),
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    yaxis=dict(
-                        title='Revenue (VND)',
-                        tickformat=',d',
-                        gridcolor='rgba(255, 255, 255, 0.1)'
-                    ),
-                    xaxis=dict(
-                        tickangle=-45,
-                        gridcolor='rgba(255, 255, 255, 0.1)'
-                    ),
-                    plot_bgcolor='#1A1A1A',
-                    paper_bgcolor='#1A1A1A',
-                    font=dict(color='white')
-                )
-                
-                st.plotly_chart(fig_sales_trend, use_container_width=True)
-            else:
-                st.info("No sales data available for trend analysis")
-                
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Format date to DD/MM/YY
+        daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
         
-        # End of enhanced financial dashboard
+        # Line chart for revenue, COGS, gross profit
+        fig1 = go.Figure()
+        
+        # Show both Total (Gross Revenue) and Net_Total after promotions
+        fig1.add_trace(go.Scatter(
+            x=daily_finance['Date_Formatted'],
             y=daily_finance['Total'],
             mode='lines+markers',
             name='Gross Revenue',
