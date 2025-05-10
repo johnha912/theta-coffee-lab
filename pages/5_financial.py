@@ -204,7 +204,7 @@ custom_css = """
     }
     
     .table-container {
-        background-color: #1A1A1A;
+        background-color: #2C2C2C;
         border-radius: 6px;
         padding: 16px;
         margin-bottom: 20px;
@@ -226,11 +226,9 @@ st.set_page_config(page_title="Financial Dashboard", page_icon="📊", layout="w
 # Apply custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# Dashboard Title
-st.markdown('# Financial Dashboard')
-
-# Main dashboard container with dark theme
+# Dashboard Title with dark theme
 st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
+st.markdown('# Financial Dashboard')
 
 # Date filter container with modern UI and consistent dark color
 st.markdown('<div class="chart-container" style="background-color: #2C2C2C;">', unsafe_allow_html=True)
