@@ -228,9 +228,6 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # Dashboard Title
 st.markdown('# Financial Dashboard')
 
-# Main dashboard container
-st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
-
 # Date filter container with modern UI
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
@@ -410,28 +407,29 @@ try:
         # Removed summary display at the top of the page
         
         # Main header - Revenue display
-        revenue_col1, revenue_col2 = st.columns([3, 1])
-        
-        with revenue_col1:
-            # Big revenue display similar to the sample dashboard
-            trend_indicator = "+" if net_revenue > 0 else ""
-            st.markdown(f"""
-            <div style="margin-bottom: 25px;">
-                <div class="period-label">Current Period Revenue</div>
-                <div class="big-metric">{utils.format_currency(net_revenue, include_currency=False)}</div>
-                <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with revenue_col2:
-            # Sales count
-            sales_count = len(filtered_sales) if not filtered_sales.empty else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">TOTAL ORDERS</div>
-                <div class="metric-value">{sales_count}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        with st.container():
+            revenue_col1, revenue_col2 = st.columns([3, 1])
+            
+            with revenue_col1:
+                # Big revenue display similar to the sample dashboard
+                trend_indicator = "+" if net_revenue > 0 else ""
+                st.markdown(f"""
+                <div style="margin-bottom: 25px; padding: 15px; background-color: #121212; border-radius: 6px;">
+                    <div class="period-label">CURRENT PERIOD REVENUE</div>
+                    <div class="big-metric">{utils.format_currency(net_revenue, include_currency=False)}</div>
+                    <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with revenue_col2:
+                # Sales count with matching style to revenue
+                sales_count = len(filtered_sales) if not filtered_sales.empty else 0
+                st.markdown(f"""
+                <div style="margin-bottom: 25px; padding: 15px; background-color: #2C2C2C; border-radius: 6px; height: 100%;">
+                    <div class="period-label">TOTAL ORDERS</div>
+                    <div class="big-metric" style="font-size: 2rem;">{sales_count}</div>
+                </div>
+                """, unsafe_allow_html=True)
         
         # Financial metrics in a grid layout similar to the sample
         st.markdown('<div class="section-header">FINANCIAL METRICS</div>', unsafe_allow_html=True)
@@ -479,14 +477,15 @@ try:
             </div>
             """, unsafe_allow_html=True)
         
-        # Add profit status card (similar to sample)
-        st.markdown(f"""
-        <div class="{'profit-card profit-positive' if net_profit > 0 else 'profit-card profit-negative'}">
-            <div class="profit-status">YOUR BUSINESS IS {financial_status}</div>
-            <div class="profit-amount">{utils.format_currency(abs(net_profit))} {'PROFIT' if net_profit > 0 else 'LOSS'}</div>
-            <div class="profit-percent">Net Profit Margin: {abs(net_margin):.1f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Add profit status card with improved styling
+        with st.container():
+            st.markdown(f"""
+            <div class="{'profit-card profit-positive' if net_profit > 0 else 'profit-card profit-negative'}" style="margin: 10px 0 30px 0;">
+                <div class="profit-status">YOUR BUSINESS IS {financial_status}</div>
+                <div class="profit-amount">{utils.format_currency(abs(net_profit))} {'PROFIT' if net_profit > 0 else 'LOSS'}</div>
+                <div class="profit-percent">Net Profit Margin: {abs(net_margin):.1f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Create a divider between sections
         st.markdown('<div class="dashboard-divider"></div>', unsafe_allow_html=True)
