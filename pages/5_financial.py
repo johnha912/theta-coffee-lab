@@ -623,10 +623,8 @@ try:
         # Product profitability section
         st.markdown('<div class="section-header">PROFITABILITY ANALYSIS</div>', unsafe_allow_html=True)
         
-        # Create container for profitability analysis
-        with st.container():
-            # Create grid for profitability analysis with equal width
-            profit_col1, profit_col2 = st.columns([1, 1])
+        # Create grid for profitability analysis with equal width
+        profit_col1, profit_col2 = st.columns([1, 1])
         
         # Most/least profitable products
         with profit_col1:
