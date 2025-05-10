@@ -241,7 +241,9 @@ def create_order_map(sales_df, time_filter="All Time"):
                 map_df = pd.DataFrame(orders_with_location)
                 
                 # Format for display
-                map_df['Size'] = np.log1p(map_df['Total']) * 3  # Log scale for better visualization
+                # Adjust size calculation to make points more proportional to their value
+                # Using a more moderate scaling to prevent extremes
+                map_df['Size'] = map_df['Total'] / map_df['Total'].max() * 15 + 5  # Scale from 5 to 20
                 map_df['Total_Display'] = map_df['Total'].apply(utils.format_currency)
                 map_df['Date_Display'] = pd.to_datetime(map_df['Date']).dt.strftime('%d/%m/%y %H:%M')
                 
@@ -261,7 +263,8 @@ def create_order_map(sales_df, time_filter="All Time"):
                     lon="Longitude", 
                     size="Size",
                     color="Total",
-                    color_continuous_scale=px.colors.sequential.Viridis,
+                    color_continuous_scale=px.colors.sequential.Blues,  # Sử dụng thang màu Blues từ nhẹ đến đậm
+                    range_color=[map_df['Total'].min(), map_df['Total'].max()],  # Đảm bảo thang màu từ nhỏ nhất đến lớn nhất
                     hover_name="Order_ID",
                     hover_data=["Date_Display", "Total_Display", "Location"],
                     zoom=12,
@@ -276,6 +279,9 @@ def create_order_map(sales_df, time_filter="All Time"):
                     coloraxis_colorbar=dict(
                         title="Total (VND)",
                         tickformat=",",
+                        len=0.75,  # Chiều dài của colorbar
+                        thickness=20,  # Độ dày của colorbar
+                        dtick=map_df['Total'].max() / 5  # Số lượng điểm chia trên thanh màu
                     )
                 )
                 
