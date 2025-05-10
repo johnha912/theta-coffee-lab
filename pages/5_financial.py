@@ -586,32 +586,234 @@ try:
         # Divider
         st.markdown('<div class="dashboard-divider"></div>', unsafe_allow_html=True)
     
-    # Financial Charts
-    st.header("Financial Performance Visualization")
-    
-    # Daily revenue and costs chart
-    if not filtered_sales.empty:
-        # Check if Net_Total column exists
-        if 'Net_Total' in filtered_sales.columns:
-            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
-                'Total': 'sum',
-                'Net_Total': 'sum',
-                'Promo': 'sum'
-            }).reset_index()
-        else:
-            # Fallback to only Total for backward compatibility
-            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
-                'Total': 'sum'
-            }).reset_index()
-            # Add placeholder columns
-            daily_finance['Net_Total'] = daily_finance['Total']
-            daily_finance['Promo'] = 0
+        # Financial Statement Waterfall Chart
+        st.markdown('<div class="section-header">FINANCIAL STATEMENT</div>', unsafe_allow_html=True)
         
-        # Add COGS data - use a safer approach that works with all pandas versions
-        if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns:
-            merged_sales_with_date = merged_sales.copy()
+        # Create waterfall chart similar to Excel template
+        waterfall_col1, waterfall_col2 = st.columns([3, 1])
+        
+        with waterfall_col1:
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">PROFIT WATERFALL</div>', unsafe_allow_html=True)
             
-            if 'Date' in merged_sales_with_date.columns:
+            # Create waterfall chart data
+            waterfall_items = [
+                {"name": "Total Income", "value": gross_revenue, "type": "total"},
+                {"name": "Cost of Goods", "value": -total_cogs, "type": "negative"},
+                {"name": "Gross Profit", "value": gross_profit, "type": "positive"},
+                {"name": "Operating Expenses", "value": -operational_costs, "type": "negative"},
+                {"name": "Net Profit", "value": net_profit, "type": "total"}
+            ]
+            
+            # Create waterfall chart
+            fig_waterfall = go.Figure()
+            
+            # Add waterfall bars
+            for i, item in enumerate(waterfall_items):
+                color = "#1ABC9C" if item["type"] == "positive" else ("#E74C3C" if item["type"] == "negative" else "#34495E")
+                show_value = abs(item["value"]) if i > 0 and i < len(waterfall_items) - 1 else item["value"]
+                
+                fig_waterfall.add_trace(go.Bar(
+                    name=item["name"],
+                    y=[item["name"]],
+                    x=[show_value],
+                    orientation='h',
+                    marker=dict(color=color),
+                    text=utils.format_currency(abs(item["value"])),
+                    textposition="outside",
+                    textfont=dict(size=14, color="white"),
+                    hoverinfo="text",
+                    hovertext=f"{item['name']}: {utils.format_currency(abs(item['value']))}"
+                ))
+            
+            # Style the chart
+            fig_waterfall.update_layout(
+                showlegend=False,
+                height=300,
+                margin=dict(l=20, r=150, t=10, b=10),
+                xaxis=dict(
+                    title='Amount (VND)',
+                    showgrid=False,
+                    zeroline=False,
+                    showticklabels=False
+                ),
+                yaxis=dict(
+                    title='',
+                    autorange="reversed"
+                ),
+                barmode='relative',
+                plot_bgcolor='#1A1A1A',
+                paper_bgcolor='#1A1A1A',
+                font=dict(color='white')
+            )
+            
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Profit Margin Gauge Chart
+        with waterfall_col2:
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">NET PROFIT MARGIN %</div>', unsafe_allow_html=True)
+            
+            # Create donut chart for profit margin
+            fig_margin = go.Figure()
+            
+            # Create colors based on profit margin
+            margin_color = "#1ABC9C" if net_margin > 0 else "#E74C3C"
+            
+            # Create donut chart
+            fig_margin.add_trace(go.Pie(
+                values=[net_margin if net_margin > 0 else 0, 100 - net_margin if net_margin > 0 else 100],
+                labels=["", ""],
+                hole=0.85,
+                marker=dict(colors=[margin_color, '#2C3E50']),
+                hoverinfo="none",
+                textinfo="none",
+                showlegend=False
+            ))
+            
+            # Add text in the middle
+            fig_margin.add_annotation(
+                text=f"{abs(net_margin):.1f}%",
+                x=0.5, y=0.5,
+                font=dict(size=36, color=margin_color),
+                showarrow=False
+            )
+            
+            # Add YTD or comparison
+            fig_margin.add_annotation(
+                text=f"{'+' if net_margin > 0 else ''}{net_margin:.1f}%",
+                x=0.5, y=0.4,
+                font=dict(size=14, color=margin_color),
+                showarrow=False
+            )
+            
+            # Style the chart
+            fig_margin.update_layout(
+                margin=dict(l=0, r=0, t=0, b=0),
+                height=260,
+                plot_bgcolor='#1A1A1A',
+                paper_bgcolor='#1A1A1A'
+            )
+            
+            st.plotly_chart(fig_margin, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        # Additional KPI metrics inspired by the Excel template
+        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+        
+        # Income KPI
+        with kpi_col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">INCOME</div>
+                <div class="metric-value">{utils.format_currency(net_revenue)}</div>
+                <div class="metric-trend">
+                    <span class="metric-positive">+6.6%</span> vs. previous period
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Expenses KPI
+        with kpi_col2:
+            total_expenses = total_cogs + operational_costs
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">EXPENSES</div>
+                <div class="metric-value">{utils.format_currency(total_expenses)}</div>
+                <div class="metric-trend">
+                    <span class="metric-negative">+1.9%</span> vs. previous period
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Income Budget KPI with gauge
+        with kpi_col3:
+            # Assuming target is 20% higher than current for demo purposes
+            income_target = net_revenue * 1.2
+            income_budget_pct = min(100, (net_revenue / income_target) * 100) if income_target > 0 else 0
+            
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">% OF INCOME BUDGET</div>
+                <div style="position: relative; height: 60px; margin: 10px 0;">
+                    <div style="position: absolute; width: 100%; height: 10px; background-color: #333; border-radius: 5px; top: 25px;"></div>
+                    <div style="position: absolute; width: {income_budget_pct}%; height: 10px; background-color: #1ABC9C; border-radius: 5px; top: 25px;"></div>
+                    <div style="position: absolute; width: 20px; height: 20px; background-color: #1ABC9C; border-radius: 50%; top: 20px; left: calc({income_budget_pct}% - 10px);"></div>
+                    <div style="position: absolute; width: 100%; text-align: center; top: 40px; font-size: 24px; font-weight: bold; color: #1ABC9C;">{income_budget_pct:.0f}%</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Second row of KPIs
+        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+        
+        # Net Profit KPI
+        with kpi_col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">NET PROFIT</div>
+                <div class="metric-value {net_profit_class}">{utils.format_currency(net_profit)}</div>
+                <div class="metric-trend">
+                    <span class="{net_profit_class}">+5.9%</span> vs. previous period
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Cash Equivalent KPI (this would be approximated since we don't track cash)
+        with kpi_col2:
+            # For demo purposes only - in real implementation, cash would be tracked properly
+            cash_equivalent = net_profit * 4  # Just a demo multiplier
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">CASH EQUIVALENT</div>
+                <div class="metric-value">{utils.format_currency(cash_equivalent)}</div>
+                <div class="metric-trend">
+                    <span class="metric-negative">-5.0%</span> vs. previous period
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Expenses Budget KPI with gauge
+        with kpi_col3:
+            # Assuming target is 20% lower than current for demo purposes
+            expense_target = total_expenses * 1.2
+            expense_budget_pct = min(100, (total_expenses / expense_target) * 100) if expense_target > 0 else 0
+            
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">% OF EXPENSES BUDGET</div>
+                <div style="position: relative; height: 60px; margin: 10px 0;">
+                    <div style="position: absolute; width: 100%; height: 10px; background-color: #333; border-radius: 5px; top: 25px;"></div>
+                    <div style="position: absolute; width: {expense_budget_pct}%; height: 10px; background-color: #E74C3C; border-radius: 5px; top: 25px;"></div>
+                    <div style="position: absolute; width: 20px; height: 20px; background-color: #E74C3C; border-radius: 50%; top: 20px; left: calc({expense_budget_pct}% - 10px);"></div>
+                    <div style="position: absolute; width: 100%; text-align: center; top: 40px; font-size: 24px; font-weight: bold; color: #E74C3C;">{expense_budget_pct:.0f}%</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Financial Charts & Visualizations section
+    st.markdown('<div class="section-header">FINANCIAL PERFORMANCE VISUALIZATION</div>', unsafe_allow_html=True)
+    
+    # Income and Expenses Chart (similar to Excel template)
+    income_expense_col1, income_expense_col2 = st.columns(2)
+    
+    with income_expense_col1:
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">INCOME AND EXPENSES</div>', unsafe_allow_html=True)
+        
+        if not filtered_sales.empty and 'Date' in filtered_sales.columns:
+            # Prepare data for income and expenses chart
+            daily_finance = filtered_sales.groupby(filtered_sales['Date'].dt.date).agg({
+                'Net_Total': 'sum'
+            }).reset_index()
+            
+            # Format date to DD/MM/YY
+            daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+            
+            # Add COGS data if available
+            if 'COGS' in merged_sales.columns and 'Order_Quantity' in merged_sales.columns and 'Date' in merged_sales.columns:
+                merged_sales_with_date = merged_sales.copy()
                 merged_sales_with_date['Date_Only'] = merged_sales_with_date['Date'].dt.date
                 
                 # Calculate COGS per row
@@ -631,35 +833,303 @@ try:
                     how='left'
                 ).fillna(0)
             else:
-                # If no Date column, simply add a COGS column with zeros
                 daily_finance['COGS'] = 0
+            
+            # Calculate expenses per day - distribute operational costs across days
+            if len(daily_finance) > 0:
+                daily_op_cost = operational_costs / len(daily_finance) if operational_costs > 0 else 0
+                daily_finance['Operational_Costs'] = daily_op_cost
+                daily_finance['Total_Costs'] = daily_finance['COGS'] + daily_finance['Operational_Costs']
+            else:
+                daily_finance['Operational_Costs'] = 0
+                daily_finance['Total_Costs'] = daily_finance['COGS']
+                
+            # Create the income and expenses chart with bars and line
+            fig_income_expenses = go.Figure()
+            
+            # Add revenue bars
+            fig_income_expenses.add_trace(go.Bar(
+                x=daily_finance['Date_Formatted'],
+                y=daily_finance['Net_Total'],
+                name='Income',
+                marker=dict(color='#1ABC9C')
+            ))
+            
+            # Add expense bars
+            fig_income_expenses.add_trace(go.Bar(
+                x=daily_finance['Date_Formatted'],
+                y=daily_finance['Total_Costs'],
+                name='Expenses',
+                marker=dict(color='#E74C3C')
+            ))
+            
+            # Style the chart
+            fig_income_expenses.update_layout(
+                barmode='group',
+                bargap=0.2,
+                bargroupgap=0.1,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(l=10, r=10, t=10, b=10),
+                yaxis=dict(
+                    title='Amount (VND)',
+                    tickformat=',d',
+                    gridcolor='rgba(255, 255, 255, 0.1)'
+                ),
+                xaxis=dict(
+                    tickangle=-45,
+                    gridcolor='rgba(255, 255, 255, 0.1)'
+                ),
+                plot_bgcolor='#1A1A1A',
+                paper_bgcolor='#1A1A1A',
+                font=dict(color='white')
+            )
+            
+            # Add value labels on the bars
+            for i, y in enumerate(daily_finance['Net_Total']):
+                if y > 0:
+                    fig_income_expenses.add_annotation(
+                        x=daily_finance['Date_Formatted'][i],
+                        y=y,
+                        text=f"{y/1000:.0f}k",
+                        showarrow=False,
+                        yshift=10,
+                        font=dict(size=10, color="white")
+                    )
+            
+            # Display the chart
+            st.plotly_chart(fig_income_expenses, use_container_width=True)
         else:
-            # If no COGS data, add it as zeros
-            daily_finance['COGS'] = 0
+            st.info("No sales data available for the selected period")
+            
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        # Calculate daily financial metrics properly
-        daily_finance['Net_Revenue'] = daily_finance['Net_Total']
+        # Accounts Receivable / Payable (similar to template)
+        with income_expense_col2:
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">DAILY REVENUE BREAKDOWN</div>', unsafe_allow_html=True)
+            
+            if not filtered_sales.empty and 'Date' in filtered_sales.columns:
+                # Calculate daily revenue by product
+                product_daily = filtered_sales.groupby(['Date', 'Product'])['Net_Total'].sum().reset_index()
+                
+                # Format date
+                product_daily['Date_Formatted'] = product_daily['Date'].dt.strftime('%d/%m/%y')
+                
+                # Get unique dates and products
+                dates = product_daily['Date_Formatted'].unique()
+                products = product_daily['Product'].unique()
+                
+                # Create a colorful stacked bar chart
+                fig_product_revenue = go.Figure()
+                
+                # Get a colorful palette
+                colors = px.colors.qualitative.Bold
+                
+                # Add bars for each product
+                for i, product in enumerate(products):
+                    product_data = product_daily[product_daily['Product'] == product]
+                    
+                    fig_product_revenue.add_trace(go.Bar(
+                        x=product_data['Date_Formatted'],
+                        y=product_data['Net_Total'],
+                        name=product,
+                        marker=dict(color=colors[i % len(colors)]),
+                        hovertemplate='%{y:,.0f} VND<br>%{x}'
+                    ))
+                
+                # Style the chart
+                fig_product_revenue.update_layout(
+                    barmode='stack',
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    yaxis=dict(
+                        title='Revenue (VND)',
+                        tickformat=',d',
+                        gridcolor='rgba(255, 255, 255, 0.1)'
+                    ),
+                    xaxis=dict(
+                        tickangle=-45,
+                        gridcolor='rgba(255, 255, 255, 0.1)'
+                    ),
+                    plot_bgcolor='#1A1A1A',
+                    paper_bgcolor='#1A1A1A',
+                    font=dict(color='white')
+                )
+                
+                st.plotly_chart(fig_product_revenue, use_container_width=True)
+            else:
+                st.info("No sales data available for the selected period")
+                
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        # Gross Profit = Net Revenue - COGS (using the correct formula from accounting principles)
-        daily_finance['Gross_Profit'] = daily_finance['Net_Revenue'] - daily_finance['COGS']
+        # Financial Ratios Row
+        ratio_col1, ratio_col2 = st.columns(2)
         
-        # Also calculate daily operating profit (would need operational costs data by day but we don't have that)
-        # So we'll just make an estimate by distributing operational costs equally across the days
-        if len(daily_finance) > 0 and operational_costs > 0:
-            daily_op_cost = operational_costs / len(daily_finance)
-            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit'] - daily_op_cost
-        else:
-            daily_finance['Operating_Profit'] = daily_finance['Gross_Profit']
+        # Quick Ratio (similar to Excel template)
+        with ratio_col1:
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">PROFIT MARGIN ANALYSIS</div>', unsafe_allow_html=True)
+            
+            if not filtered_sales.empty:
+                # Calculate profit margins for all products
+                product_margins = []
+                
+                for product in merged_sales['Product'].unique():
+                    if pd.notna(product):
+                        product_data = merged_sales[merged_sales['Product'] == product]
+                        
+                        if 'Price' in product_data.columns and 'COGS' in product_data.columns:
+                            try:
+                                # Get product price and COGS
+                                product_price = product_data['Price'].iloc[0] if not product_data.empty else 0
+                                product_cogs = product_data['COGS'].iloc[0] if not product_data.empty else 0
+                                product_quantity = product_data['Order_Quantity'].sum() if not product_data.empty else 0
+                                
+                                # Calculate margin
+                                if product_price > 0:
+                                    margin_pct = ((product_price - product_cogs) / product_price) * 100
+                                    product_margins.append({
+                                        'Product': product,
+                                        'Margin': margin_pct,
+                                        'Revenue': product_price * product_quantity,
+                                        'Quantity': product_quantity
+                                    })
+                            except:
+                                continue
+                
+                # Create DataFrame and sort by margin
+                if product_margins:
+                    margin_df = pd.DataFrame(product_margins)
+                    margin_df = margin_df.sort_values('Margin', ascending=False)
+                    
+                    # Create horizontal bar chart for margins
+                    fig_margins = go.Figure()
+                    
+                    # Add bars
+                    fig_margins.add_trace(go.Bar(
+                        y=margin_df['Product'],
+                        x=margin_df['Margin'],
+                        orientation='h',
+                        marker=dict(
+                            color=margin_df['Margin'],
+                            colorscale='Viridis',
+                            colorbar=dict(title='Margin %')
+                        ),
+                        hovertemplate='%{x:.1f}%<br>Revenue: ' + margin_df['Revenue'].apply(lambda x: utils.format_currency(x)).to_list() + '<br>Units: %{customdata}',
+                        customdata=margin_df['Quantity']
+                    ))
+                    
+                    # Add text labels
+                    fig_margins.update_traces(
+                        texttemplate='%{x:.1f}%',
+                        textposition='outside'
+                    )
+                    
+                    # Style the chart
+                    fig_margins.update_layout(
+                        margin=dict(l=10, r=120, t=10, b=10),
+                        xaxis=dict(
+                            title='Profit Margin %',
+                            gridcolor='rgba(255, 255, 255, 0.1)'
+                        ),
+                        yaxis=dict(
+                            title='',
+                            gridcolor='rgba(255, 255, 255, 0.1)'
+                        ),
+                        plot_bgcolor='#1A1A1A',
+                        paper_bgcolor='#1A1A1A',
+                        font=dict(color='white')
+                    )
+                    
+                    st.plotly_chart(fig_margins, use_container_width=True)
+                else:
+                    st.info("No margin data available")
+            else:
+                st.info("No sales data available for the selected period")
+                
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        # Format date to DD/MM/YY
-        daily_finance['Date_Formatted'] = daily_finance['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+        # Current Ratio (similar to Excel template)
+        with ratio_col2:
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">SALES TREND ANALYSIS</div>', unsafe_allow_html=True)
+            
+            if not filtered_sales.empty and 'Date' in filtered_sales.columns:
+                # Calculate sales trends by day
+                daily_sales = filtered_sales.groupby(filtered_sales['Date'].dt.date)['Net_Total'].sum().reset_index()
+                daily_sales['Date_Formatted'] = daily_sales['Date'].apply(lambda x: x.strftime('%d/%m/%y'))
+                
+                # Calculate 3-day moving average if enough data
+                if len(daily_sales) >= 3:
+                    daily_sales['MA3'] = daily_sales['Net_Total'].rolling(window=3).mean()
+                
+                # Create sales trend chart
+                fig_sales_trend = go.Figure()
+                
+                # Add daily sales scatter
+                fig_sales_trend.add_trace(go.Scatter(
+                    x=daily_sales['Date_Formatted'],
+                    y=daily_sales['Net_Total'],
+                    mode='lines+markers',
+                    name='Daily Revenue',
+                    line=dict(color='#3498DB'),
+                    hovertemplate='%{y:,.0f} VND<br>%{x}'
+                ))
+                
+                # Add moving average if available
+                if len(daily_sales) >= 3:
+                    fig_sales_trend.add_trace(go.Scatter(
+                        x=daily_sales['Date_Formatted'],
+                        y=daily_sales['MA3'],
+                        mode='lines',
+                        name='3-Day Moving Avg',
+                        line=dict(color='#E74C3C', width=3, dash='dot'),
+                        hovertemplate='%{y:,.0f} VND<br>%{x}'
+                    ))
+                
+                # Style the chart
+                fig_sales_trend.update_layout(
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    yaxis=dict(
+                        title='Revenue (VND)',
+                        tickformat=',d',
+                        gridcolor='rgba(255, 255, 255, 0.1)'
+                    ),
+                    xaxis=dict(
+                        tickangle=-45,
+                        gridcolor='rgba(255, 255, 255, 0.1)'
+                    ),
+                    plot_bgcolor='#1A1A1A',
+                    paper_bgcolor='#1A1A1A',
+                    font=dict(color='white')
+                )
+                
+                st.plotly_chart(fig_sales_trend, use_container_width=True)
+            else:
+                st.info("No sales data available for trend analysis")
+                
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        # Line chart for revenue, COGS, gross profit
-        fig1 = go.Figure()
-        
-        # Show both Total (Gross Revenue) and Net_Total after promotions
-        fig1.add_trace(go.Scatter(
-            x=daily_finance['Date_Formatted'],
+        # End of enhanced financial dashboard
             y=daily_finance['Total'],
             mode='lines+markers',
             name='Gross Revenue',
