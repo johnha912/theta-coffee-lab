@@ -124,6 +124,7 @@ custom_css = """
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         margin-bottom: 20px;
+        height: 100%;
     }
     
     .chart-title {
@@ -435,8 +436,10 @@ try:
         # Financial metrics in a grid layout similar to the sample
         st.markdown('<div class="section-header">FINANCIAL METRICS</div>', unsafe_allow_html=True)
         
-        # Create KPI cards in a grid with darker colors and modern layout
-        kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+        # Create container for KPI cards with equal spacing
+        with st.container():
+            # Create KPI cards in a grid with darker colors and modern layout
+            kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns([1, 1, 1, 1])
         
         with kpi_col1:
             kpi_class = "metric-positive" if gross_profit > 0 else "metric-negative"
@@ -491,8 +494,10 @@ try:
         # Revenue and cost breakdown
         st.markdown('<div class="section-header">REVENUE & COST BREAKDOWN</div>', unsafe_allow_html=True)
         
-        # Create a grid for the charts
-        chart_col1, chart_col2 = st.columns(2)
+        # Create a container for the charts to ensure even spacing
+        with st.container():
+            # Create a grid for the charts with equal width
+            chart_col1, chart_col2 = st.columns([1, 1])
         
         # Revenue breakdown chart
         with chart_col1:
@@ -609,8 +614,10 @@ try:
         # Product profitability section
         st.markdown('<div class="section-header">PROFITABILITY ANALYSIS</div>', unsafe_allow_html=True)
         
-        # Create grid for profitability analysis
-        profit_col1, profit_col2 = st.columns(2)
+        # Create container for profitability analysis
+        with st.container():
+            # Create grid for profitability analysis with equal width
+            profit_col1, profit_col2 = st.columns([1, 1])
         
         # Most/least profitable products
         with profit_col1:
@@ -754,7 +761,8 @@ try:
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Third row for financial charts
-        income_expense_col1, income_expense_col2 = st.columns(2)
+        with st.container():
+            income_expense_col1, income_expense_col2 = st.columns([1, 1])
         
         # Profit split donut chart (similar to Excel template)
         with income_expense_col1:
@@ -895,7 +903,8 @@ try:
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Financial Ratios Row
-        ratio_col1, ratio_col2 = st.columns(2)
+        with st.container():
+            ratio_col1, ratio_col2 = st.columns([1, 1])
         
         # Quick Ratio (similar to Excel template)
         with ratio_col1:
