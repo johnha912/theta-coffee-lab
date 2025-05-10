@@ -34,6 +34,10 @@ pio.templates.default = 'custom_ggplot2'
 st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
 
 st.title("Financial Report")
+
+# Tạo placeholder để hiển thị tóm tắt tình trạng tài chính ở đầu trang
+summary_placeholder = st.empty()
+
 st.subheader("Financial KPIs and Analysis")
 
 # Time filter
@@ -223,25 +227,164 @@ try:
     with col2:
         # Display Profit KPIs
         st.metric("Total COGS", utils.format_currency(total_cogs))
-        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
+        
+        # Color-coded Gross Profit based on profitability
+        gross_profit_html = f"""
+        <div style="
+            background-color: {'#d4f7d4' if gross_profit_correct > 0 else '#f7d4d4'}; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+            border: 2px solid {'#28a745' if gross_profit_correct > 0 else '#dc3545'};
+            margin-bottom: 10px;">
+            <h3 style="margin: 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'};">
+                Gross Profit
+            </h3>
+            <h2 style="margin: 5px 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'}; font-weight: bold;">
+                {utils.format_currency(abs(gross_profit_correct))} {'Profit' if gross_profit_correct > 0 else 'Loss'}
+            </h2>
+        </div>
+        """
+        st.markdown(gross_profit_html, unsafe_allow_html=True)
         
         # Calculate Gross Profit Margin correctly based on Net Revenue
         # Gross Profit Margin = Gross Profit / Net Revenue
         gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
-        st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
+        
+        # Color-coded Gross Profit Margin
+        gross_margin_html = f"""
+        <div style="
+            background-color: {'#d4f7d4' if gross_profit_margin > 0 else '#f7d4d4'}; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+            border: 2px solid {'#28a745' if gross_profit_margin > 0 else '#dc3545'};
+            margin-bottom: 10px;">
+            <h3 style="margin: 0; color: {'#28a745' if gross_profit_margin > 0 else '#dc3545'};">
+                Gross Profit Margin
+            </h3>
+            <h2 style="margin: 5px 0; color: {'#28a745' if gross_profit_margin > 0 else '#dc3545'}; font-weight: bold;">
+                {abs(gross_profit_margin):.2f}%
+            </h2>
+        </div>
+        """
+        st.markdown(gross_margin_html, unsafe_allow_html=True)
     
     with col3:
         # Display profitability metrics
         st.metric("Operational Costs", utils.format_currency(operational_costs))
-        st.metric("Net Profit", utils.format_currency(net_profit))
+        
+        # Color-coded Net Profit based on profitability
+        net_profit_html = f"""
+        <div style="
+            background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+            border: 2px solid {'#28a745' if net_profit > 0 else '#dc3545'};
+            margin-bottom: 10px;">
+            <h3 style="margin: 0; color: {'#28a745' if net_profit > 0 else '#dc3545'};">
+                Net Profit
+            </h3>
+            <h2 style="margin: 5px 0; color: {'#28a745' if net_profit > 0 else '#dc3545'}; font-weight: bold;">
+                {utils.format_currency(abs(net_profit))} {'Profit' if net_profit > 0 else 'Loss'}
+            </h2>
+        </div>
+        """
+        st.markdown(net_profit_html, unsafe_allow_html=True)
         
         # Calculate Net Profit Margin correctly based on Net Revenue as per standard formula
         # Net Profit Margin = Net Profit / Net Revenue
         net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
-        st.metric("Net Profit Margin", f"{net_margin:.2f}%")
+        
+        # Color-coded Net Profit Margin
+        net_margin_html = f"""
+        <div style="
+            background-color: {'#d4f7d4' if net_margin > 0 else '#f7d4d4'}; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+            border: 2px solid {'#28a745' if net_margin > 0 else '#dc3545'};
+            margin-bottom: 10px;">
+            <h3 style="margin: 0; color: {'#28a745' if net_margin > 0 else '#dc3545'};">
+                Net Profit Margin
+            </h3>
+            <h2 style="margin: 5px 0; color: {'#28a745' if net_margin > 0 else '#dc3545'}; font-weight: bold;">
+                {abs(net_margin):.2f}%
+            </h2>
+        </div>
+        """
+        st.markdown(net_margin_html, unsafe_allow_html=True)
         
         # Add most profitable product at the bottom of the third column
         st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
+    
+    # Thêm phần tóm tắt tình trạng tài chính với nền màu
+    financial_status = "PROFITABLE" if net_profit > 0 else "LOSS MAKING"
+    status_color = "#28a745" if net_profit > 0 else "#dc3545"
+    
+    financial_summary_html = f"""
+    <div style="
+        background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
+        padding: 20px; 
+        border-radius: 10px; 
+        text-align: center;
+        border: 3px solid {status_color};
+        margin: 20px 0;">
+        <h2 style="margin: 0 0 10px 0; color: {status_color};">BUSINESS STATUS: {financial_status}</h2>
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+            <div style="margin: 10px; min-width: 150px;">
+                <h3 style="margin: 0; color: {'#28a745' if net_revenue > 0 else '#6c757d'};">Net Revenue</h3>
+                <h4 style="margin: 5px 0;">{utils.format_currency(net_revenue)}</h4>
+            </div>
+            <div style="margin: 10px; min-width: 150px;">
+                <h3 style="margin: 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'};">Gross Profit</h3>
+                <h4 style="margin: 5px 0;">{utils.format_currency(gross_profit_correct)}</h4>
+                <small>({gross_profit_margin:.1f}%)</small>
+            </div>
+            <div style="margin: 10px; min-width: 150px;">
+                <h3 style="margin: 0; color: #6c757d;">Operational Costs</h3>
+                <h4 style="margin: 5px 0;">{utils.format_currency(operational_costs)}</h4>
+            </div>
+            <div style="margin: 10px; min-width: 150px;">
+                <h3 style="margin: 0; color: {status_color};">Net Profit</h3>
+                <h4 style="margin: 5px 0;">{utils.format_currency(abs(net_profit))}</h4>
+                <small>({abs(net_margin):.1f}%)</small>
+            </div>
+        </div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid {status_color};">
+            <p style="margin: 0; color: {status_color}; font-weight: bold;">
+                {
+                    "Your business is profitable! You're making " + utils.format_currency(net_profit) + " in this period." 
+                    if net_profit > 0 else 
+                    "Your business is making a loss of " + utils.format_currency(abs(net_profit)) + " in this period."
+                }
+            </p>
+        </div>
+    </div>
+    """
+    
+    # Hiển thị tóm tắt tài chính ở cả phần dưới và phần đầu trang
+    st.markdown(financial_summary_html, unsafe_allow_html=True)
+    
+    # Tạo phiên bản tóm tắt nhỏ gọn hơn cho đầu trang
+    compact_summary_html = f"""
+    <div style="
+        background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
+        padding: 15px; 
+        border-radius: 10px; 
+        text-align: center;
+        border: 3px solid {status_color};
+        margin: 10px 0 20px 0;">
+        <h3 style="margin: 0; color: {status_color};">
+            STATUS: {financial_status} | Net Profit: {utils.format_currency(abs(net_profit))} 
+            {'PROFIT' if net_profit > 0 else 'LOSS'} ({abs(net_margin):.1f}%)
+        </h3>
+    </div>
+    """
+    
+    # Hiển thị tóm tắt nhỏ gọn ở phần đầu trang
+    summary_placeholder.markdown(compact_summary_html, unsafe_allow_html=True)
     
     # Financial Charts
     st.header("Financial Performance Visualization")
