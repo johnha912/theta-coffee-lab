@@ -227,9 +227,6 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # Dashboard Title
 st.markdown('<div class="dashboard-title">Theta Coffee Lab Financial Dashboard</div>', unsafe_allow_html=True)
 
-# Create placeholder for financial summary
-summary_placeholder = st.empty()
-
 # Main dashboard container
 st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
 
@@ -409,24 +406,7 @@ try:
         financial_status = "PROFITABLE" if net_profit > 0 else "LOSS MAKING"
         status_color = "#2ECC71" if net_profit > 0 else "#E74C3C"  # Green or Red
         
-        # Create a compact summary for the top of the page
-        compact_summary_html = f"""
-        <div style="
-            background-color: {f'rgba(46, 204, 113, 0.1)' if net_profit > 0 else 'rgba(231, 76, 60, 0.1)'}; 
-            padding: 15px; 
-            border-radius: 10px; 
-            text-align: center;
-            border: 2px solid {status_color};
-            margin: 0 0 20px 0;">
-            <h3 style="margin: 0; color: {status_color}; font-weight: bold;">
-                BUSINESS STATUS: {financial_status} | Net Profit: {utils.format_currency(abs(net_profit))} 
-                {'PROFIT' if net_profit > 0 else 'LOSS'} ({abs(net_margin):.1f}%)
-            </h3>
-        </div>
-        """
-        
-        # Display compact summary at the top of the page
-        summary_placeholder.markdown(compact_summary_html, unsafe_allow_html=True)
+        # Removed summary display at the top of the page
         
         # Main header - Revenue display
         revenue_col1, revenue_col2 = st.columns([3, 1])
