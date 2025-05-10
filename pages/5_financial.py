@@ -225,7 +225,7 @@ st.set_page_config(page_title="Financial Dashboard", page_icon="📊", layout="w
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # Dashboard Title
-st.markdown('<div class="dashboard-title">Theta Coffee Lab Financial Dashboard</div>', unsafe_allow_html=True)
+st.markdown('# Financial Dashboard')
 
 # Main dashboard container
 st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
