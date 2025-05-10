@@ -5,54 +5,254 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import datetime
 import utils
+import numpy as np
 
 # Khởi tạo session_state
 utils.initialize_session_state()
 
-# Set default template to ggplot2
-pio.templates.default = 'ggplot2'
+# Set dark theme for modern financial dashboard appearance
+pio.templates.default = 'plotly_dark'
 
-# Tạo template ggplot2 custom với nền xám và lưới
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Màu nền paper
-    plot_bgcolor='#F0F0F0',   # Màu nền plot
+# Create a custom dark theme
+custom_dark_template = pio.templates['plotly_dark']
+custom_dark_template.layout.update(
+    paper_bgcolor='#1E1E1E',  # Dark background
+    plot_bgcolor='#1E1E1E',   # Dark plot area
+    font=dict(color='#FFFFFF'),
     xaxis=dict(
         showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
+        gridcolor='rgba(255, 255, 255, 0.1)',
+        gridwidth=0.5
     ),
     yaxis=dict(
         showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
+        gridcolor='rgba(255, 255, 255, 0.1)',
+        gridwidth=0.5
     )
 )
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-pio.templates.default = 'custom_ggplot2'
+pio.templates['custom_dark'] = custom_dark_template
+pio.templates.default = 'custom_dark'
 
-st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
+# Custom CSS for the financial dashboard based on the dark theme inspiration
+custom_css = """
+<style>
+    .dashboard-title {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: white;
+    }
+    
+    .metric-card {
+        background-color: #1A1A1A;
+        border-radius: 6px;
+        padding: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 16px;
+        border-left: 3px solid #444;
+    }
+    
+    .metric-title {
+        font-size: 0.8rem;
+        font-weight: 400;
+        margin-bottom: 5px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .metric-positive {
+        color: #72f879;
+    }
+    
+    .metric-negative {
+        color: #ff5757;
+    }
+    
+    .metric-trend {
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .profit-card {
+        padding: 18px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .profit-positive {
+        background-color: rgba(114, 248, 121, 0.05);
+        border-left: 3px solid #72f879;
+    }
+    
+    .profit-negative {
+        background-color: rgba(255, 87, 87, 0.05);
+        border-left: 3px solid #ff5757;
+    }
+    
+    .profit-status {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .profit-amount {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .profit-percent {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        opacity: 0.8;
+    }
+    
+    .chart-container {
+        background-color: #1A1A1A;
+        border-radius: 6px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 20px;
+    }
+    
+    .chart-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 15px;
+        color: #CCC;
+        text-align: left;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .dashboard-divider {
+        margin: 24px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .main-dashboard {
+        padding: 20px;
+        background-color: #121212;
+        border-radius: 6px;
+    }
+    
+    .period-label {
+        color: #888;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    
+    .period-value {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .section-header {
+        font-size: 1rem;
+        color: #CCC;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-left: 3px solid #666;
+        padding-left: 10px;
+        margin: 30px 0 15px 0;
+    }
+    
+    /* Custom styling for Streamlit components */
+    div[data-testid="stSelectbox"] > div > div {
+        background-color: #333;
+        border: none;
+        color: white;
+    }
+    
+    div[data-testid="stDateInput"] > div > div {
+        background-color: #333;
+        border: none;
+        color: white;
+    }
+    
+    .big-metric {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .big-metric-trend-up {
+        color: #72f879;
+        font-size: 0.9rem;
+        margin-left: 10px;
+    }
+    
+    .big-metric-trend-down {
+        color: #ff5757;
+        font-size: 0.9rem;
+        margin-left: 10px;
+    }
+    
+    .table-container {
+        background-color: #1A1A1A;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .table-header {
+        color: #888;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+    }
+</style>
+"""
 
-st.title("Financial Report")
+st.set_page_config(page_title="Financial Dashboard", page_icon="📊", layout="wide")
 
-# Tạo placeholder để hiển thị tóm tắt tình trạng tài chính ở đầu trang
+# Apply custom CSS
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# Dashboard Title
+st.markdown('<div class="dashboard-title">Theta Coffee Lab Financial Dashboard</div>', unsafe_allow_html=True)
+
+# Create placeholder for financial summary
 summary_placeholder = st.empty()
 
-st.subheader("Financial KPIs and Analysis")
+# Main dashboard container
+st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
+
+# Date filter container with modern UI
+st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+st.markdown('<div class="chart-title">Select Time Period</div>', unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([2,2,1])
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
 # Ensure default_time_filter exists and is valid
 if 'default_time_filter' not in st.session_state or st.session_state.default_time_filter not in time_options:
     st.session_state.default_time_filter = "Today"
-time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
+
+with col1:
+    time_filter = st.selectbox("Select Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
 
 # Date range for custom filter
 if time_filter == "Custom":
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("Start Date", datetime.datetime.now() - datetime.timedelta(days=7))
     with col2:
+        start_date = st.date_input("Start Date", datetime.datetime.now() - datetime.timedelta(days=7))
+    with col3:
         end_date = st.date_input("End Date", datetime.datetime.now())
 else:
     # Set date range based on selection
@@ -66,6 +266,12 @@ else:
     elif time_filter == "All Time":
         # Set to a very old date for "All Time"
         start_date = datetime.datetime(2020, 1, 1).date()
+        
+    # Display the date range for non-custom filters
+    with col2:
+        st.info(f"Date Range: {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 try:
     # Load data
@@ -85,306 +291,300 @@ try:
     filtered_sales = sales_df[(sales_df['Date'].dt.date >= start_date) & 
                              (sales_df['Date'].dt.date <= end_date)]
     
-    # Financial KPIs
-    st.header("Financial Key Performance Indicators")
-    
-    # Check if filtered_sales is empty
-    if filtered_sales.empty:
-        total_revenue = 0
-        total_cogs = 0
-        merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
-    else:
-        # Add Net_Total and Promo columns if they don't exist
-        if 'Net_Total' not in filtered_sales.columns:
-            filtered_sales['Net_Total'] = filtered_sales['Total']
-        if 'Promo' not in filtered_sales.columns:
-            filtered_sales['Promo'] = 0.0
-        
-        # Calculate revenue using Total (gross revenue before discounts)
-        total_revenue = filtered_sales['Total'].sum()
-        
-        # Calculate COGS
-        filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
-        merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name', how='left')
-        
-        # Check if COGS column exists in products_df
-        if 'COGS' in merged_sales.columns:
-            total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
-        else:
+    # Financial analysis container
+    with st.container():
+        # Calculate financial metrics
+        # Check if filtered_sales is empty
+        if filtered_sales.empty:
+            total_revenue = 0
             total_cogs = 0
-    
-    # Calculate gross profit
-    gross_profit = total_revenue - total_cogs
-    
-    # Calculate gross profit margin
-    gross_profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
-    
-    # Most profitable product
-    def calc_profit(group):
-        # Only calculate if all required columns exist
-        if all(col in group.columns for col in ['Price', 'COGS', 'Order_Quantity']):
-            # Make sure all values are numeric
-            try:
-                return ((group['Price'] - group['COGS']) * group['Order_Quantity']).sum()
-            except:
-                return 0
-        return 0
-        
-    # Fix groupby warning by handling product profit calculation differently
-    product_profit_list = []
-    
-    # Check if necessary columns are present
-    required_cols = ['Product', 'Price', 'COGS', 'Order_Quantity']
-    if all(col in merged_sales.columns for col in required_cols) and not merged_sales.empty:
-        # Process each product individually
-        for product in merged_sales['Product'].unique():
-            if pd.notna(product):  # Skip NaN product names
-                product_data = merged_sales[merged_sales['Product'] == product]
-                profit = calc_profit(product_data)
-                product_profit_list.append({'Product': product, 'Profit': profit})
-    
-    # Convert to DataFrame (empty if no products)
-    product_profit = pd.DataFrame(product_profit_list)
-    
-    # Safely get the most profitable product with multiple checks
-    if not product_profit.empty and 'Profit' in product_profit.columns and product_profit['Profit'].notnull().any():
-        # Only proceed if we have valid profit data
-        max_idx = product_profit['Profit'].idxmax()
-        if max_idx is not None:
-            most_profitable = product_profit.loc[max_idx]
+            merged_sales = pd.DataFrame(columns=['Product', 'Order_Quantity', 'COGS', 'Price'])
         else:
-            most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
-    else:
-        most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
-    
-    # Make a fake cost entry for testing if no costs exist
-    if operational_costs_df.empty:
-        today = datetime.datetime.now()
-        test_cost = pd.DataFrame([{
-            'Date': today,
-            'Type': 'Rent',
-            'Amount': 5000000  # 5 million VND
-        }])
-        operational_costs_df = pd.concat([operational_costs_df, test_cost], ignore_index=True)
+            # Add Net_Total and Promo columns if they don't exist
+            if 'Net_Total' not in filtered_sales.columns:
+                filtered_sales['Net_Total'] = filtered_sales['Total']
+            if 'Promo' not in filtered_sales.columns:
+                filtered_sales['Promo'] = 0.0
+            
+            # Calculate revenue using Total (gross revenue before discounts)
+            total_revenue = filtered_sales['Total'].sum()
+            
+            # Calculate COGS
+            filtered_sales_copy = filtered_sales.rename(columns={'Quantity': 'Order_Quantity'})  # Rename to avoid collision
+            merged_sales = pd.merge(filtered_sales_copy, products_df, left_on='Product', right_on='Name', how='left')
+            
+            # Check if COGS column exists in products_df
+            if 'COGS' in merged_sales.columns:
+                total_cogs = (merged_sales['COGS'] * merged_sales['Order_Quantity']).sum()
+            else:
+                total_cogs = 0
         
-        # Save the test data
-        test_cost_to_save = pd.DataFrame([{
-            'Date': today.strftime('%Y-%m-%d'),
-            'Type': 'Rent',
-            'Amount': 5000000
-        }])
-        test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
+        # Make a fake cost entry for testing if no costs exist
+        if operational_costs_df.empty:
+            today = datetime.datetime.now()
+            test_cost = pd.DataFrame([{
+                'Date': today,
+                'Type': 'Rent',
+                'Amount': 5000000  # 5 million VND
+            }])
+            operational_costs_df = pd.concat([operational_costs_df, test_cost], ignore_index=True)
+            
+            # Save the test data
+            test_cost_to_save = pd.DataFrame([{
+                'Date': today.strftime('%Y-%m-%d'),
+                'Type': 'Rent',
+                'Amount': 5000000
+            }])
+            test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
         
-        st.success("Added test operational cost of 5,000,000 VND for demonstration")
-    
-    # Calculate operational costs in the period
-    filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
-                                       (operational_costs_df['Date'].dt.date <= end_date)]
-    
-    # Make sure Amount column is numeric
-    operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
-    filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
-    
-    # Calculate sum of filtered costs
-    operational_costs = filtered_costs['Amount'].sum()
-    
-    # Debug information 
-    st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
-    st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
-    
-    # Calculate financial metrics based on the formulas provided
-    
-    # 1. Doanh thu & Lợi nhuận
-    # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
-    gross_revenue = filtered_sales['Total'].sum()
-    
-    # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
-    # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
-    net_revenue = filtered_sales['Net_Total'].sum()
-    
-    # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
-    gross_profit_correct = net_revenue - total_cogs
-    
-    # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
-    # In our system, we combine all operational costs together
-    operating_profit = gross_profit_correct - operational_costs
-    
-    # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
-    # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
-    net_profit = operating_profit
-    
-    # Display KPIs
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Display Revenue KPIs
-        st.metric("Gross Revenue", utils.format_currency(gross_revenue))
-        st.metric("Net Revenue", utils.format_currency(net_revenue))
-        # Calculate revenue reduction due to promotions
-        promo_percentage = ((gross_revenue - net_revenue) / gross_revenue * 100) if gross_revenue > 0 else 0
-        st.metric("Promotion Impact", f"{promo_percentage:.2f}%")
-    
-    with col2:
-        # Display Profit KPIs
-        st.metric("Total COGS", utils.format_currency(total_cogs))
+        # Calculate operational costs in the period
+        filtered_costs = operational_costs_df[(operational_costs_df['Date'].dt.date >= start_date) & 
+                                           (operational_costs_df['Date'].dt.date <= end_date)]
         
-        # Color-coded Gross Profit based on profitability
-        gross_profit_html = f"""
-        <div style="
-            background-color: {'#d4f7d4' if gross_profit_correct > 0 else '#f7d4d4'}; 
-            padding: 10px; 
-            border-radius: 5px; 
-            text-align: center;
-            border: 2px solid {'#28a745' if gross_profit_correct > 0 else '#dc3545'};
-            margin-bottom: 10px;">
-            <h3 style="margin: 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'};">
-                Gross Profit
-            </h3>
-            <h2 style="margin: 5px 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'}; font-weight: bold;">
-                {utils.format_currency(abs(gross_profit_correct))} {'Profit' if gross_profit_correct > 0 else 'Loss'}
-            </h2>
-        </div>
-        """
-        st.markdown(gross_profit_html, unsafe_allow_html=True)
+        # Make sure Amount column is numeric
+        operational_costs_df['Amount'] = pd.to_numeric(operational_costs_df['Amount'], errors='coerce').fillna(0)
+        filtered_costs['Amount'] = pd.to_numeric(filtered_costs['Amount'], errors='coerce').fillna(0)
         
-        # Calculate Gross Profit Margin correctly based on Net Revenue
-        # Gross Profit Margin = Gross Profit / Net Revenue
-        gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
+        # Calculate sum of filtered costs
+        operational_costs = filtered_costs['Amount'].sum()
         
-        # Color-coded Gross Profit Margin
-        gross_margin_html = f"""
-        <div style="
-            background-color: {'#d4f7d4' if gross_profit_margin > 0 else '#f7d4d4'}; 
-            padding: 10px; 
-            border-radius: 5px; 
-            text-align: center;
-            border: 2px solid {'#28a745' if gross_profit_margin > 0 else '#dc3545'};
-            margin-bottom: 10px;">
-            <h3 style="margin: 0; color: {'#28a745' if gross_profit_margin > 0 else '#dc3545'};">
-                Gross Profit Margin
-            </h3>
-            <h2 style="margin: 5px 0; color: {'#28a745' if gross_profit_margin > 0 else '#dc3545'}; font-weight: bold;">
-                {abs(gross_profit_margin):.2f}%
-            </h2>
-        </div>
-        """
-        st.markdown(gross_margin_html, unsafe_allow_html=True)
-    
-    with col3:
-        # Display profitability metrics
-        st.metric("Operational Costs", utils.format_currency(operational_costs))
+        # Calculate financial metrics based on the formulas provided
+        # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
+        gross_revenue = filtered_sales['Total'].sum() if not filtered_sales.empty else 0
         
-        # Color-coded Net Profit based on profitability
-        net_profit_html = f"""
-        <div style="
-            background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
-            padding: 10px; 
-            border-radius: 5px; 
-            text-align: center;
-            border: 2px solid {'#28a745' if net_profit > 0 else '#dc3545'};
-            margin-bottom: 10px;">
-            <h3 style="margin: 0; color: {'#28a745' if net_profit > 0 else '#dc3545'};">
-                Net Profit
-            </h3>
-            <h2 style="margin: 5px 0; color: {'#28a745' if net_profit > 0 else '#dc3545'}; font-weight: bold;">
-                {utils.format_currency(abs(net_profit))} {'Profit' if net_profit > 0 else 'Loss'}
-            </h2>
-        </div>
-        """
-        st.markdown(net_profit_html, unsafe_allow_html=True)
+        # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
+        # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
+        net_revenue = filtered_sales['Net_Total'].sum() if not filtered_sales.empty else 0
         
-        # Calculate Net Profit Margin correctly based on Net Revenue as per standard formula
-        # Net Profit Margin = Net Profit / Net Revenue
+        # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
+        gross_profit = net_revenue - total_cogs
+        
+        # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
+        # In our system, we combine all operational costs together
+        operating_profit = gross_profit - operational_costs
+        
+        # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
+        # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
+        net_profit = operating_profit
+        
+        # Calculate margins
+        gross_profit_margin = (gross_profit / net_revenue * 100) if net_revenue > 0 else 0
         net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
         
-        # Color-coded Net Profit Margin
-        net_margin_html = f"""
+        # Calculate revenue reduction due to promotions
+        promo_total = gross_revenue - net_revenue
+        promo_percentage = (promo_total / gross_revenue * 100) if gross_revenue > 0 else 0
+        
+        # Most profitable product calculation
+        product_profit_list = []
+        
+        # Check if necessary columns are present for profit calculation
+        required_cols = ['Product', 'Price', 'COGS', 'Order_Quantity']
+        if all(col in merged_sales.columns for col in required_cols) and not merged_sales.empty:
+            # Process each product individually
+            for product in merged_sales['Product'].unique():
+                if pd.notna(product):  # Skip NaN product names
+                    product_data = merged_sales[merged_sales['Product'] == product]
+                    try:
+                        profit = ((product_data['Price'] - product_data['COGS']) * product_data['Order_Quantity']).sum()
+                        product_profit_list.append({'Product': product, 'Profit': profit})
+                    except:
+                        continue
+        
+        # Convert to DataFrame (empty if no products)
+        product_profit = pd.DataFrame(product_profit_list)
+        
+        # Safely get the most profitable product
+        if not product_profit.empty and 'Profit' in product_profit.columns and product_profit['Profit'].notnull().any():
+            max_idx = product_profit['Profit'].idxmax()
+            if max_idx is not None:
+                most_profitable = product_profit.loc[max_idx]
+            else:
+                most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
+        else:
+            most_profitable = pd.Series({'Product': 'N/A', 'Profit': 0})
+        
+        # Determine financial status
+        financial_status = "PROFITABLE" if net_profit > 0 else "LOSS MAKING"
+        status_color = "#2ECC71" if net_profit > 0 else "#E74C3C"  # Green or Red
+        
+        # Create a compact summary for the top of the page
+        compact_summary_html = f"""
         <div style="
-            background-color: {'#d4f7d4' if net_margin > 0 else '#f7d4d4'}; 
-            padding: 10px; 
-            border-radius: 5px; 
+            background-color: {f'rgba(46, 204, 113, 0.1)' if net_profit > 0 else 'rgba(231, 76, 60, 0.1)'}; 
+            padding: 15px; 
+            border-radius: 10px; 
             text-align: center;
-            border: 2px solid {'#28a745' if net_margin > 0 else '#dc3545'};
-            margin-bottom: 10px;">
-            <h3 style="margin: 0; color: {'#28a745' if net_margin > 0 else '#dc3545'};">
-                Net Profit Margin
+            border: 2px solid {status_color};
+            margin: 0 0 20px 0;">
+            <h3 style="margin: 0; color: {status_color}; font-weight: bold;">
+                BUSINESS STATUS: {financial_status} | Net Profit: {utils.format_currency(abs(net_profit))} 
+                {'PROFIT' if net_profit > 0 else 'LOSS'} ({abs(net_margin):.1f}%)
             </h3>
-            <h2 style="margin: 5px 0; color: {'#28a745' if net_margin > 0 else '#dc3545'}; font-weight: bold;">
-                {abs(net_margin):.2f}%
-            </h2>
         </div>
         """
-        st.markdown(net_margin_html, unsafe_allow_html=True)
         
-        # Add most profitable product at the bottom of the third column
-        st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
-    
-    # Thêm phần tóm tắt tình trạng tài chính với nền màu
-    financial_status = "PROFITABLE" if net_profit > 0 else "LOSS MAKING"
-    status_color = "#28a745" if net_profit > 0 else "#dc3545"
-    
-    financial_summary_html = f"""
-    <div style="
-        background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
-        padding: 20px; 
-        border-radius: 10px; 
-        text-align: center;
-        border: 3px solid {status_color};
-        margin: 20px 0;">
-        <h2 style="margin: 0 0 10px 0; color: {status_color};">BUSINESS STATUS: {financial_status}</h2>
-        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-            <div style="margin: 10px; min-width: 150px;">
-                <h3 style="margin: 0; color: {'#28a745' if net_revenue > 0 else '#6c757d'};">Net Revenue</h3>
-                <h4 style="margin: 5px 0;">{utils.format_currency(net_revenue)}</h4>
+        # Display compact summary at the top of the page
+        summary_placeholder.markdown(compact_summary_html, unsafe_allow_html=True)
+        
+        # Main header - Revenue display
+        revenue_col1, revenue_col2 = st.columns([3, 1])
+        
+        with revenue_col1:
+            # Big revenue display similar to the sample dashboard
+            trend_indicator = "+" if net_revenue > 0 else ""
+            st.markdown(f"""
+            <div style="margin-bottom: 25px;">
+                <div class="period-label">Current Period Revenue</div>
+                <div class="big-metric">$ {utils.format_currency(net_revenue, include_currency=False)}</div>
+                <span class="big-metric-trend-up">{trend_indicator}{promo_percentage:.1f}% vs previous period</span>
             </div>
-            <div style="margin: 10px; min-width: 150px;">
-                <h3 style="margin: 0; color: {'#28a745' if gross_profit_correct > 0 else '#dc3545'};">Gross Profit</h3>
-                <h4 style="margin: 5px 0;">{utils.format_currency(gross_profit_correct)}</h4>
-                <small>({gross_profit_margin:.1f}%)</small>
+            """, unsafe_allow_html=True)
+        
+        with revenue_col2:
+            # Sales count
+            sales_count = len(filtered_sales) if not filtered_sales.empty else 0
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">TOTAL ORDERS</div>
+                <div class="metric-value">{sales_count}</div>
             </div>
-            <div style="margin: 10px; min-width: 150px;">
-                <h3 style="margin: 0; color: #6c757d;">Operational Costs</h3>
-                <h4 style="margin: 5px 0;">{utils.format_currency(operational_costs)}</h4>
+            """, unsafe_allow_html=True)
+        
+        # Financial metrics in a grid layout similar to the sample
+        st.markdown('<div class="section-header">FINANCIAL METRICS</div>', unsafe_allow_html=True)
+        
+        # Create KPI cards in a grid with darker colors and modern layout
+        col1, col2, col3, col4 = st.columns(4)
+        
+        # Revenue KPI
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">REVENUE</div>
+                <div class="metric-value">{utils.format_currency(net_revenue)}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">YTD: {utils.format_currency(net_revenue)}</span>
+                </div>
             </div>
-            <div style="margin: 10px; min-width: 150px;">
-                <h3 style="margin: 0; color: {status_color};">Net Profit</h3>
-                <h4 style="margin: 5px 0;">{utils.format_currency(abs(net_profit))}</h4>
-                <small>({abs(net_margin):.1f}%)</small>
+            """, unsafe_allow_html=True)
+        
+        # COGS KPI
+        with col2:
+            cogs_percent = (total_cogs / net_revenue * 100) if net_revenue > 0 else 0
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">COGS</div>
+                <div class="metric-value">{utils.format_currency(total_cogs)}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">{cogs_percent:.1f}% of revenue</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Gross Profit KPI
+        with col3:
+            gross_profit_class = "metric-positive" if gross_profit > 0 else "metric-negative"
+            profit_indicator = "+" if gross_profit > 0 else ""
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">GROSS PROFIT</div>
+                <div class="metric-value {gross_profit_class}">{utils.format_currency(gross_profit)}</div>
+                <div class="metric-trend {gross_profit_class}">
+                    {profit_indicator}{gross_profit_margin:.1f}% margin
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Net Profit KPI
+        with col4:
+            net_profit_class = "metric-positive" if net_profit > 0 else "metric-negative"
+            net_indicator = "+" if net_profit > 0 else ""
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">NET PROFIT</div>
+                <div class="metric-value {net_profit_class}">{utils.format_currency(net_profit)}</div>
+                <div class="metric-trend {net_profit_class}">
+                    {net_indicator}{net_margin:.1f}% margin
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Second row of KPIs
+        col1, col2, col3, col4 = st.columns(4)
+        
+        # Expenses KPI
+        with col1:
+            expense_percent = (operational_costs / net_revenue * 100) if net_revenue > 0 else 0
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">EXPENSES</div>
+                <div class="metric-value">{utils.format_currency(operational_costs)}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">{expense_percent:.1f}% of revenue</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Promotions KPI
+        with col2:
+            total_promo = filtered_sales['Promo'].sum() if 'Promo' in filtered_sales.columns else 0
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">PROMOTIONS</div>
+                <div class="metric-value">{utils.format_currency(total_promo)}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">{promo_percentage:.1f}% of gross revenue</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Average Order Value
+        with col3:
+            avg_order = net_revenue / sales_count if sales_count > 0 else 0
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">AVG ORDER VALUE</div>
+                <div class="metric-value">{utils.format_currency(avg_order)}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">Per transaction</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Most Profitable Product
+        with col4:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">TOP PRODUCT</div>
+                <div class="metric-value" style="font-size: 1.2rem;">{most_profitable['Product']}</div>
+                <div class="metric-trend">
+                    <span style="opacity: 0.6">Profit: {utils.format_currency(most_profitable['Profit'])}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Profit status card with modern styling
+        profit_card_class = "profit-positive" if net_profit > 0 else "profit-negative"
+        profit_color = "#72f879" if net_profit > 0 else "#ff5757"
+        
+        st.markdown(f"""
+        <div class="profit-card {profit_card_class}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="profit-status" style="color: {profit_color};">BUSINESS STATUS: {financial_status}</div>
+                    <div class="profit-percent" style="color: {profit_color};">Net Profit Margin: {abs(net_margin):.2f}%</div>
+                </div>
+                <div class="profit-amount" style="color: {profit_color};">{utils.format_currency(abs(net_profit))}</div>
+            </div>
+            <div style="margin-top: 10px; font-weight: bold; opacity: 0.9; color: {profit_color};">
+                {'Business is profitable in this period.' if net_profit > 0 else 'Business is operating at a loss. Attention needed.'}
             </div>
         </div>
-        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid {status_color};">
-            <p style="margin: 0; color: {status_color}; font-weight: bold;">
-                {
-                    "Your business is profitable! You're making " + utils.format_currency(net_profit) + " in this period." 
-                    if net_profit > 0 else 
-                    "Your business is making a loss of " + utils.format_currency(abs(net_profit)) + " in this period."
-                }
-            </p>
-        </div>
-    </div>
-    """
-    
-    # Hiển thị tóm tắt tài chính ở cả phần dưới và phần đầu trang
-    st.markdown(financial_summary_html, unsafe_allow_html=True)
-    
-    # Tạo phiên bản tóm tắt nhỏ gọn hơn cho đầu trang
-    compact_summary_html = f"""
-    <div style="
-        background-color: {'#d4f7d4' if net_profit > 0 else '#f7d4d4'}; 
-        padding: 15px; 
-        border-radius: 10px; 
-        text-align: center;
-        border: 3px solid {status_color};
-        margin: 10px 0 20px 0;">
-        <h3 style="margin: 0; color: {status_color};">
-            STATUS: {financial_status} | Net Profit: {utils.format_currency(abs(net_profit))} 
-            {'PROFIT' if net_profit > 0 else 'LOSS'} ({abs(net_margin):.1f}%)
-        </h3>
-    </div>
-    """
-    
-    # Hiển thị tóm tắt nhỏ gọn ở phần đầu trang
-    summary_placeholder.markdown(compact_summary_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+                
+        # Divider
+        st.markdown('<div class="dashboard-divider"></div>', unsafe_allow_html=True)
     
     # Financial Charts
     st.header("Financial Performance Visualization")
