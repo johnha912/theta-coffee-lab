@@ -26,81 +26,31 @@ if 'alert_threshold' not in st.session_state:
 # Initialize data files if they don't exist
 initialize_data_files()
 
-# Main page - redirects to dashboard
+# Main page
 st.title("Theta Coffee Lab Management System")
 
 # Introduction message
 st.write("""
-Welcome to the Theta Coffee Lab Management System! This application helps you manage your cafe operations 
-including sales tracking, inventory management, product recipes, and financial reporting.
+Welcome to the Theta Coffee Lab Management System! This application helps you manage your cafe operations including sales tracking, inventory management, 
+product recipes, and financial reporting.
 """)
 
-# Quick stats in the main page
-st.header("Quick Overview")
+# Add a more detailed description
+st.markdown("""
+### System Features
 
-col1, col2, col3, col4 = st.columns(4)
+Theta Coffee Lab Management System offers a comprehensive suite of tools to manage your café business efficiently:
 
-try:
-    # Load sales data
-    sales_df = pd.read_csv("data/sales.csv")
-    sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
-    
-    # Filter for today's data
-    today = pd.Timestamp.now().date()
-    today_sales = sales_df[sales_df['Date'].dt.date == today]
-    
-    # Calculate KPIs
-    total_revenue = today_sales['Total'].sum()
-    order_count = len(today_sales['Order_ID'].unique())
-    
-    with col1:
-        st.metric("Today's Revenue", utils.format_currency(total_revenue))
-    
-    with col2:
-        st.metric("Today's Orders", f"{order_count}")
-    
-    # Load inventory data
-    inventory_df = pd.read_csv("data/inventory.csv")
-    
-    # Check for low inventory using intelligent thresholds
-    # Define thresholds by unit type
-    thresholds = {
-        'ml': 300.0,  # For liquid ingredients (more than 3 coffee drinks)
-        'g': 100.0,   # For dry ingredients
-        'pcs': st.session_state.alert_threshold  # Use general threshold for pieces
-    }
-    
-    # Count low inventory items using smart thresholds
-    low_inventory_count = 0
-    for idx, row in inventory_df.iterrows():
-        unit_type = row['Unit'].lower()
-        # Convert units to base units
-        if unit_type == 'l':
-            unit_type = 'ml'
-            threshold = thresholds['ml'] * 1000  # Convert to ml
-        elif unit_type == 'kg':
-            unit_type = 'g'
-            threshold = thresholds['g'] * 1000  # Convert to g
-        else:
-            # Handle standard units
-            threshold = thresholds.get(unit_type, st.session_state.alert_threshold)
-        
-        # Check if below threshold
-        if row['Quantity'] <= threshold:
-            low_inventory_count += 1
-    
-    with col3:
-        st.metric("Low Inventory Items", f"{low_inventory_count}")
-    
-    # Load products data
-    products_df = pd.read_csv("data/products.csv")
-    
-    with col4:
-        st.metric("Menu Items", f"{len(products_df)}")
-        
-except Exception as e:
-    st.error(f"Error loading data: {str(e)}")
-    st.write("Please check that your data files exist and are properly formatted.")
+- **Real-time Sales Tracking**: Record and monitor all sales transactions with detailed order information
+- **Inventory Management**: Track stock levels, receive alerts for low inventory, and manage purchases
+- **Recipe & Menu Development**: Create and modify product recipes with precise ingredient measurements and accurate cost calculations
+- **Financial Analytics**: Access detailed financial reports including revenue, costs, and profitability metrics
+- **Customer Location Analysis**: Visualize customer order locations on an interactive map using Google Plus Codes
+- **Light/Dark Mode Support**: Choose between light and dark mode interface based on your preference
+""")
+
+# Add an image
+st.image("generated-icon.png", width=150)
 
 # Navigation guidance
 st.subheader("Navigation")
@@ -111,7 +61,8 @@ Use the sidebar to navigate to different sections of the application:
 3. **Inventory** - Manage your inventory and supplies
 4. **Product** - Design product recipes and menu items
 5. **Financial Report** - Access detailed financial analytics
-6. **Settings** - Configure application preferences
+6. **Map** - Visualize order locations and customer distribution
+7. **Settings** - Configure application preferences
 """)
 
 # Footer
