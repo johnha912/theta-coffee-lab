@@ -99,7 +99,7 @@ st.write("Use the sidebar or these buttons to navigate to different sections of 
 st.markdown("""
 <style>
     .nav-button {
-        background-color: #1E88E5; 
+        background-color: #424242; 
         color: white; 
         padding: 12px 16px; 
         border-radius: 5px; 
@@ -109,7 +109,7 @@ st.markdown("""
         transition: all 0.3s ease;
     }
     .nav-button:hover {
-        background-color: #1565C0;
+        background-color: #212121;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
 </style>
