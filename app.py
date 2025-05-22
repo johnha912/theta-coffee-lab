@@ -39,36 +39,52 @@ product recipes, and financial reporting.
 st.subheader("System Features")
 st.write("Theta Coffee Lab Management System offers a comprehensive suite of tools to manage your café business efficiently:")
 
-# Create feature table with icons using HTML
+# Create feature table that adapts to light/dark theme
 features_html = """
-<table style="width:100%; border-collapse: collapse;">
-    <tr style="background-color: #f2f2f2;">
-        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd;">Feature</th>
-        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd;">Description</th>
+<style>
+    .features-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .features-table th, .features-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--text-color, #ddd);
+    }
+    .features-table tr:nth-child(even) {
+        background-color: var(--background-color, transparent);
+    }
+    /* Dark mode will be handled by Streamlit's theme */
+</style>
+
+<table class="features-table">
+    <tr>
+        <th>Feature</th>
+        <th>Description</th>
     </tr>
     <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>📊 Sales Tracking</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Record and monitor all sales transactions with detailed order information</td>
-    </tr>
-    <tr style="background-color: #f2f2f2;">
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>📦 Inventory Management</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Track stock levels, receive alerts for low inventory, and manage purchases</td>
+        <td><b>📊 Sales Tracking</b></td>
+        <td>Record and monitor all sales transactions with detailed order information</td>
     </tr>
     <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>🍵 Recipe & Menu Development</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Create and modify product recipes with precise ingredient measurements and accurate cost calculations</td>
-    </tr>
-    <tr style="background-color: #f2f2f2;">
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>💰 Financial Analytics</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Access detailed financial reports including revenue, costs, and profitability metrics</td>
+        <td><b>📦 Inventory Management</b></td>
+        <td>Track stock levels, receive alerts for low inventory, and manage purchases</td>
     </tr>
     <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>🗺️ Customer Location Analysis</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Visualize customer order locations on an interactive map using Google Plus Codes</td>
+        <td><b>🍵 Recipe & Menu Development</b></td>
+        <td>Create and modify product recipes with precise ingredient measurements and accurate cost calculations</td>
     </tr>
-    <tr style="background-color: #f2f2f2;">
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><b>🌓 Light/Dark Mode Support</b></td>
-        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Choose between light and dark mode interface based on your preference</td>
+    <tr>
+        <td><b>💰 Financial Analytics</b></td>
+        <td>Access detailed financial reports including revenue, costs, and profitability metrics</td>
+    </tr>
+    <tr>
+        <td><b>🗺️ Customer Location Analysis</b></td>
+        <td>Visualize customer order locations on an interactive map using Google Plus Codes</td>
+    </tr>
+    <tr>
+        <td><b>⚙️ Application Settings</b></td>
+        <td>Configure application preferences including light/dark mode display options</td>
     </tr>
 </table>
 """
@@ -79,6 +95,26 @@ st.markdown(features_html, unsafe_allow_html=True)
 st.subheader("Navigation")
 st.write("Use the sidebar or these buttons to navigate to different sections of the application:")
 
+# CSS for nav buttons that respect light/dark theme
+st.markdown("""
+<style>
+    .nav-button {
+        background-color: #1E88E5; 
+        color: white; 
+        padding: 12px 16px; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        text-align: center; 
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    .nav-button:hover {
+        background-color: #1565C0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Create three columns for the navigation buttons
 col1, col2, col3 = st.columns(3)
 
@@ -86,7 +122,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("""
     <a href="dashboard" target="_self" style="text-decoration: none;">
-        <div style="background-color: #4CAF50; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             📊 Dashboard<br><small>View KPIs and metrics</small>
         </div>
     </a>
@@ -95,7 +131,7 @@ with col1:
 with col2:
     st.markdown("""
     <a href="order" target="_self" style="text-decoration: none;">
-        <div style="background-color: #2196F3; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             🛒 Order<br><small>Manage sales transactions</small>
         </div>
     </a>
@@ -104,7 +140,7 @@ with col2:
 with col3:
     st.markdown("""
     <a href="inventory" target="_self" style="text-decoration: none;">
-        <div style="background-color: #FF9800; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             📦 Inventory<br><small>Track stock levels</small>
         </div>
     </a>
@@ -114,7 +150,7 @@ with col3:
 with col1:
     st.markdown("""
     <a href="product" target="_self" style="text-decoration: none;">
-        <div style="background-color: #9C27B0; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             🍵 Product<br><small>Create recipes</small>
         </div>
     </a>
@@ -123,7 +159,7 @@ with col1:
 with col2:
     st.markdown("""
     <a href="financial" target="_self" style="text-decoration: none;">
-        <div style="background-color: #E91E63; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             💰 Financial<br><small>Analyze finances</small>
         </div>
     </a>
@@ -132,7 +168,7 @@ with col2:
 with col3:
     st.markdown("""
     <a href="map" target="_self" style="text-decoration: none;">
-        <div style="background-color: #607D8B; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             🗺️ Map<br><small>View customer locations</small>
         </div>
     </a>
@@ -143,7 +179,7 @@ col1, col2, col3 = st.columns(3)
 with col2:
     st.markdown("""
     <a href="settings" target="_self" style="text-decoration: none;">
-        <div style="background-color: #795548; color: white; padding: 12px 16px; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+        <div class="nav-button">
             ⚙️ Settings<br><small>Configure preferences</small>
         </div>
     </a>
