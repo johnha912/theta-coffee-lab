@@ -49,9 +49,6 @@ Theta Coffee Lab Management System offers a comprehensive suite of tools to mana
 - **Light/Dark Mode Support**: Choose between light and dark mode interface based on your preference
 """)
 
-# Add an image
-st.image("generated-icon.png", width=150)
-
 # Navigation guidance
 st.subheader("Navigation")
 st.write("""
