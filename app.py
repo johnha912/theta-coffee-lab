@@ -174,16 +174,7 @@ with col3:
     </a>
     """, unsafe_allow_html=True)
 
-# Third row with only settings button
-col1, col2, col3 = st.columns(3)
-with col2:
-    st.markdown("""
-    <a href="settings" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            ⚙️ Settings<br><small>Configure preferences</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
+# Removed settings button as requested
 
 # Footer
 st.markdown("---")
