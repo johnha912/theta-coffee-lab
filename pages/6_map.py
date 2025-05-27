@@ -275,9 +275,9 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds"):
                     template="custom_ggplot2"
                 )
                 
-                # Update layout to use open street map
+                # Update layout to use light map style
                 fig.update_layout(
-                    mapbox_style="open-street-map",
+                    mapbox_style="carto-positron",
                     margin={"r":0,"t":0,"l":0,"b":0},
                     coloraxis_colorbar=dict(
                         title="Total (VND)",
