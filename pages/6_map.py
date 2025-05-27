@@ -193,7 +193,7 @@ def geocode_address(address):
         return None, None
 
 # Function to create map of order locations
-def create_order_map(sales_df, time_filter="All Time", color_scale="Reds"):
+def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_style="carto-positron"):
     """Create map visualization of order locations"""
     
     try:
@@ -275,9 +275,9 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds"):
                     template="custom_ggplot2"
                 )
                 
-                # Update layout to use light map style
+                # Update layout to use selected map style
                 fig.update_layout(
-                    mapbox_style="carto-positron",
+                    mapbox_style=map_style,
                     margin={"r":0,"t":0,"l":0,"b":0},
                     coloraxis_colorbar=dict(
                         title="Total (VND)",
@@ -372,8 +372,23 @@ try:
             index=0
         )
         
+        # Chọn theme bản đồ
+        map_style_options = {
+            "carto-positron": "Carto Light - Đơn giản, màu nhạt",
+            "carto-darkmatter": "Carto Dark - Nền tối, nổi bật",
+            "open-street-map": "OpenStreetMap - Truyền thống",
+            "white-bg": "Nền trắng - Tối giản nhất",
+            "stamen-toner": "Stamen Toner - Đen trắng đơn giản"
+        }
+        selected_style = st.sidebar.selectbox(
+            "Chọn theme bản đồ", 
+            options=list(map_style_options.keys()),
+            format_func=lambda x: map_style_options[x],
+            index=0  # Default to carto-positron (light theme)
+        )
+        
         # Create and display map
-        map_fig = create_order_map(sales_df, time_filter, selected_color)
+        map_fig = create_order_map(sales_df, time_filter, selected_color, selected_style)
         if map_fig:
             st.plotly_chart(map_fig, use_container_width=True)
             
