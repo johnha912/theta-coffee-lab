@@ -10,10 +10,6 @@ A comprehensive cafe management system with real-time analytics, inventory track
 
 Theta Coffee Lab Management System is a full-stack business intelligence application designed to streamline cafe operations. Built with Python and Streamlit, it provides an intuitive interface for managing sales, inventory, recipes, and financial performance.
 
-## Live Demo
-
-🔗 [View Live Application](https://your-replit-url.replit.app)
-
 ## Features
 
 | Feature | Description |
