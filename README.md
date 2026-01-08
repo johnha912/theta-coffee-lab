@@ -95,6 +95,8 @@ streamlit run app.py --server.port 5000
 
 ## Screenshots
 
+> **Note:** For customer privacy and financial security reasons, all figures shown in these screenshots have been modified and are for demonstration purposes only to help users understand how the application works.
+
 ### Home
 ![Home](attached_assets/home_1767848939881.png)
 
