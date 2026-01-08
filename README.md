@@ -79,7 +79,7 @@ theta-coffee-lab/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/theta-coffee-lab.git
+git clone https://github.com/johnha912/theta-coffee-lab.git
 cd theta-coffee-lab
 
 # Install dependencies
@@ -99,7 +99,26 @@ streamlit run app.py --server.port 5000
 
 ## Screenshots
 
-*Add screenshots of your application here*
+### Home
+![Home](screenshots/home.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Order Management
+![Order](screenshots/order.png)
+
+### Inventory
+![Inventory](screenshots/inventory.png)
+
+### Product & Recipes
+![Product](screenshots/product.png)
+
+### Financial Reports
+![Financial](screenshots/financial.png)
+
+### Customer Map
+![Map](screenshots/map.png)
 
 ## Future Enhancements
 
@@ -114,10 +133,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Your Name**
+**Nguyen Ha**
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/yourprofile)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/yourusername)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/nguyenha912)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/johnha912)
 
 ---
 
