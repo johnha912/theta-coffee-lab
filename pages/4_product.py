@@ -5,17 +5,17 @@ import plotly.io as pio
 import uuid
 import utils
 
-# Khởi tạo session_state
+# Initialize session_state
 utils.initialize_session_state()
 
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
 
-# Tạo template ggplot2 custom với nền xám và lưới
+# Create custom ggplot2 template with gray background and grid
 custom_ggplot2_template = pio.templates['ggplot2']
 custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Màu nền paper
-    plot_bgcolor='#F0F0F0',   # Màu nền plot
+    paper_bgcolor='#F0F0F0',  # Paper background color
+    plot_bgcolor='#F0F0F0',   # Plot background color
     xaxis=dict(
         showgrid=True,
         gridcolor='white',

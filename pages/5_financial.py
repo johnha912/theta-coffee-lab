@@ -6,17 +6,17 @@ import plotly.io as pio
 import datetime
 import utils
 
-# Khởi tạo session_state
+# Initialize session_state
 utils.initialize_session_state()
 
 # Set default template to ggplot2
 pio.templates.default = 'ggplot2'
 
-# Tạo template ggplot2 custom với nền xám và lưới
+# Create custom ggplot2 template with gray background and grid
 custom_ggplot2_template = pio.templates['ggplot2']
 custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Màu nền paper
-    plot_bgcolor='#F0F0F0',   # Màu nền plot
+    paper_bgcolor='#F0F0F0',  # Paper background color
+    plot_bgcolor='#F0F0F0',   # Plot background color
     xaxis=dict(
         showgrid=True,
         gridcolor='white',
@@ -190,22 +190,22 @@ try:
     
     # Calculate financial metrics based on the formulas provided
     
-    # 1. Doanh thu & Lợi nhuận
-    # Gross Revenue = Tổng doanh thu bán hàng (chưa trừ chiết khấu, hoàn trả, thuế)
+    # 1. Revenue & Profit
+    # Gross Revenue = Total sales revenue (before discounts, returns, taxes)
     gross_revenue = filtered_sales['Total'].sum()
     
-    # Net Revenue = Gross Revenue – Chiết khấu – Hàng bán bị trả lại – Thuế GTGT
+    # Net Revenue = Gross Revenue - Discounts - Returns - VAT
     # In our case, we don't have returns or VAT, so Net Revenue = Gross Revenue - Promotions
     net_revenue = filtered_sales['Net_Total'].sum()
     
-    # Gross Profit = Net Revenue – Giá vốn hàng bán (COGS)
+    # Gross Profit = Net Revenue - Cost of Goods Sold (COGS)
     gross_profit_correct = net_revenue - total_cogs
     
-    # Operating Profit = Gross Profit – Chi phí bán hàng – Chi phí quản lý doanh nghiệp
+    # Operating Profit = Gross Profit - Selling Expenses - Administrative Expenses
     # In our system, we combine all operational costs together
     operating_profit = gross_profit_correct - operational_costs
     
-    # Net Profit (Lợi nhuận sau thuế) = Operating Profit – Chi phí tài chính – Thuế thu nhập doanh nghiệp
+    # Net Profit (After-tax profit) = Operating Profit - Financial Expenses - Corporate Income Tax
     # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
     net_profit = operating_profit
     

@@ -124,7 +124,7 @@ def geocode_address(address):
                     
                     # Validate reasonable lat/lon ranges
                     if -90 <= lat <= 90 and -180 <= lon <= 180:
-                        # Đã tìm thấy tọa độ hợp lệ
+                        # Found valid coordinates
                         return lat, lon
             except (ValueError, TypeError):
                 # If parsing fails, continue with other methods
@@ -266,8 +266,8 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_s
                     lon="Longitude", 
                     size="Size",
                     color="Total",
-                    color_continuous_scale=getattr(px.colors.sequential, color_scale),  # Sử dụng thang màu đã chọn
-                    range_color=[map_df['Total'].min(), map_df['Total'].max()],  # Đảm bảo thang màu từ nhỏ nhất đến lớn nhất
+                    color_continuous_scale=getattr(px.colors.sequential, color_scale),  # Use selected color scale
+                    range_color=[map_df['Total'].min(), map_df['Total'].max()],  # Ensure color scale from min to max
                     hover_name="Order_ID",
                     hover_data=["Date_Display", "Total_Display", "Location"],
                     zoom=12,
@@ -282,9 +282,9 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_s
                     coloraxis_colorbar=dict(
                         title="Total (VND)",
                         tickformat=",",
-                        len=0.75,  # Chiều dài của colorbar
-                        thickness=20,  # Độ dày của colorbar
-                        dtick=map_df['Total'].max() / 5  # Số lượng điểm chia trên thanh màu
+                        len=0.75,  # Length of colorbar
+                        thickness=20,  # Thickness of colorbar
+                        dtick=map_df['Total'].max() / 5  # Number of ticks on color bar
                     )
                 )
                 
@@ -303,13 +303,13 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_s
 
 # Main app code
 try:
-    # Checkbox để hiển thị debug thông tin
+    # Checkbox to show debug information
     show_debug = st.sidebar.checkbox("Show Debug Information", value=False)
     
     if show_debug:
         st.sidebar.info("Debug mode enabled - showing additional information")
         
-        # Override geocode_address để hiển thị debug info
+        # Override geocode_address to show debug info
         original_geocode_address = geocode_address
         
         def debug_geocode_address(address):
@@ -357,31 +357,31 @@ try:
         time_options = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"]
         time_filter = st.selectbox("Time Period", options=time_options, index=5)  # Set default to "All Time"
         
-        # Chọn dải màu
+        # Select color scale
         color_options = {
-            "Reds": "Đỏ - Tương phản nhất với bản đồ",
-            "OrRd": "Cam đỏ - Nổi bật",
-            "YlOrRd": "Vàng-Cam-Đỏ - Rực rỡ",
-            "Purples": "Tím - Khác biệt với bản đồ",
-            "RdPu": "Đỏ-Tím - Đậm nét"
+            "Reds": "Red - Best contrast with map",
+            "OrRd": "Orange-Red - Prominent",
+            "YlOrRd": "Yellow-Orange-Red - Vibrant",
+            "Purples": "Purple - Different from map",
+            "RdPu": "Red-Purple - Bold"
         }
         selected_color = st.sidebar.selectbox(
-            "Chọn dải màu cho bản đồ", 
+            "Select color scale for map", 
             options=list(color_options.keys()),
             format_func=lambda x: color_options[x],
             index=0
         )
         
-        # Chọn theme bản đồ
+        # Select map theme
         map_style_options = {
-            "carto-positron": "Carto Light - Đơn giản, màu nhạt",
-            "carto-darkmatter": "Carto Dark - Nền tối, nổi bật",
-            "open-street-map": "OpenStreetMap - Truyền thống",
-            "white-bg": "Nền trắng - Tối giản nhất",
-            "stamen-toner": "Stamen Toner - Đen trắng đơn giản"
+            "carto-positron": "Carto Light - Simple, light colors",
+            "carto-darkmatter": "Carto Dark - Dark background, prominent",
+            "open-street-map": "OpenStreetMap - Traditional",
+            "white-bg": "White Background - Most minimal",
+            "stamen-toner": "Stamen Toner - Simple black and white"
         }
         selected_style = st.sidebar.selectbox(
-            "Chọn theme bản đồ", 
+            "Select map theme", 
             options=list(map_style_options.keys()),
             format_func=lambda x: map_style_options[x],
             index=0  # Default to carto-positron (light theme)

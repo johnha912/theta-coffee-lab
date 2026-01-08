@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import utils
 
-# Khởi tạo session_state
+# Initialize session_state
 utils.initialize_session_state()
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
