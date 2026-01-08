@@ -96,25 +96,38 @@ streamlit run app.py --server.port 5000
 ## Screenshots
 
 ### Home
-![Home](screenshots/home.png)
+![Home](attached_assets/home_1767848939881.png)
 
 ### Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard 1](attached_assets/dashboard1_1767848939881.png)
+![Dashboard 2](attached_assets/dashboard2_1767848939881.png)
 
 ### Order Management
-![Order](screenshots/order.png)
+![Order 1](attached_assets/order1_1767848939881.png)
+![Order 2](attached_assets/order2_1767848939881.png)
 
 ### Inventory
-![Inventory](screenshots/inventory.png)
+![Inventory 1](attached_assets/inventory1_1767848939881.png)
+![Inventory 2](attached_assets/inventory2_1767848939880.png)
 
 ### Product & Recipes
-![Product](screenshots/product.png)
+![Product 1](attached_assets/product1_1767848939880.png)
+![Product 2](attached_assets/product2_1767848939880.png)
+![Product 3](attached_assets/product3_1767848939880.png)
 
 ### Financial Reports
-![Financial](screenshots/financial.png)
+![Financial 1](attached_assets/financial1_1767848939880.png)
+![Financial 2](attached_assets/financial2_1767848939879.png)
+![Financial 3](attached_assets/financial3_1767848939879.png)
+![Financial 4](attached_assets/financial4_1767848939879.png)
 
 ### Customer Map
-![Map](screenshots/map.png)
+![Map 1](attached_assets/map1_1767848939879.png)
+![Map 2](attached_assets/map2_1767848939878.png)
+
+### Settings
+![Settings Light](attached_assets/settings1_1767848939878.png)
+![Settings Dark](attached_assets/settings2_1767848939878.png)
 
 ## Future Enhancements
 
