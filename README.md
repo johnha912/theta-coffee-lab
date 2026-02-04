@@ -31,20 +31,21 @@ Theta Coffee Lab Management System is a full-stack business intelligence applica
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────┐
-│           Presentation Layer                │
-│         (Streamlit Components)              │
-├─────────────────────────────────────────────┤
-│           Business Logic Layer              │
-│    (Order Processing, COGS Calculation)     │
-├─────────────────────────────────────────────┤
-│           Data Access Layer                 │
-│         (Pandas DataFrames)                 │
-├─────────────────────────────────────────────┤
-│           Storage Layer                     │
-│            (CSV Files)                      │
-└─────────────────────────────────────────────┘
+```mermaid
+graph TB
+    A[Presentation Layer<br/>Streamlit Components]
+    B[Business Logic Layer<br/>Order Processing, COGS Calculation]
+    C[Data Access Layer<br/>Pandas DataFrames]
+    D[Storage Layer<br/>CSV Files]
+    
+    A --> B
+    B --> C
+    C --> D
+    
+    style A fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
+    style B fill:#50C878,stroke:#333,stroke-width:2px,color:#fff
+    style C fill:#9B59B6,stroke:#333,stroke-width:2px,color:#fff
+    style D fill:#E67E22,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ## Project Structure
