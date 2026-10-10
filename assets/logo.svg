@@ -1,4 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="#3987e5" stroke-width="2.6" stroke-linecap="round">
-  <ellipse cx="16" cy="16" rx="9.5" ry="12.5"/>
-  <path d="M8.5 16h15"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <defs>
+    <clipPath id="face"><circle cx="150" cy="150" r="127"/></clipPath>
+  </defs>
+  <circle cx="150" cy="150" r="150" fill="#000"/>
+  <circle cx="150" cy="150" r="127" fill="#fff"/>
+  <!-- Pour-over dripper with its handle -->
+  <path d="M88 62h124l-40 66h-44z" fill="#000"/>
+  <rect x="132" y="120" width="36" height="22" fill="#000"/>
+  <path d="M198 90h16a14 14 0 0 1 0 28h-30" fill="none" stroke="#000" stroke-width="11"/>
+  <rect x="68" y="141" width="164" height="14" rx="7" fill="#000"/>
+  <!-- Carafe with the brewed coffee line -->
+  <g clip-path="url(#face)">
+    <path d="M126 164h48l58 136H68z" fill="#000"/>
+    <path d="M113 226c25-12 47 12 74-2l19 46H94z" fill="#fff"/>
+  </g>
 </svg>

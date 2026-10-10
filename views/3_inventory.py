@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import datetime
 import utils
+import store
 
 # Initialize session_state
 utils.initialize_session_state()
@@ -24,7 +25,7 @@ def add_inventory():
         
         # Load current inventory
         try:
-            inventory_df = pd.read_csv("data/inventory.csv")
+            inventory_df = store.load("inventory")
         except FileNotFoundError:
             inventory_df = pd.DataFrame(columns=['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'])
         
@@ -65,13 +66,9 @@ def add_inventory():
             
             message = f"Added new material: {material_name}"
         
-        # Save updated inventory
-        inventory_df.to_csv("data/inventory.csv", index=False)
-        st.success(message)
-        
         # Record transaction in inventory_transactions.csv
         try:
-            trans_df = pd.read_csv("data/inventory_transactions.csv")
+            trans_df = store.load("inventory_transactions")
         except FileNotFoundError:
             trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
         
@@ -87,7 +84,11 @@ def add_inventory():
             'Addition'
         ]
         
-        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        # One transaction: both tables change or neither does
+        with store.transaction() as save:
+            save("inventory", inventory_df)
+            save("inventory_transactions", trans_df)
+        st.success(message)
         
         # After successful add, refresh the form/page
         st.rerun()
@@ -100,7 +101,7 @@ def delete_inventory_item(item_id):
     try:
         # Load current inventory
         try:
-            inventory_df = pd.read_csv("data/inventory.csv")
+            inventory_df = store.load("inventory")
         except FileNotFoundError:
             st.error("No inventory data found")
             return
@@ -124,12 +125,9 @@ def delete_inventory_item(item_id):
         # Reindex IDs to maintain sequence
         inventory_df['ID'] = range(1, len(inventory_df) + 1)
         
-        # Save updated inventory
-        inventory_df.to_csv("data/inventory.csv", index=False)
-        
         # Record transaction in inventory_transactions.csv
         try:
-            trans_df = pd.read_csv("data/inventory_transactions.csv")
+            trans_df = store.load("inventory_transactions")
         except FileNotFoundError:
             trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
         
@@ -145,7 +143,10 @@ def delete_inventory_item(item_id):
             'Deletion'
         ]
         
-        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        # One transaction: both tables change or neither does
+        with store.transaction() as save:
+            save("inventory", inventory_df)
+            save("inventory_transactions", trans_df)
         
         st.success(f"Deleted inventory item: {item_name}")
         
@@ -160,7 +161,7 @@ def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new
     try:
         # Load current inventory
         try:
-            inventory_df = pd.read_csv("data/inventory.csv")
+            inventory_df = store.load("inventory")
         except FileNotFoundError:
             st.error("No inventory data found")
             return
@@ -185,12 +186,9 @@ def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new
         inventory_df.loc[item_idx, 'Avg_Cost'] = new_cost
         inventory_df.loc[item_idx, 'Date'] = new_date.strftime('%Y-%m-%d')
         
-        # Save updated inventory
-        inventory_df.to_csv("data/inventory.csv", index=False)
-        
         # Record transaction in inventory_transactions.csv
         try:
-            trans_df = pd.read_csv("data/inventory_transactions.csv")
+            trans_df = store.load("inventory_transactions")
         except FileNotFoundError:
             trans_df = pd.DataFrame(columns=['Date', 'Material', 'Quantity', 'Unit', 'Unit_Cost', 'Total_Cost', 'Type'])
         
@@ -206,7 +204,10 @@ def edit_inventory_item(item_id, new_name, new_unit, new_quantity, new_cost, new
             'Edit'
         ]
         
-        trans_df.to_csv("data/inventory_transactions.csv", index=False)
+        # One transaction: both tables change or neither does
+        with store.transaction() as save:
+            save("inventory", inventory_df)
+            save("inventory_transactions", trans_df)
         
         st.success(f"Updated inventory item: {new_name}")
         
@@ -225,10 +226,10 @@ try:
         
     # Load inventory data
     try:
-        inventory_df = pd.read_csv("data/inventory.csv")
+        inventory_df = store.load("inventory")
     except FileNotFoundError:
         inventory_df = pd.DataFrame(columns=['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'])
-        inventory_df.to_csv("data/inventory.csv", index=False)
+        store.save("inventory", inventory_df)
     
     # Form for adding inventory
     st.header("Add Inventory Items")
@@ -511,7 +512,7 @@ try:
     st.header("Recent Inventory Transactions")
     
     try:
-        trans_df = pd.read_csv("data/inventory_transactions.csv")
+        trans_df = store.load("inventory_transactions")
         trans_df['Date'] = pd.to_datetime(trans_df['Date'])
         
         # Sort by date (most recent first)

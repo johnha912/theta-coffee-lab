@@ -4,14 +4,17 @@ Run from the repo root: python -m pytest tests  (or: python tests/test_pages.py)
 """
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
 ROOT = Path(__file__).resolve().parent.parent
-os.chdir(ROOT)  # pages read data/ relative to the working directory
+os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
+# A throwaway database seeded from data/*.csv, so tests never touch data/theta.db
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{tempfile.mkdtemp()}/test.db")
 import utils  # noqa: E402
 
 
@@ -22,7 +25,7 @@ def test_sales_summary_matches_bundled_data():
 
 
 def test_every_page_renders():
-    for path in [ROOT / "app.py", *sorted(ROOT.glob("pages/*.py"))]:
+    for path in [ROOT / "app.py", *sorted(ROOT.glob("views/*.py"))]:
         at = AppTest.from_file(str(path), default_timeout=60)
         at.session_state.default_time_filter = "All Time"  # the bundled data is from 2025
         at.run()

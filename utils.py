@@ -5,10 +5,15 @@ from datetime import datetime, timedelta
 import os
 import plotly.express as px
 
+# Amounts are stored in VND. The USD view divides by this rate, editable in Settings.
+DEFAULT_VND_PER_USD = 26000.0
+
 def initialize_session_state():
     """Initialize session state variables"""
     if 'currency' not in st.session_state:
         st.session_state.currency = "VND"
+    if 'usd_rate' not in st.session_state:
+        st.session_state.usd_rate = DEFAULT_VND_PER_USD
     
     if 'alert_threshold' not in st.session_state:
         st.session_state.alert_threshold = 10.0
@@ -74,22 +79,20 @@ def initialize_session_state():
         st.session_state.username = "Cafe Manager"
 
 def format_currency(value, include_currency=True):
-    """Format a number as currency with comma separators
-    
+    """Format a VND amount in the currency chosen in Settings.
+
     Args:
-        value: The numeric value to format
-        include_currency: Whether to include 'VND' at the end (default: True)
+        value: The amount in VND (how every table stores money)
+        include_currency: Whether to append the currency code (default: True)
     """
     if pd.isna(value):
-        return "0" if not include_currency else "0 VND"
-    
-    # Format with commas
-    if include_currency:
-        formatted = f"{value:,.0f} VND"
+        value = 0
+    currency = st.session_state.get('currency', "VND")
+    if currency == "USD":
+        formatted = f"{value / st.session_state.get('usd_rate', DEFAULT_VND_PER_USD):,.2f}"
     else:
         formatted = f"{value:,.0f}"
-    
-    return formatted
+    return f"{formatted} {currency}" if include_currency else formatted
 
 def get_date_range(time_filter):
     """Get start and end dates based on time filter"""
@@ -231,3 +234,10 @@ def sales_summary(sales_df, products_df):
         'gross_profit': gross_profit,
         'margin': gross_profit / revenue * 100 if revenue > 0 else 0,
     }
+
+def low_stock(inventory_df, pcs_threshold):
+    """Items at or below their unit's threshold: 300 ml, 100 g, or pcs_threshold pieces."""
+    per_unit = {'ml': 300.0, 'l': 0.3, 'g': 100.0, 'kg': 0.1}
+    threshold = inventory_df['Unit'].str.lower().map(per_unit).fillna(pcs_threshold)
+    low = inventory_df.assign(Threshold=threshold)
+    return low[low['Quantity'] <= low['Threshold']][['Name', 'Quantity', 'Unit', 'Threshold']]

@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 import utils
+import store
 
 # Initialize session_state
 utils.initialize_session_state()
@@ -32,10 +33,10 @@ else:
 
 try:
     # Load data
-    sales_df = pd.read_csv("data/sales.csv")
-    inventory_df = pd.read_csv("data/inventory.csv")
-    products_df = pd.read_csv("data/products.csv")
-    product_recipe_df = pd.read_csv("data/product_recipe.csv")
+    sales_df = store.load("sales")
+    inventory_df = store.load("inventory")
+    products_df = store.load("products")
+    product_recipe_df = store.load("product_recipe")
 
     # Prepare sales data
     sales_df['Date'] = pd.to_datetime(sales_df['Date'], format='mixed')
@@ -125,41 +126,10 @@ try:
         # Intelligent inventory alerts
         st.markdown("**Inventory Alerts**")
 
-        # Define thresholds by unit type
-        thresholds = {
-            'ml': 300.0,  # For liquid ingredients (more than 3 coffee drinks)
-            'g': 100.0,   # For dry ingredients
-            'pcs': st.session_state.alert_threshold  # Use general threshold for pieces
-        }
-
-        # Track low inventory items
-        low_inventory_items = []
-
-        # Check each inventory item against its appropriate threshold
-        for idx, row in inventory_df.iterrows():
-            unit_type = row['Unit'].lower()
-            # Convert units to base units
-            if unit_type == 'l':
-                threshold = thresholds['ml'] * 1000  # Convert to ml
-            elif unit_type == 'kg':
-                threshold = thresholds['g'] * 1000  # Convert to g
-            else:
-                # Handle standard units
-                threshold = thresholds.get(unit_type, st.session_state.alert_threshold)
-
-            # Check if below threshold
-            if row['Quantity'] <= threshold:
-                low_inventory_items.append({
-                    'Name': row['Name'],
-                    'Quantity': row['Quantity'],
-                    'Unit': row['Unit'],
-                    'Threshold': threshold
-                })
-
-        # Display low inventory alerts
-        if low_inventory_items:
-            st.warning(f"{len(low_inventory_items)} items below recommended threshold!", icon=":material/warning:")
-            st.dataframe(pd.DataFrame(low_inventory_items)[['Name', 'Quantity', 'Unit']], hide_index=True)
+        low_stock = utils.low_stock(inventory_df, st.session_state.alert_threshold)
+        if not low_stock.empty:
+            st.warning(f"{len(low_stock)} items below recommended threshold!", icon=":material/warning:")
+            st.dataframe(low_stock[['Name', 'Quantity', 'Unit']], hide_index=True)
         else:
             st.success("All inventory items are at healthy levels.", icon=":material/check_circle:")
 

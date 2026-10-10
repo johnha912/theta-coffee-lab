@@ -4,6 +4,7 @@ import plotly.express as px
 import datetime
 import uuid
 import utils
+import store
 import os
 
 # Initialize session state
@@ -69,7 +70,7 @@ def delete_saved_order(order_id):
     """Delete a saved order from sales.csv and restore inventory"""
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Convert order_id to string for accurate comparison
         order_id_str = str(order_id).strip()
@@ -78,42 +79,37 @@ def delete_saved_order(order_id):
         order_items = sales_df[sales_df['Order_ID'].astype(str) == order_id_str]
         if not order_items.empty:
             # First, restore inventory based on the deleted items
-            try:
-                inventory_df = pd.read_csv("data/inventory.csv")
-                recipe_df = pd.read_csv("data/product_recipe.csv")
+            inventory_df = store.load("inventory")
+            recipe_df = store.load("product_recipe")
+            
+            # For each deleted item, restore inventory
+            for _, item in order_items.iterrows():
+                product = item['Product']
+                quantity_sold = item['Quantity']
                 
-                # For each deleted item, restore inventory
-                for _, item in order_items.iterrows():
-                    product = item['Product']
-                    quantity_sold = item['Quantity']
+                # Get recipe for this product
+                product_recipe = recipe_df[recipe_df['Product'] == product]
+                
+                # Restore inventory for each ingredient
+                for _, recipe_row in product_recipe.iterrows():
+                    ingredient = recipe_row['Ingredient']
+                    quantity_to_restore = recipe_row['Quantity'] * quantity_sold
                     
-                    # Get recipe for this product
-                    product_recipe = recipe_df[recipe_df['Product'] == product]
-                    
-                    # Restore inventory for each ingredient
-                    for _, recipe_row in product_recipe.iterrows():
-                        ingredient = recipe_row['Ingredient']
-                        quantity_to_restore = recipe_row['Quantity'] * quantity_sold
-                        
-                        # Update inventory - add the quantity back
-                        inventory_index = inventory_df[inventory_df['Name'] == ingredient].index
-                        if not inventory_index.empty:
-                            current_quantity = inventory_df.loc[inventory_index[0], 'Quantity']
-                            new_quantity = current_quantity + quantity_to_restore
-                            inventory_df.loc[inventory_index[0], 'Quantity'] = new_quantity
-                            st.info(f"Restored {quantity_to_restore} {ingredient} to inventory")
-                
-                # Save updated inventory
-                inventory_df.to_csv("data/inventory.csv", index=False)
-                
-            except Exception as e:
-                st.error(f"Error restoring inventory: {str(e)}")
+                    # Update inventory - add the quantity back
+                    inventory_index = inventory_df[inventory_df['Name'] == ingredient].index
+                    if not inventory_index.empty:
+                        current_quantity = inventory_df.loc[inventory_index[0], 'Quantity']
+                        new_quantity = current_quantity + quantity_to_restore
+                        inventory_df.loc[inventory_index[0], 'Quantity'] = new_quantity
+                        st.info(f"Restored {quantity_to_restore} {ingredient} to inventory")
             
             # Now remove the order from sales data
             sales_df = sales_df[sales_df['Order_ID'].astype(str) != order_id_str]
             
-            # Save updated sales data
-            sales_df.to_csv("data/sales.csv", index=False)
+            # One transaction: either both tables change or neither does
+            with store.transaction() as save:
+                save("inventory", inventory_df)
+                save("sales", sales_df)
             
             st.success(f"Order {order_id} deleted successfully and inventory restored")
             return True
@@ -166,7 +162,7 @@ def save_order():
         
         # Load existing sales data
         try:
-            sales_df = pd.read_csv("data/sales.csv")
+            sales_df = store.load("sales")
         except FileNotFoundError:
             sales_df = pd.DataFrame(columns=['Date', 'Order_ID', 'Product', 'Quantity', 'Unit_Price', 'Total', 'Promo', 'Net_Total'])
         
@@ -182,49 +178,43 @@ def save_order():
         new_sales = pd.DataFrame(order_data)
         sales_df = pd.concat([sales_df, new_sales], ignore_index=True)
         
-        # Save updated sales data
-        sales_df.to_csv("data/sales.csv", index=False)
-        
         # Update inventory based on recipe
-        try:
-            inventory_df = pd.read_csv("data/inventory.csv")
-            recipe_df = pd.read_csv("data/product_recipe.csv")
-            
-            # For each item in order, reduce inventory
-            for item in st.session_state.order_items:
-                product = item['Product']
-                quantity_sold = item['Quantity']
-                
-                # Get recipe for this product
-                product_recipe = recipe_df[recipe_df['Product'] == product]
-                
-                # Reduce inventory for each ingredient
-                for _, recipe_row in product_recipe.iterrows():
-                    ingredient = recipe_row['Ingredient']
-                    quantity_needed = recipe_row['Quantity'] * quantity_sold
-                    
-                    # Update inventory
-                    inventory_index = inventory_df[inventory_df['Name'] == ingredient].index
-                    if not inventory_index.empty:
-                        current_quantity = inventory_df.loc[inventory_index[0], 'Quantity']
-                        new_quantity = current_quantity - quantity_needed
-                        
-                        # Check if enough inventory
-                        if new_quantity < 0:
-                            st.warning(f"Warning: Not enough {ingredient} in inventory. Quantity will be set to 0.")
-                            new_quantity = 0
-                            
-                        inventory_df.loc[inventory_index[0], 'Quantity'] = new_quantity
-                    else:
-                        st.warning(f"Warning: Ingredient {ingredient} not found in inventory")
-            
-            # Save updated inventory
-            inventory_df.to_csv("data/inventory.csv", index=False)
-            
-        except Exception as e:
-            st.error(f"Error updating inventory: {str(e)}")
-            return
+        inventory_df = store.load("inventory")
+        recipe_df = store.load("product_recipe")
         
+        # For each item in order, reduce inventory
+        for item in st.session_state.order_items:
+            product = item['Product']
+            quantity_sold = item['Quantity']
+            
+            # Get recipe for this product
+            product_recipe = recipe_df[recipe_df['Product'] == product]
+            
+            # Reduce inventory for each ingredient
+            for _, recipe_row in product_recipe.iterrows():
+                ingredient = recipe_row['Ingredient']
+                quantity_needed = recipe_row['Quantity'] * quantity_sold
+                
+                # Update inventory
+                inventory_index = inventory_df[inventory_df['Name'] == ingredient].index
+                if not inventory_index.empty:
+                    current_quantity = inventory_df.loc[inventory_index[0], 'Quantity']
+                    new_quantity = current_quantity - quantity_needed
+                    
+                    # Check if enough inventory
+                    if new_quantity < 0:
+                        st.warning(f"Warning: Not enough {ingredient} in inventory. Quantity will be set to 0.")
+                        new_quantity = 0
+                        
+                    inventory_df.loc[inventory_index[0], 'Quantity'] = new_quantity
+                else:
+                    st.warning(f"Warning: Ingredient {ingredient} not found in inventory")
+        
+        # One transaction: the sale is recorded only if its stock deduction is too
+        with store.transaction() as save:
+            save("sales", sales_df)
+            save("inventory", inventory_df)
+
         # Clear order after saving
         st.session_state.order_items = []
         st.session_state.manual_order_id = ''  # Reset manual order ID
@@ -239,7 +229,7 @@ def update_order_promo(order_id, new_promo_amount):
     """Update promotion amount for an existing order"""
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Convert order_id to string for accurate comparison
         order_id_str = str(order_id).strip()
@@ -265,7 +255,7 @@ def update_order_promo(order_id, new_promo_amount):
                 sales_df_copy.loc[idx, 'Net_Total'] = item_net_total
             
             # Save updated data
-            sales_df_copy.to_csv("data/sales.csv", index=False)
+            store.save("sales", sales_df_copy)
             return True
         else:
             return False
@@ -277,7 +267,7 @@ def update_order_time(order_id, new_hour, new_minute):
     """Update time for an existing order"""
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Convert order_id to string for accurate comparison
         order_id_str = str(order_id).strip()
@@ -301,7 +291,7 @@ def update_order_time(order_id, new_hour, new_minute):
                 sales_df_copy.loc[idx, 'Date'] = new_date.strftime('%Y-%m-%d %H:%M')
             
             # Save updated data
-            sales_df_copy.to_csv("data/sales.csv", index=False)
+            store.save("sales", sales_df_copy)
             return True
         else:
             return False
@@ -313,7 +303,7 @@ def update_order_id(order_id, new_order_id):
     """Update Order_ID for an existing order"""
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Convert order_id to string for accurate comparison
         order_id_str = str(order_id).strip()
@@ -337,7 +327,7 @@ def update_order_id(order_id, new_order_id):
                 sales_df_copy.loc[idx, 'Order_ID'] = new_order_id_str
             
             # Save updated data
-            sales_df_copy.to_csv("data/sales.csv", index=False)
+            store.save("sales", sales_df_copy)
             return True
         else:
             return False
@@ -349,7 +339,7 @@ def update_order_location(order_id, new_location):
     """Update location for an existing order"""
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Convert order_id to string for accurate comparison
         order_id_str = str(order_id).strip()
@@ -381,7 +371,7 @@ def update_order_location(order_id, new_location):
             sales_df_copy.loc[first_item_idx, 'Location'] = new_location
             
             # Save updated data
-            sales_df_copy.to_csv("data/sales.csv", index=False)
+            store.save("sales", sales_df_copy)
             
             # Success message with location hint
             if new_location:
@@ -447,7 +437,7 @@ if 'loaded_location' not in st.session_state:
 # Main code
 try:
     # Load product data
-    products_df = pd.read_csv("data/products.csv")
+    products_df = store.load("products")
     
     # Create New Order section
     st.header("Create New Order")
@@ -651,7 +641,7 @@ try:
     # Recent orders section
     try:
         # Load sales data
-        sales_df = pd.read_csv("data/sales.csv")
+        sales_df = store.load("sales")
         
         # Check if we have any sales data
         if sales_df.empty:

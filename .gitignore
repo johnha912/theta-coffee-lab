@@ -94,3 +94,6 @@ replit_agent/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local database (seeded from data/*.csv)
+data/theta.db

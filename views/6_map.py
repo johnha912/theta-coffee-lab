@@ -5,6 +5,7 @@ import plotly.express as px
 import datetime
 from geopy.geocoders import Nominatim, Photon
 import utils
+import store
 
 # Initialize session state
 utils.initialize_session_state()
@@ -322,7 +323,7 @@ try:
         geocode_address = debug_geocode_address
     
     # Load sales data
-    sales_df = pd.read_csv("data/sales.csv")
+    sales_df = store.load("sales")
     
     if not sales_df.empty:
         # Convert Date column to datetime

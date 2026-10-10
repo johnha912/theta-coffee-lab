@@ -2,4 +2,6 @@ geopy>=2.4.1
 numpy>=2.2.4
 pandas>=2.2.3
 plotly>=6.1
+sqlalchemy>=2.0
 streamlit>=1.65
+# For PostgreSQL (DATABASE_URL=postgresql://...): pip install "psycopg[binary]"

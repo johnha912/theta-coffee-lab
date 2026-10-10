@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import uuid
 import utils
+import store
 
 # Initialize session_state
 utils.initialize_session_state()
@@ -40,7 +41,7 @@ def save_product():
     try:
         # Load products data
         try:
-            products_df = pd.read_csv("data/products.csv")
+            products_df = store.load("products")
         except FileNotFoundError:
             products_df = pd.DataFrame(columns=['Name', 'Price', 'COGS', 'Profit'])
         
@@ -67,12 +68,9 @@ def save_product():
             }
             products_df = pd.concat([products_df, pd.DataFrame([new_product])], ignore_index=True)
         
-        # Save products data
-        products_df.to_csv("data/products.csv", index=False)
-        
         # Save recipe data
         try:
-            recipe_df = pd.read_csv("data/product_recipe.csv")
+            recipe_df = store.load("product_recipe")
         except FileNotFoundError:
             recipe_df = pd.DataFrame(columns=['Product', 'Ingredient', 'Quantity', 'Unit'])
         
@@ -104,8 +102,10 @@ def save_product():
         # Add new recipes
         recipe_df = pd.concat([recipe_df, pd.DataFrame(new_recipes)], ignore_index=True)
         
-        # Save recipe data
-        recipe_df.to_csv("data/product_recipe.csv", index=False)
+        # One transaction: both tables change or neither does
+        with store.transaction() as save:
+            save("products", products_df)
+            save("product_recipe", recipe_df)
         
         st.success(f"Product {product_name} saved successfully!")
         
@@ -175,12 +175,13 @@ def delete_product(product_name):
         # Remove from products.csv
         global products_df
         products_df = products_df[products_df['Name'] != product_name]
-        products_df.to_csv("data/products.csv", index=False)
-        
         # Remove from product_recipe.csv
         global recipe_df
         recipe_df = recipe_df[recipe_df['Product'] != product_name]
-        recipe_df.to_csv("data/product_recipe.csv", index=False)
+        # One transaction: both tables change or neither does
+        with store.transaction() as save:
+            save("products", products_df)
+            save("product_recipe", recipe_df)
         
         st.success(f"Deleted product: {product_name}")
         
@@ -208,21 +209,21 @@ if 'selling_price' not in st.session_state:
 try:
     # Load data
     try:
-        inventory_df = pd.read_csv("data/inventory.csv")
+        inventory_df = store.load("inventory")
     except FileNotFoundError:
         inventory_df = pd.DataFrame(columns=['ID', 'Name', 'Quantity', 'Unit', 'Avg_Cost', 'Date'])
     
     try:
-        products_df = pd.read_csv("data/products.csv")
+        products_df = store.load("products")
     except FileNotFoundError:
         products_df = pd.DataFrame(columns=['Name', 'Price', 'COGS', 'Profit'])
-        products_df.to_csv("data/products.csv", index=False)
+        store.save("products", products_df)
     
     try:
-        recipe_df = pd.read_csv("data/product_recipe.csv")
+        recipe_df = store.load("product_recipe")
     except FileNotFoundError:
         recipe_df = pd.DataFrame(columns=['Product', 'Ingredient', 'Quantity', 'Unit'])
-        recipe_df.to_csv("data/product_recipe.csv", index=False)
+        store.save("product_recipe", recipe_df)
     
     # Product list and management
     st.header("Product List")

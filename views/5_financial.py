@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import datetime
 import utils
+import store
 
 # Initialize session_state
 utils.initialize_session_state()
@@ -33,13 +34,13 @@ else:
 
 try:
     # Load data
-    sales_df = pd.read_csv("data/sales.csv")
-    products_df = pd.read_csv("data/products.csv")
-    product_recipe_df = pd.read_csv("data/product_recipe.csv")
+    sales_df = store.load("sales")
+    products_df = store.load("products")
+    product_recipe_df = store.load("product_recipe")
     
     # Load operational costs if available
     try:
-        operational_costs_df = pd.read_csv("data/operational_costs.csv")
+        operational_costs_df = store.load("operational_costs")
         operational_costs_df['Date'] = pd.to_datetime(operational_costs_df['Date'])
     except FileNotFoundError:
         operational_costs_df = pd.DataFrame(columns=['Date', 'Type', 'Amount'])
@@ -137,7 +138,7 @@ try:
             'Type': 'Rent',
             'Amount': 5000000
         }])
-        test_cost_to_save.to_csv("data/operational_costs.csv", index=False)
+        store.save("operational_costs", test_cost_to_save)
         
         st.success("Added test operational cost of 5,000,000 VND for demonstration")
     
@@ -201,6 +202,33 @@ try:
 
     # Financial Charts
     st.header("Financial Performance Visualization")
+
+    # Waterfall: how gross revenue turns into net profit for the period
+    if gross_revenue > 0:
+        mode = st.context.theme.type or "light"
+        palette = st.get_option(f"theme.{mode}.chartCategoricalColors")
+        steps = [("Gross Revenue", gross_revenue, "absolute"),
+                 ("Promotions", -(gross_revenue - net_revenue), "relative"),
+                 ("COGS", -total_cogs, "relative"),
+                 ("Operational Costs", -operational_costs, "relative"),
+                 ("Net Profit", net_profit, "total")]
+        fig_flow = go.Figure(go.Waterfall(
+            x=[name for name, _, _ in steps],
+            y=[value for _, value, _ in steps],
+            measure=[measure for _, _, measure in steps],
+            text=[f"{value / 1e6:+,.2f}M" if measure == "relative" else f"{value / 1e6:,.2f}M"
+                  for _, value, measure in steps],
+            textposition="outside",
+            customdata=[abs(value) for _, value, _ in steps],
+            hovertemplate="<b>%{x}</b><br>%{customdata:,.0f} VND<extra></extra>",
+            totals=dict(marker=dict(color=palette[0])),
+            decreasing=dict(marker=dict(color=palette[1])),
+            increasing=dict(marker=dict(color=palette[2])),
+            connector=dict(line=dict(width=1, color="rgba(128,128,128,0.4)")),
+        ))
+        fig_flow.update_layout(title="From Gross Revenue to Net Profit", yaxis_title="Amount (VND)",
+                               showlegend=False, height=420)
+        utils.chart(fig_flow)
     
     # Daily revenue and costs chart
     if not filtered_sales.empty:
@@ -317,7 +345,15 @@ try:
     else:
         st.info("No sales data available for the selected period to display charts")
     
-    # Product analysis
+    # Product analysis: two headline tiles, then two same-height rankings
+    if not filtered_sales.empty:
+        units = filtered_sales.groupby('Product')['Quantity'].sum()
+        tiles = st.columns(2)
+        tiles[0].metric("Best Selling Product", units.idxmax(), f"{int(units.max())} units",
+                        delta_color="off", delta_arrow="off", icon=":material/local_cafe:", border=True)
+        tiles[1].metric("Most Profitable Product", most_profitable['Product'], utils.format_currency(most_profitable['Profit']),
+                        delta_color="off", delta_arrow="off", icon=":material/workspace_premium:", border=True)
+
     col1, col2 = st.columns(2)
     
     with col1:
@@ -331,13 +367,8 @@ try:
                     min(5, len(product_sales))
                 )
                 
-                fig2 = px.bar(
-                    product_sales,
-                    x='Product',
-                    y='Quantity',
-                    title='Top 5 Best Selling Products',
-                    labels={'Product': 'Product', 'Quantity': 'Units Sold'}
-                )
+                fig2 = utils.hbar(product_sales, 'Quantity', 'Product', 'Top 5 Best Selling Products',
+                                  labels={'Quantity': 'Units Sold'}, height=360)
                 utils.chart(fig2)
             else:
                 st.info("No product sales data available to display")
@@ -353,15 +384,8 @@ try:
             )
             
             if not top_products.empty:
-                st.metric("Most Profitable Product", most_profitable['Product'], utils.format_currency(most_profitable['Profit']),
-                          delta_color="off", delta_arrow="off", icon=":material/workspace_premium:", border=True)
-                fig3= px.bar(
-                    top_products,
-                    x='Product',
-                    y='Profit',
-                    title='Top 5 Most Profitable Products',
-                    labels={'Product': 'Product', 'Profit': 'Profit (VND)'}
-                )
+                fig3 = utils.hbar(top_products, 'Profit', 'Product', 'Top 5 Most Profitable Products',
+                                  labels={'Profit': 'Profit (VND)'}, height=360)
                 utils.chart(fig3)
             else:
                 st.info("No profit data available for display")
@@ -391,7 +415,7 @@ try:
             try:
                 # Load current costs
                 try:
-                    costs_df = pd.read_csv("data/operational_costs.csv")
+                    costs_df = store.load("operational_costs")
                 except FileNotFoundError:
                     costs_df = pd.DataFrame(columns=['Date', 'Type', 'Amount'])
                 
@@ -403,7 +427,7 @@ try:
                 }
                 
                 costs_df = pd.concat([costs_df, pd.DataFrame([new_cost])], ignore_index=True)
-                costs_df.to_csv("data/operational_costs.csv", index=False)
+                store.save("operational_costs", costs_df)
                 
                 st.success("Cost added successfully!")
                 
@@ -452,7 +476,7 @@ try:
                     if st.button("Delete Cost"):
                         try:
                             # Load current costs data
-                            costs_df = pd.read_csv("data/operational_costs.csv")
+                            costs_df = store.load("operational_costs")
                             
                             # Get the actual index from original dataframe
                             if not filtered_costs.empty and cost_id < len(display_costs):
@@ -462,7 +486,7 @@ try:
                                 costs_df = costs_df.drop(actual_index).reset_index(drop=True)
                                 
                                 # Save updated costs
-                                costs_df.to_csv("data/operational_costs.csv", index=False)
+                                store.save("operational_costs", costs_df)
                                 
                                 st.success(f"Cost ID {cost_id} deleted successfully!")
                                 st.rerun()
@@ -525,7 +549,7 @@ try:
                             if st.form_submit_button("Update Cost"):
                                 try:
                                     # Load current costs
-                                    costs_df = pd.read_csv("data/operational_costs.csv")
+                                    costs_df = store.load("operational_costs")
                                     
                                     # Get the actual index from original dataframe
                                     actual_index = selected_cost['ID']
@@ -536,7 +560,7 @@ try:
                                     costs_df.loc[actual_index, 'Amount'] = edit_amount
                                     
                                     # Save updated costs
-                                    costs_df.to_csv("data/operational_costs.csv", index=False)
+                                    store.save("operational_costs", costs_df)
                                     
                                     # Reset edit mode
                                     st.session_state.edit_cost_mode = False
@@ -567,13 +591,13 @@ try:
     
     # Comprehensive business costs breakdown
     st.header("Business Costs Breakdown by Category")
-    st.info("This chart shows inventory item costs and operational expenses")
+    st.caption("Each tile's area is its share of total spend. Click a group to zoom in; click the top bar to zoom out.")
     
     # Prepare data for comprehensive costs pie chart
     # 1. Get costs by inventory item (raw materials)
     try:
         # Load inventory data
-        inventory_df = pd.read_csv("data/inventory.csv")
+        inventory_df = store.load("inventory")
         
         # Calculate total value of each inventory item
         inventory_costs_list = []
@@ -630,11 +654,37 @@ try:
     all_costs['Amount'] = pd.to_numeric(all_costs['Amount'], errors='coerce').fillna(0)
     all_costs = all_costs[all_costs['Amount'] > 0]
     
-    # Display pie chart of all business costs
+    # Treemap: cost type -> item, sized by spend (35+ items fit where a bar list would scroll)
     if not all_costs.empty and all_costs['Amount'].sum() > 0:
-        fig_all_costs = utils.hbar(all_costs, 'Amount', 'Category', 'Inventory Items & Operational Costs',
-                                   color='Type', labels={'Amount': 'Cost (VND)', 'Type': 'Cost Type'})
+        # Soft tints of the theme's first two series colors keep large tiles calm and text readable
+        mode = st.context.theme.type or "light"
+        palette = st.get_option(f"theme.{mode}.chartCategoricalColors")
+        tint = lambda c: f"rgba({int(c[1:3], 16)}, {int(c[3:5], 16)}, {int(c[5:7], 16)}, 0.4)"
+        fig_all_costs = px.treemap(
+            all_costs,
+            path=[px.Constant("All costs"), 'Type', 'Category'],
+            values='Amount',
+            color='Type',
+            color_discrete_map={"(?)": "rgba(0,0,0,0)", "Variable Cost": tint(palette[0]), "Operational": tint(palette[1])},
+            title='Inventory Items & Operational Costs',
+            height=560
+        )
+        fig_all_costs.update_traces(
+            marker=dict(cornerradius=4, line=dict(width=2)),
+            textfont=dict(color=st.get_option(f"theme.{mode}.textColor")),
+            tiling=dict(pad=4),
+            texttemplate="<b>%{label}</b><br>%{value:,.0f} VND<br>%{percentRoot:.1%}",
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} VND<br>%{percentRoot:.1%} of all costs<extra></extra>",
+        )
         utils.chart(fig_all_costs)
+        with st.expander("Show as table"):
+            st.dataframe(
+                all_costs.sort_values('Amount', ascending=False).assign(
+                    Share=lambda d: d['Amount'] / d['Amount'].sum()),
+                hide_index=True,
+                column_config={"Amount": st.column_config.NumberColumn("Cost (VND)", format="%,.0f"),
+                               "Share": st.column_config.NumberColumn(format="percent")},
+            )
     else:
         st.info("No cost data available. Add inventory items and operational costs to see breakdown.")
     
