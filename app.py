@@ -1,181 +1,70 @@
 import streamlit as st
 import pandas as pd
-import os
 import utils
 from data_init import initialize_data_files
 
-# Set page configuration
 st.set_page_config(
-    page_title="Theta Coffee Lab Management System",
-    page_icon="☕",
+    page_title="Theta Coffee Lab",
+    page_icon=":material/coffee:",
     layout="wide",
-    initial_sidebar_state="expanded"
 )
 
-# Initialize session state variables
 utils.initialize_session_state()
-
-# Set additional application-specific session state variables
-if 'default_time_filter' not in st.session_state:
-    st.session_state.default_time_filter = "Today"
-if 'username' not in st.session_state:
-    st.session_state.username = "Admin"
-if 'alert_threshold' not in st.session_state:
-    st.session_state.alert_threshold = 5.0  # Default low inventory alert threshold
-
-# Initialize data files if they don't exist
 initialize_data_files()
 
-# Main page
-st.title("Theta Coffee Lab Management System")
+MODULES = [
+    ("pages/1_dashboard.py", "Dashboard", ":material/space_dashboard:", "Revenue, orders, margin, and stock alerts at a glance."),
+    ("pages/2_order.py", "Order", ":material/receipt_long:", "Ring up sales; every saved order deducts its recipe from stock."),
+    ("pages/3_inventory.py", "Inventory", ":material/inventory_2:", "Stock levels with unit-aware low-stock thresholds."),
+    ("pages/4_product.py", "Product", ":material/local_cafe:", "Build recipes and see cost of goods and profit per drink."),
+    ("pages/5_financial.py", "Financial", ":material/monitoring:", "Gross and net profit, promotions, and operating costs."),
+    ("pages/6_map.py", "Map", ":material/map:", "Where orders come from, plotted from Google Plus Codes."),
+]
 
-# Introduction message
-st.write("""
-Welcome to the Theta Coffee Lab Management System! This application helps you manage your cafe operations including sales tracking, inventory management, 
-product recipes, and financial reporting.
-""")
 
-# Add a more detailed description in a table format
-st.subheader("System Features")
-st.write("Theta Coffee Lab Management System offers a comprehensive suite of tools to manage your café business efficiently:")
+def home():
+    hero, snapshot = st.columns([3, 2], gap="large", vertical_alignment="center")
 
-# Create feature table that adapts to light/dark theme
-features_html = """
-<style>
-    .features-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    .features-table th, .features-table td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid var(--text-color, #ddd);
-    }
-    .features-table tr:nth-child(even) {
-        background-color: var(--background-color, transparent);
-    }
-    /* Dark mode will be handled by Streamlit's theme */
-</style>
+    with hero:
+        st.badge("Café operations", icon=":material/coffee:", color="primary")
+        st.title("Theta Coffee Lab")
+        st.markdown("Sales, recipes, stock, and profit for one café, in one place.")
+        with st.container(horizontal=True):
+            if st.button("Open dashboard", type="primary", icon=":material/arrow_forward:"):
+                st.switch_page("pages/1_dashboard.py")
+            if st.button("New order", icon=":material/add:"):
+                st.switch_page("pages/2_order.py")
 
-<table class="features-table">
-    <tr>
-        <th>Feature</th>
-        <th>Description</th>
-    </tr>
-    <tr>
-        <td><b>📊 Sales Tracking</b></td>
-        <td>Record and monitor all sales transactions with detailed order information</td>
-    </tr>
-    <tr>
-        <td><b>📦 Inventory Management</b></td>
-        <td>Track stock levels, receive alerts for low inventory, and manage purchases</td>
-    </tr>
-    <tr>
-        <td><b>🍵 Recipe & Menu Development</b></td>
-        <td>Create and modify product recipes with precise ingredient measurements and accurate cost calculations</td>
-    </tr>
-    <tr>
-        <td><b>💰 Financial Analytics</b></td>
-        <td>Access detailed financial reports including revenue, costs, and profitability metrics</td>
-    </tr>
-    <tr>
-        <td><b>🗺️ Customer Location Analysis</b></td>
-        <td>Visualize customer order locations on an interactive map using Google Plus Codes</td>
-    </tr>
-    <tr>
-        <td><b>⚙️ Application Settings</b></td>
-        <td>Configure application preferences including light/dark mode display options</td>
-    </tr>
-</table>
-"""
+    with snapshot, st.container(border=True):
+        st.caption("All-time snapshot")
+        try:
+            kpi = utils.sales_summary(pd.read_csv("data/sales.csv"), pd.read_csv("data/products.csv"))
+            row1, row2 = st.columns(2), st.columns(2)
+            row1[0].metric("Revenue", utils.format_currency(kpi['revenue']))
+            row1[1].metric("Gross margin", f"{kpi['margin']:.1f}%")
+            row2[0].metric("Orders", f"{kpi['orders']:,}")
+            row2[1].metric("Cups sold", f"{kpi['cups']:,}")
+        except Exception:
+            st.caption("No sales yet. Save an order to see the snapshot.")
 
-st.markdown(features_html, unsafe_allow_html=True)
+    st.space("medium")
+    st.subheader("Modules")
+    for row in (MODULES[:3], MODULES[3:]):
+        for col, (path, title, icon, blurb) in zip(st.columns(3), row):
+            with col, st.container(border=True, height="stretch"):
+                st.markdown(f"#### {icon} {title}")
+                st.caption(blurb)
+                st.page_link(path, label=f"Open {title.lower()}", icon=":material/arrow_forward:")
 
-# Navigation guidance with interactive buttons
-st.subheader("Navigation")
-st.write("Use the sidebar or these buttons to navigate to different sections of the application:")
+    st.space("medium")
+    st.caption("© 2025 Theta Coffee Lab")
 
-# CSS for nav buttons that respect light/dark theme
-st.markdown("""
-<style>
-    .nav-button {
-        background-color: #424242; 
-        color: white; 
-        padding: 12px 16px; 
-        border-radius: 5px; 
-        cursor: pointer; 
-        text-align: center; 
-        margin-bottom: 10px;
-        transition: all 0.3s ease;
-    }
-    .nav-button:hover {
-        background-color: #212121;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-</style>
-""", unsafe_allow_html=True)
 
-# Create three columns for the navigation buttons
-col1, col2, col3 = st.columns(3)
-
-# First row of buttons
-with col1:
-    st.markdown("""
-    <a href="dashboard" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            📊 Dashboard<br><small>View KPIs and metrics</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-    
-with col2:
-    st.markdown("""
-    <a href="order" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            🛒 Order<br><small>Manage sales transactions</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-    
-with col3:
-    st.markdown("""
-    <a href="inventory" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            📦 Inventory<br><small>Track stock levels</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-
-# Second row of buttons
-with col1:
-    st.markdown("""
-    <a href="product" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            🍵 Product<br><small>Create recipes</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-    
-with col2:
-    st.markdown("""
-    <a href="financial" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            💰 Financial<br><small>Analyze finances</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-    
-with col3:
-    st.markdown("""
-    <a href="map" target="_self" style="text-decoration: none;">
-        <div class="nav-button">
-            🗺️ Map<br><small>View customer locations</small>
-        </div>
-    </a>
-    """, unsafe_allow_html=True)
-
-# Removed settings button as requested
-
-# Footer
-st.markdown("---")
-st.caption("© 2025 Theta Coffee Lab Management System")
+st.logo("assets/logo.svg", size="large")
+nav = st.navigation(
+    [st.Page(home, title="Home", icon=":material/home:", default=True)]
+    + [st.Page(path, title=title, icon=icon) for path, title, icon, _ in MODULES]
+    + [st.Page("pages/7_settings.py", title="Settings", icon=":material/settings:")],
+    position="top",
+)
+nav.run()

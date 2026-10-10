@@ -3,11 +3,54 @@ headless = true
 address = "0.0.0.0"
 port = 5000
 
-[theme]
-primaryColor = "#FF4B4B"
-backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#262730"
-textColor = "#FAFAFA"
-font = "sans serif"
 [browser]
 gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"
+
+# Light and dark themes are both defined, so the app follows the viewer's
+# system setting and the built-in menu (⋮ → Settings) can switch between them.
+[theme]
+font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@300..800&display=swap, sans-serif"
+headingFont = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@300..800&display=swap, sans-serif"
+codeFont = "'Geist Mono':https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&display=swap, monospace"
+baseFontSize = 15
+headingFontSizes = ["2.5rem", "1.375rem", "1.125rem", "1rem", "0.9375rem", "0.875rem"]
+headingFontWeights = [650, 600, 600, 600, 600, 600]
+metricValueFontSize = "1.75rem"
+metricValueFontWeight = 600
+baseRadius = "0.75rem"
+buttonRadius = "full"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.light]
+primaryColor = "#2a78d6"
+backgroundColor = "#fbfbfa"
+secondaryBackgroundColor = "#f1f1ef"
+textColor = "#18181b"
+borderColor = "#e4e4e1"
+dataframeBorderColor = "#e4e4e1"
+dataframeHeaderBackgroundColor = "#f1f1ef"
+linkColor = "#1f62b3"
+# Validated categorical order (dataviz reference palette, light steps)
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
+
+[theme.light.sidebar]
+backgroundColor = "#f4f4f2"
+
+[theme.dark]
+primaryColor = "#3987e5"
+backgroundColor = "#141416"
+secondaryBackgroundColor = "#1d1d20"
+textColor = "#ededef"
+borderColor = "#2b2b2f"
+dataframeBorderColor = "#2b2b2f"
+dataframeHeaderBackgroundColor = "#1d1d20"
+linkColor = "#6da7ec"
+# Same hues, dark steps
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+
+[theme.dark.sidebar]
+backgroundColor = "#111113"

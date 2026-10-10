@@ -3,7 +3,7 @@
 A comprehensive cafe management system with real-time analytics, inventory tracking, and financial reporting.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.65-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Overview
@@ -23,11 +23,28 @@ Theta Coffee Lab Management System is a full-stack business intelligence applica
 
 ## Tech Stack
 
-- **Framework**: Streamlit
+- **Framework**: Streamlit 1.65 (top navigation, native light and dark themes)
 - **Data Processing**: Pandas, NumPy
-- **Visualization**: Plotly (interactive charts)
+- **Visualization**: Plotly 7 (interactive charts, MapLibre maps)
 - **Geolocation**: GeoPy
 - **Storage**: CSV-based data persistence
+
+## UI Upgrade (v2)
+
+The interface was rebuilt on Streamlit's native theming instead of hand-written CSS:
+
+- **Top navigation** with Material icons replaces the default sidebar page list, plus a theta logo mark.
+- **Two designed themes**, light and dark, in `.streamlit/config.toml`: Geist typography, a single cobalt accent on neutral surfaces, rounded cards, and pill buttons. The app follows the viewer's system setting; the ⋮ menu switches it.
+- **One chart style everywhere**: `utils.chart()` puts every Plotly figure in a bordered card with thin marks and rounded bar ends. Six copy-pasted ggplot templates are gone, and chart colors come from a colorblind-checked categorical palette.
+- **Better chart choices**: pies with 10+ slices became sorted bar charts, single-series bars use one color instead of a rainbow, and the financial chart has a unified hover.
+- **Dashboard**: seven KPI tiles with icons and daily sparklines in two even rows, a time-period segmented control, a full-width revenue trend, and two same-height rankings side by side.
+- **Home**: a hero with an all-time snapshot and a module grid.
+
+It also fixes three things that broke on current library versions:
+
+- **Customer Map**: Plotly 7 removed `scatter_mapbox`, and the old Carto tiles showed "API KEY REQUIRED". The map now uses MapLibre `scatter_map` and centers on the orders.
+- **Settings**: "Toggle Theme Now" rewrote `config.toml` at runtime. It is removed; theme switching is built in.
+- **Dependencies**: `requirements.txt` now exists, and `pyproject.toml` and `uv.lock` pin Streamlit 1.65 and Plotly 7.
 
 ## Architecture
 
@@ -52,9 +69,13 @@ graph TB
 
 ```
 theta-coffee-lab/
-├── app.py                 # Main application entry point
-├── utils.py               # Shared utility functions
+├── app.py                 # Navigation, theme setup, and the Home page
+├── utils.py               # Shared helpers: currency, dates, KPIs, chart styling
 ├── data_init.py           # Data initialization module
+├── requirements.txt
+├── .streamlit/config.toml # Light and dark themes
+├── assets/logo.svg
+├── tests/test_pages.py    # Smoke test: every page renders without errors
 ├── pages/
 │   ├── 1_dashboard.py     # Analytics dashboard
 │   ├── 2_order.py         # Order management
@@ -82,8 +103,11 @@ cd theta-coffee-lab
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the application
-streamlit run app.py --server.port 5000
+# Run the application (opens on port 5000, set in .streamlit/config.toml)
+streamlit run app.py
+
+# Optional: check that every page renders against the bundled data
+python tests/test_pages.py
 ```
 
 ## Key Technical Highlights
@@ -98,39 +122,30 @@ streamlit run app.py --server.port 5000
 
 > **Note:** For customer privacy and financial security reasons, all figures shown in these screenshots have been modified and are for demonstration purposes only to help users understand how the application works.
 
-### Home
-![Home](attached_assets/home_1767848939881.png)
+### Before and after
 
-### Dashboard
-![Dashboard 1](attached_assets/dashboard1_1767848939881.png)
-![Dashboard 2](attached_assets/dashboard2_1767848939881.png)
+The "before" shots run the previous release on its locked versions (Streamlit 1.44, Plotly 6). Both sides use the same data and the "All Time" period.
 
-### Order Management
-![Order 1](attached_assets/order1_1767848939881.png)
-![Order 2](attached_assets/order2_1767848939881.png)
+| | Before | After |
+|---|---|---|
+| **Home** | ![Home before](docs/screenshots/before-home.webp) | ![Home after](docs/screenshots/after-home.webp) |
+| **Dashboard** | ![Dashboard before](docs/screenshots/before-dashboard.webp) | ![Dashboard after](docs/screenshots/after-dashboard.webp) |
+| **Financial** | ![Financial before](docs/screenshots/before-financial.webp) | ![Financial after](docs/screenshots/after-financial.webp) |
+| **Map** | ![Map before](docs/screenshots/before-map.webp) | ![Map after](docs/screenshots/after-map.webp) |
 
-### Inventory
-![Inventory 1](attached_assets/inventory1_1767848939881.png)
-![Inventory 2](attached_assets/inventory2_1767848939880.png)
+### Light theme
 
-### Product & Recipes
-![Product 1](attached_assets/product1_1767848939880.png)
-![Product 2](attached_assets/product2_1767848939880.png)
-![Product 3](attached_assets/product3_1767848939880.png)
+| Home | Dashboard | Financial |
+|---|---|---|
+| ![Home, light](docs/screenshots/after-light-home.webp) | ![Dashboard, light](docs/screenshots/after-light-dashboard.webp) | ![Financial, light](docs/screenshots/after-light-financial.webp) |
 
-### Financial Reports
-![Financial 1](attached_assets/financial1_1767848939880.png)
-![Financial 2](attached_assets/financial2_1767848939879.png)
-![Financial 3](attached_assets/financial3_1767848939879.png)
-![Financial 4](attached_assets/financial4_1767848939879.png)
+### Other pages
 
-### Customer Map
-![Map 1](attached_assets/map1_1767848939879.png)
-![Map 2](attached_assets/map2_1767848939878.png)
-
-### Settings
-![Settings Light](attached_assets/settings1_1767848939878.png)
-![Settings Dark](attached_assets/settings2_1767848939878.png)
+| Order | Inventory |
+|---|---|
+| ![Order](docs/screenshots/after-order.webp) | ![Inventory](docs/screenshots/after-inventory.webp) |
+| **Product** | **Settings** |
+| ![Product](docs/screenshots/after-product.webp) | ![Settings](docs/screenshots/after-settings.webp) |
 
 ## Future Enhancements
 

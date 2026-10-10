@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 from datetime import datetime, timedelta
 import os
+import plotly.express as px
 
 def initialize_session_state():
     """Initialize session state variables"""
@@ -59,10 +60,6 @@ def initialize_session_state():
     if 'delete_confirmation' not in st.session_state:
         st.session_state.delete_confirmation = False
         
-    # Initialize theme
-    if 'theme' not in st.session_state:
-        st.session_state.theme = 'light'
-    
     # Initialize default time filter
     if 'default_time_filter' not in st.session_state:
         st.session_state.default_time_filter = "Today"
@@ -184,3 +181,53 @@ def update_inventory_from_sale(product, quantity, recipe_df, inventory_df):
             updated_inventory.loc[idx[0], 'Quantity'] = new_qty
     
     return updated_inventory
+
+def chart(fig, **kwargs):
+    """Render a Plotly figure in a bordered card with the shared mark specs.
+
+    Colors come from the theme's chartCategoricalColors (config.toml), so the
+    same chart follows light and dark mode without per-page templates.
+    """
+    fig.update_layout(
+        barcornerradius=4,
+        bargap=0.35,
+        margin=dict(t=56, l=8, r=8, b=8),
+        title_font_size=15,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title_text=""),
+    )
+    fig.update_traces(line_width=2, marker_size=7, selector=dict(type="scatter"))
+    fig.update_xaxes(showgrid=False)
+    with st.container(border=True):
+        st.plotly_chart(fig, **kwargs)
+
+def hbar(df, x, y, title, color=None, labels=None, height=None):
+    """Horizontal bar chart sorted largest-first; replaces pies with many slices."""
+    fig = px.bar(
+        df,
+        x=x,
+        y=y,
+        color=color,
+        orientation="h",
+        title=title,
+        labels=labels,
+        height=height or max(320, 28 * len(df) + 120),
+    )
+    fig.update_yaxes(title_text="", categoryorder="total ascending")
+    return fig
+
+def row_gross_profit(sales_df, products_df):
+    """Gross profit per sales row: net total minus recipe COGS times quantity."""
+    cogs = products_df.drop_duplicates('Name').set_index('Name')['COGS']
+    return sales_df['Net_Total'] - sales_df['Product'].map(cogs).fillna(0) * sales_df['Quantity']
+
+def sales_summary(sales_df, products_df):
+    """Revenue, orders, cups, gross profit, and margin for a slice of sales.csv."""
+    revenue = sales_df['Net_Total'].sum()
+    gross_profit = row_gross_profit(sales_df, products_df).sum()
+    return {
+        'revenue': revenue,
+        'orders': sales_df['Order_ID'].nunique(),
+        'cups': int(sales_df['Quantity'].sum()),
+        'gross_profit': gross_profit,
+        'margin': gross_profit / revenue * 100 if revenue > 0 else 0,
+    }

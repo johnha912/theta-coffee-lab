@@ -1,39 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.io as pio
 import datetime
 import utils
 
 # Initialize session_state
 utils.initialize_session_state()
 
-# Set default template to ggplot2
-pio.templates.default = 'ggplot2'
-
-# Create custom ggplot2 template with gray background and grid
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Paper background color
-    plot_bgcolor='#F0F0F0',   # Plot background color
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
-)
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-pio.templates.default = 'custom_ggplot2'
-
-st.set_page_config(page_title="Inventory Management", page_icon="📦", layout="wide")
-
 st.title("Inventory Management")
-st.subheader("Track and manage inventory items")
+st.caption("Track and manage inventory items")
 
 def add_inventory():
     """Add new inventory items"""
@@ -478,11 +453,10 @@ try:
                             unit_data,
                             x='Name',
                             y='Quantity',
-                            color='Name',
                             labels={'Name': 'Material', 'Quantity': f'Quantity ({unit})'},
                             title=f"Inventory Levels - {unit.upper()} Units"
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        utils.chart(fig)
                     else:
                         st.info(f"No inventory items with unit type: {unit}")
         

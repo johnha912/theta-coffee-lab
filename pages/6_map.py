@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.io as pio
 import datetime
 from geopy.geocoders import Nominatim, Photon
 import utils
@@ -10,33 +9,9 @@ import utils
 # Initialize session state
 utils.initialize_session_state()
 
-# Set page config
-st.set_page_config(page_title="User Map", page_icon="🗺️", layout="wide")
-
-# Set default template to ggplot2 (consistent with other pages)
-pio.templates.default = 'ggplot2'
-
-# Custom ggplot2 template with gray background and white grid
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Paper background color
-    plot_bgcolor='#F0F0F0',   # Plot background color
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
-)
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-
 # Add page title
 st.title("Customer Map")
-st.subheader("Visualize order locations using Google Plus Codes")
+st.caption("Visualize order locations using Google Plus Codes")
 
 # Initialize geocoder
 @st.cache_resource
@@ -193,7 +168,7 @@ def geocode_address(address):
         return None, None
 
 # Function to create map of order locations
-def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_style="carto-positron"):
+def create_order_map(sales_df, time_filter="All Time", color_scale="Blues", map_style="carto-positron"):
     """Create map visualization of order locations"""
     
     try:
@@ -260,7 +235,7 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_s
                 )
                 
                 # Create map with Plotly
-                fig = px.scatter_mapbox(
+                fig = px.scatter_map(
                     map_df, 
                     lat="Latitude", 
                     lon="Longitude", 
@@ -271,13 +246,13 @@ def create_order_map(sales_df, time_filter="All Time", color_scale="Reds", map_s
                     hover_name="Order_ID",
                     hover_data=["Date_Display", "Total_Display", "Location"],
                     zoom=12,
-                    height=600,
-                    template="custom_ggplot2"
+                    center=dict(lat=map_df["Latitude"].mean(), lon=map_df["Longitude"].mean()),  # Plotly 7 no longer auto-centers
+                    height=600
                 )
                 
                 # Update layout to use selected map style
                 fig.update_layout(
-                    mapbox_style=map_style,
+                    map_style=map_style,
                     margin={"r":0,"t":0,"l":0,"b":0},
                     coloraxis_colorbar=dict(
                         title="Total (VND)",
@@ -359,6 +334,7 @@ try:
         
         # Select color scale
         color_options = {
+            "Blues": "Blue - Matches the app theme",
             "Reds": "Red - Best contrast with map",
             "OrRd": "Orange-Red - Prominent",
             "YlOrRd": "Yellow-Orange-Red - Vibrant",
@@ -378,19 +354,20 @@ try:
             "carto-darkmatter": "Carto Dark - Dark background, prominent",
             "open-street-map": "OpenStreetMap - Traditional",
             "white-bg": "White Background - Most minimal",
-            "stamen-toner": "Stamen Toner - Simple black and white"
+            "carto-voyager": "Carto Voyager - Soft, detailed streets"
         }
         selected_style = st.sidebar.selectbox(
             "Select map theme", 
             options=list(map_style_options.keys()),
             format_func=lambda x: map_style_options[x],
-            index=0  # Default to carto-positron (light theme)
+            index=1 if st.context.theme.type == "dark" else 0  # Match the app theme
         )
         
         # Create and display map
         map_fig = create_order_map(sales_df, time_filter, selected_color, selected_style)
         if map_fig:
-            st.plotly_chart(map_fig, use_container_width=True)
+            with st.container(border=True):
+                st.plotly_chart(map_fig)
             
         # Display order location data in table form
         st.subheader("Order Locations")

@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.io as pio
 import datetime
 import uuid
 import utils
@@ -10,33 +9,9 @@ import os
 # Initialize session state
 utils.initialize_session_state()
 
-# Set page config
-st.set_page_config(page_title="Order Management", page_icon="🛒", layout="wide")
-
-# Set default template to ggplot2 (consistent with other pages)
-pio.templates.default = 'ggplot2'
-
-# Custom ggplot2 template with gray background and white grid
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Paper background color
-    plot_bgcolor='#F0F0F0',   # Plot background color
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
-)
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-
 # Add page title
 st.title("Order Management")
-st.subheader("Create and manage orders")
+st.caption("Create and manage orders")
 
 # Define the main functions
 def add_item_to_order():

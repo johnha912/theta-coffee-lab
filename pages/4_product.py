@@ -1,39 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.io as pio
 import uuid
 import utils
 
 # Initialize session_state
 utils.initialize_session_state()
 
-# Set default template to ggplot2
-pio.templates.default = 'ggplot2'
-
-# Create custom ggplot2 template with gray background and grid
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Paper background color
-    plot_bgcolor='#F0F0F0',   # Plot background color
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
-)
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-pio.templates.default = 'custom_ggplot2'
-
-st.set_page_config(page_title="Product Management", page_icon="☕", layout="wide")
-
 st.title("Product Management")
-st.subheader("Design and manage product recipes")
+st.caption("Design and manage product recipes")
 
 def get_cogs(selected_ingredients):
     """Calculate Cost of Goods Sold based on selected ingredients"""
@@ -379,11 +354,10 @@ try:
             sorted_products_df,
             x='Name',
             y='Profit',
-            color='Name',
             title='Profit per Product',
             labels={'Name': 'Product', 'Profit': 'Profit (VND)'}
         )
-        st.plotly_chart(fig1, use_container_width=True)
+        utils.chart(fig1)
         
         # For the price breakdown, we need to sort by total (COGS + Profit)
         # Create a copy and add a total column
@@ -400,7 +374,7 @@ try:
             title='Price Breakdown (COGS vs Profit)',
             labels={'Name': 'Product', 'value': 'Amount (VND)', 'variable': 'Component'}
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        utils.chart(fig2)
 
 except Exception as e:
     st.error(f"Error in product management: {str(e)}")

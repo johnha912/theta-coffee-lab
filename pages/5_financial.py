@@ -2,46 +2,24 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 import datetime
 import utils
 
 # Initialize session_state
 utils.initialize_session_state()
 
-# Set default template to ggplot2
-pio.templates.default = 'ggplot2'
-
-# Create custom ggplot2 template with gray background and grid
-custom_ggplot2_template = pio.templates['ggplot2']
-custom_ggplot2_template.layout.update(
-    paper_bgcolor='#F0F0F0',  # Paper background color
-    plot_bgcolor='#F0F0F0',   # Plot background color
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='white',
-        gridwidth=1.5
-    )
-)
-pio.templates['custom_ggplot2'] = custom_ggplot2_template
-pio.templates.default = 'custom_ggplot2'
-
-st.set_page_config(page_title="Financial Report", page_icon="💰", layout="wide")
-
-st.title("Financial Report")
-st.subheader("Financial KPIs and Analysis")
+header, period = st.columns([3, 2], vertical_alignment="bottom")
+with header:
+    st.title("Financial Report")
+    st.caption("Financial KPIs and Analysis")
 
 # Time filter
 time_options = ["Today", "Last 7 Days", "Last 30 Days", "All Time", "Custom"]
 # Ensure default_time_filter exists and is valid
 if 'default_time_filter' not in st.session_state or st.session_state.default_time_filter not in time_options:
     st.session_state.default_time_filter = "Today"
-time_filter = st.selectbox("Time Period", options=time_options, index=time_options.index(st.session_state.default_time_filter))
+with period, st.container(horizontal_alignment="right"):
+    time_filter = st.segmented_control("Time Period", options=time_options, default=st.session_state.default_time_filter, required=True)
 
 # Date range for custom filter
 if time_filter == "Custom":
@@ -51,17 +29,7 @@ if time_filter == "Custom":
     with col2:
         end_date = st.date_input("End Date", datetime.datetime.now())
 else:
-    # Set date range based on selection
-    end_date = datetime.datetime.now().date()
-    if time_filter == "Today":
-        start_date = end_date
-    elif time_filter == "Last 7 Days":
-        start_date = end_date - datetime.timedelta(days=6)
-    elif time_filter == "Last 30 Days":
-        start_date = end_date - datetime.timedelta(days=29)
-    elif time_filter == "All Time":
-        # Set to a very old date for "All Time"
-        start_date = datetime.datetime(2020, 1, 1).date()
+    start_date, end_date = utils.get_date_range(time_filter)
 
 try:
     # Load data
@@ -184,10 +152,9 @@ try:
     # Calculate sum of filtered costs
     operational_costs = filtered_costs['Amount'].sum()
     
-    # Debug information 
-    st.info(f"Found {len(filtered_costs)} operational costs in selected period. Total: {utils.format_currency(operational_costs)}")
-    st.write(f"Total Operational Costs in Database: {utils.format_currency(operational_costs_df['Amount'].sum())}")
-    
+    st.caption(f"{len(filtered_costs)} operational costs in this period ({utils.format_currency(operational_costs)}); "
+               f"{utils.format_currency(operational_costs_df['Amount'].sum())} recorded in total.")
+
     # Calculate financial metrics based on the formulas provided
     
     # 1. Revenue & Profit
@@ -209,40 +176,29 @@ try:
     # Since we don't track taxes or financial expenses separately, Net Profit = Operating Profit
     net_profit = operating_profit
     
-    # Display KPIs
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Display Revenue KPIs
-        st.metric("Gross Revenue", utils.format_currency(gross_revenue))
-        st.metric("Net Revenue", utils.format_currency(net_revenue))
-        # Calculate revenue reduction due to promotions
-        promo_percentage = ((gross_revenue - net_revenue) / gross_revenue * 100) if gross_revenue > 0 else 0
-        st.metric("Promotion Impact", f"{promo_percentage:.2f}%")
-    
-    with col2:
-        # Display Profit KPIs
-        st.metric("Total COGS", utils.format_currency(total_cogs))
-        st.metric("Gross Profit", utils.format_currency(gross_profit_correct))
-        
-        # Calculate Gross Profit Margin correctly based on Net Revenue
-        # Gross Profit Margin = Gross Profit / Net Revenue
-        gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
-        st.metric("Gross Profit Margin", f"{gross_profit_margin:.2f}%")
-    
-    with col3:
-        # Display profitability metrics
-        st.metric("Operational Costs", utils.format_currency(operational_costs))
-        st.metric("Net Profit", utils.format_currency(net_profit))
-        
-        # Calculate Net Profit Margin correctly based on Net Revenue as per standard formula
-        # Net Profit Margin = Net Profit / Net Revenue
-        net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
-        st.metric("Net Profit Margin", f"{net_margin:.2f}%")
-        
-        # Add most profitable product at the bottom of the third column
-        st.metric("Most Profitable Product", f"{most_profitable['Product']} ({utils.format_currency(most_profitable['Profit'])})")
-    
+    # Calculate revenue reduction due to promotions
+    promo_percentage = ((gross_revenue - net_revenue) / gross_revenue * 100) if gross_revenue > 0 else 0
+    # Gross Profit Margin = Gross Profit / Net Revenue
+    gross_profit_margin = (gross_profit_correct / net_revenue * 100) if net_revenue > 0 else 0
+    # Net Profit Margin = Net Profit / Net Revenue
+    net_margin = (net_profit / net_revenue * 100) if net_revenue > 0 else 0
+
+    # Display KPIs: revenue, profit, and bottom-line rows
+    kpi_rows = [
+        [("Gross Revenue", utils.format_currency(gross_revenue), ":material/payments:"),
+         ("Net Revenue", utils.format_currency(net_revenue), ":material/account_balance_wallet:"),
+         ("Promotion Impact", f"{promo_percentage:.2f}%", ":material/sell:")],
+        [("Total COGS", utils.format_currency(total_cogs), ":material/inventory:"),
+         ("Gross Profit", utils.format_currency(gross_profit_correct), ":material/trending_up:"),
+         ("Gross Profit Margin", f"{gross_profit_margin:.2f}%", ":material/percent:")],
+        [("Operational Costs", utils.format_currency(operational_costs), ":material/storefront:"),
+         ("Net Profit", utils.format_currency(net_profit), ":material/savings:"),
+         ("Net Profit Margin", f"{net_margin:.2f}%", ":material/percent:")],
+    ]
+    for row in kpi_rows:
+        for col, (label, value, icon) in zip(st.columns(3), row):
+            col.metric(label, value, icon=icon, border=True)
+
     # Financial Charts
     st.header("Financial Performance Visualization")
     
@@ -319,49 +275,45 @@ try:
             x=daily_finance['Date_Formatted'],
             y=daily_finance['Total'],
             mode='lines+markers',
-            name='Gross Revenue',
-            line=dict(color='royalblue', dash='dash')
+            name='Gross Revenue'
         ))
         
         fig1.add_trace(go.Scatter(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['Net_Total'],
             mode='lines+markers',
-            name='Net Revenue',
-            line=dict(color='darkblue')
+            name='Net Revenue'
         ))
         
         # Show Promotions as a bar chart below
         fig1.add_trace(go.Bar(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['Promo'],
-            name='Promotions',
-            marker=dict(color='orange')
+            name='Promotions'
         ))
         
         fig1.add_trace(go.Scatter(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['COGS'],
             mode='lines+markers',
-            name='COGS',
-            line=dict(color='red')
+            name='COGS'
         ))
         
         fig1.add_trace(go.Scatter(
             x=daily_finance['Date_Formatted'],
             y=daily_finance['Gross_Profit'],
             mode='lines+markers',
-            name='Gross Profit',
-            line=dict(color='green')
+            name='Gross Profit'
         ))
         
         fig1.update_layout(
             title='Daily Financial Performance',
             xaxis_title='Date',
-            yaxis_title='Amount (VND)'
+            yaxis_title='Amount (VND)',
+            hovermode='x unified'
         )
         
-        st.plotly_chart(fig1, use_container_width=True)
+        utils.chart(fig1)
     else:
         st.info("No sales data available for the selected period to display charts")
     
@@ -386,7 +338,7 @@ try:
                     title='Top 5 Best Selling Products',
                     labels={'Product': 'Product', 'Quantity': 'Units Sold'}
                 )
-                st.plotly_chart(fig2, use_container_width=True)
+                utils.chart(fig2)
             else:
                 st.info("No product sales data available to display")
         else:
@@ -401,14 +353,16 @@ try:
             )
             
             if not top_products.empty:
-                fig3 = px.bar(
+                st.metric("Most Profitable Product", most_profitable['Product'], utils.format_currency(most_profitable['Profit']),
+                          delta_color="off", delta_arrow="off", icon=":material/workspace_premium:", border=True)
+                fig3= px.bar(
                     top_products,
                     x='Product',
                     y='Profit',
                     title='Top 5 Most Profitable Products',
                     labels={'Product': 'Product', 'Profit': 'Profit (VND)'}
                 )
-                st.plotly_chart(fig3, use_container_width=True)
+                utils.chart(fig3)
             else:
                 st.info("No profit data available for display")
         else:
@@ -603,13 +557,9 @@ try:
             # Pie chart of cost breakdown
             cost_breakdown = filtered_costs.groupby('Type')['Amount'].sum().reset_index()
             
-            fig4 = px.pie(
-                cost_breakdown,
-                values='Amount',
-                names='Type',
-                title='Operational Costs Breakdown'
-            )
-            st.plotly_chart(fig4, use_container_width=True)
+            fig4 = utils.hbar(cost_breakdown, 'Amount', 'Type', 'Operational Costs Breakdown',
+                              labels={'Amount': 'Cost (VND)'})
+            utils.chart(fig4)
         else:
             st.info("No operational costs recorded for the selected period")
     else:
@@ -682,41 +632,9 @@ try:
     
     # Display pie chart of all business costs
     if not all_costs.empty and all_costs['Amount'].sum() > 0:
-        # Sort the data by amount for better color gradient
-        all_costs = all_costs.sort_values('Amount')
-        
-        # Create a pie chart showing percentage breakdown of all costs
-        fig_all_costs = px.pie(
-            all_costs,
-            values='Amount',
-            names='Category',
-            title='Inventory Items & Operational Costs',
-            color='Amount',  # Color by amount value for gradient
-            color_discrete_sequence=px.colors.sequential.Plasma_r,  # Use a sequential colorscale (plasma reversed)
-            hover_data=['Amount', 'Type'],  # Show amount and type on hover
-            labels={'Amount': 'Cost (VND)'}
-        )
-        
-        # Update hover template to show the percentage and formatted amount
-        # Create a custom hover template that safely formats the amount and includes type
-        hover_data = []
-        for _, row in all_costs.iterrows():
-            formatted_amount = f"{int(row['Amount']):,} VND"
-            cost_type = row['Type']
-            hover_data.append([formatted_amount, cost_type])
-            
-        # Update figure with customized hover information
-        fig_all_costs.update_traces(
-            customdata=hover_data,
-            hovertemplate='<b>%{label}</b><br>Amount: %{customdata[0]}<br>Type: %{customdata[1]}<br>Percentage: %{percent:.1%}'
-        )
-        
-        # Custom legend title
-        fig_all_costs.update_layout(
-            legend_title_text='Cost Type'
-        )
-        
-        st.plotly_chart(fig_all_costs, use_container_width=True)
+        fig_all_costs = utils.hbar(all_costs, 'Amount', 'Category', 'Inventory Items & Operational Costs',
+                                   color='Type', labels={'Amount': 'Cost (VND)', 'Type': 'Cost Type'})
+        utils.chart(fig_all_costs)
     else:
         st.info("No cost data available. Add inventory items and operational costs to see breakdown.")
     
