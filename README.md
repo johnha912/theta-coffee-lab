@@ -157,14 +157,3 @@ The "before" shots run the previous release on its locked versions (Streamlit 1.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
-
-**Nguyen Ha**
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/nguyenha912)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/johnha912)
-
----
-
-*Built with ❤️ using Python and Streamlit*
